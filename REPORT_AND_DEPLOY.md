@@ -418,6 +418,45 @@ way.
 > Glob `SniperEA_Signal_*` rather than `SniperEA_Signal_1.30v_*` if you want the
 > history to carry across versions.
 
+### The open trade, on one axis
+
+The Live card used to be five prices and a row of blocks. It now leads with a
+single R axis carrying the whole trade:
+
+```
+          entry          stop
+            |             |
+ [ risk ]===[###############################]----|----|----|
+   -1R      0R      TP1  +1R  TP2      TP3      TP4      TP5
+            worst -0.40R      best +3.40R
+```
+
+| Element | Means |
+|---|---|
+| red tint left of entry | the part of the move that is still a loss |
+| blue band | where the trade has **been** — `mae` to `mfe` |
+| ● red / ● blue | the worst and best points it reached |
+| green/red stop line | what is already safe; green once it is at or above entry |
+| TP ticks | solid when reached, dashed when not |
+
+Then two progress bars:
+
+- **Locked in** — `+1.00R guaranteed`, or `1.00R still at risk` in red when the
+  stop is still below entry
+- **Best so far** — how far up the ladder it actually got, out of TP5 (or out of
+  the top runner rung when `InpBookAtTP5 = false`)
+
+> **It is not a price marker.** The state file carries no live price — only
+> `entry`, `risk`, the stops, the ladder and `mfe`/`mae`. So the bar shows where
+> the trade *has been* and what the stop has *made safe*, which is the more
+> useful pair anyway: one says what the trade offered, the other says what you
+> have already banked. The caption on the card says so, so nobody reads the blue
+> band as "price is here".
+
+Verified across a normal trade, a trade still at risk (stop below entry, bar
+red at 0%), a runner three rungs above TP5 (top rescales to 8R), and a SELL,
+where every R is sign-flipped.
+
 ### Where the Live card's entry time comes from
 
 Three sources, in order of trust:

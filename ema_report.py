@@ -1570,6 +1570,123 @@ def entered_cell(st, held=True, entry_map=None):
     return esc(full) + " IST" + tail
 
 
+def trade_geometry(st):
+    """
+    The open trade expressed in R, which is the only scale on which a stop, a
+    target and an excursion can share one axis.
+
+    There is no live price in the state file, so this is not "where price is" -
+    it is where the trade HAS BEEN (mae..mfe) and what is now guaranteed (the
+    stop). That is the more useful pair anyway: one says what the trade offered,
+    the other says what you have already made safe.
+    """
+    risk, entry, d = sget(st, "risk"), sget(st, "entry"), sint(st, "dir")
+    if risk <= 0 or entry <= 0 or d == 0:
+        return None
+
+    def r_of(price):
+        return (price - entry) / risk * d
+
+    tps = [(n, r_of(px), hit) for n, px, hit in ladder(st) if px > 0]
+    run = sint(st, "runLevel")
+    top = max([r for _, r, _ in tps] + [1.0])
+    if run > 0:                       # runner rungs live above TP5
+        top += run
+
+    mfe_r = sget(st, "mfe") / risk
+    mae_r = sget(st, "mae") / risk    # already negative
+    return {
+        "cur_sl": r_of(sget(st, "curSL")),
+        "init_sl": r_of(sget(st, "initSL")),
+        "mfe": mfe_r, "mae": mae_r,
+        "tps": tps, "top": top, "run": run,
+        "reached": max([n for n, _, hit in tps if hit] + [0]),
+    }
+
+
+def h_journey(st, g, w=560, h=96):
+    """
+    One R axis carrying the whole trade: how far it went against, how far in
+    favour, where the stop now sits, and every target it has to clear.
+
+    Blue for favourable, red for adverse - the diverging pair, because this is
+    polarity. Green/red stay on text elsewhere in the page for the same reason.
+    """
+    lo = min(-1.15, g["mae"] - 0.2, g["init_sl"] - 0.15)
+    hi = max(g["top"], g["mfe"]) * 1.06 + 0.1
+    padl, padr, top = 8, 8, 30
+    span = w - padl - padr
+    bar_y, bar_h = top, 22
+
+    def x(r):
+        return padl + (r - lo) / (hi - lo) * span
+
+    out = [f'<svg viewBox="0 0 {w} {h}" height="{h}" role="img" '
+           f'aria-label="Trade progress in R: worst {g["mae"]:+.2f}R, '
+           f'best {g["mfe"]:+.2f}R, stop at {g["cur_sl"]:+.2f}R">']
+    # the track, then the part below entry tinted as risk
+    out.append(f'<rect x="{padl}" y="{bar_y}" width="{span}" height="{bar_h}" rx="5" '
+               'fill="var(--well)"/>')
+    out.append(f'<rect x="{x(lo):.1f}" y="{bar_y}" width="{max(x(0)-x(lo),0):.1f}" '
+               f'height="{bar_h}" rx="5" fill="var(--neg)" opacity="0.13"/>')
+
+    # where the trade has actually been
+    a, b = x(min(g["mae"], 0.0)), x(max(g["mfe"], 0.0))
+    out.append(f'<rect x="{a:.1f}" y="{bar_y}" width="{max(b-a,1.5):.1f}" height="{bar_h}" '
+               f'rx="5" class="fbar" fill="var(--pos)" opacity="0.5">'
+               f'<title>travelled {g["mae"]:+.2f}R to {g["mfe"]:+.2f}R</title></rect>')
+
+    # target ticks
+    for n, r, hit in g["tps"]:
+        tx = x(r)
+        col = "var(--pos)" if hit else "var(--dim)"
+        out.append(f'<line x1="{tx:.1f}" y1="{bar_y-4}" x2="{tx:.1f}" y2="{bar_y+bar_h+4}" '
+                   f'stroke="{col}" stroke-width="{2 if hit else 1}" '
+                   f'{"" if hit else "stroke-dasharray=\"2 2\""}/>'
+                   f'<text x="{tx:.1f}" y="{bar_y+bar_h+16}" fill="{col}" font-size="9" '
+                   f'text-anchor="middle">TP{n}</text>')
+
+    # entry, then the stop - the line that says what is already safe
+    out.append(f'<line x1="{x(0):.1f}" y1="{bar_y-8}" x2="{x(0):.1f}" y2="{bar_y+bar_h+8}" '
+               'stroke="var(--txt)" stroke-width="1.5"/>'
+               f'<text x="{x(0):.1f}" y="{bar_y-12}" fill="var(--txt)" font-size="9" '
+               'text-anchor="middle">entry</text>')
+    safe = g["cur_sl"] >= 0
+    scol = "var(--ok)" if safe else "var(--crit)"
+    out.append(f'<line x1="{x(g["cur_sl"]):.1f}" y1="{bar_y-6}" x2="{x(g["cur_sl"]):.1f}" '
+               f'y2="{bar_y+bar_h+6}" stroke="{scol}" stroke-width="2.5">'
+               f'<title>stop at {g["cur_sl"]:+.2f}R'
+               f'{" - risk-free" if safe else ""}</title></line>'
+               f'<text x="{x(g["cur_sl"]):.1f}" y="{bar_y-12}" fill="{scol}" font-size="9" '
+               f'text-anchor="middle">stop</text>')
+
+    # how far it actually got, each way
+    for r, col, lab in ((g["mae"], "var(--neg)", "worst"), (g["mfe"], "var(--pos)", "best")):
+        if abs(r) < 0.02:
+            continue
+        out.append(f'<circle cx="{x(r):.1f}" cy="{bar_y+bar_h/2}" r="4" fill="{col}" '
+                   f'stroke="var(--card)" stroke-width="1.5">'
+                   f'<title>{lab} {r:+.2f}R</title></circle>')
+
+    tail = (f" &#183; {g['run']} rung{'s' if g['run'] != 1 else ''} above TP5"
+            if g["run"] > 0 else "")
+    out.append(f'<text x="{padl}" y="{h-4}" fill="var(--dim)" font-size="9">'
+               f'worst {g["mae"]:+.2f}R</text>'
+               f'<text x="{w-padr}" y="{h-4}" fill="var(--dim)" font-size="9" '
+               f'text-anchor="end">best {g["mfe"]:+.2f}R{tail}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def h_prog(label, frac, text, col="var(--pos)"):
+    """One labelled progress bar. frac is clamped, so a runner cannot overflow."""
+    f = max(0.0, min(frac, 1.0)) * 100
+    return (f'<div class="kv" style="border:none;padding-bottom:1px">'
+            f'<span>{label}</span><span>{text}</span></div>'
+            f'<div class="bar" style="margin-top:0"><i style="width:{f:.0f}%;'
+            f'background:{col}"></i></div>')
+
+
 def h_live(states, ctx, entry_map=None):
     if not states:
         return ('<div class="note">No <code>_state.txt</code> found next to the logs, '
@@ -1606,21 +1723,27 @@ def h_live(states, ctx, entry_map=None):
                 ("Mode", esc(st.get("entryTag", "?"))),
                 ("Entered", entered_cell(st, entry_map=entry_map)),
             ]
-            rungs = "".join(
-                f'<div class="rung{" hit" if hit else ""}" title="TP{n} at {px:.5f}'
-                f'{" - reached" if hit else ""}">TP{n}</div>'
-                for n, px, hit in ladder(st))
             run = sint(st, "runLevel")
-            if run > 0:
-                # InpRunUntilFlip: TP5 did not close it, and it has cleared
-                # this many rungs above TP5 with the stop stepping up behind
-                rungs += (f'<div class="rung hit" title="running above TP5 - '
-                          f'{run} rung{"s" if run != 1 else ""} cleared">'
-                          f'+{run}&#9650;</div>')
-            ladder_html = (f'<div class="rungs">{rungs}</div>'
-                           '<div class="sub">filled rungs are targets already reached'
-                           + (" &#183; running past TP5 until the signal flips" if run > 0 else "")
-                           + "</div>")
+            g = trade_geometry(st)
+            if g:
+                # one R axis instead of five numbers: where it has been, and
+                # what the stop has already made safe
+                bars = h_prog(
+                    "Locked in", (g["cur_sl"] / g["top"]) if g["top"] else 0,
+                    f'{g["cur_sl"]:+.2f}R guaranteed' if g["cur_sl"] >= 0
+                    else f'{-g["cur_sl"]:.2f}R still at risk',
+                    "var(--ok)" if g["cur_sl"] >= 0 else "var(--crit)")
+                bars += h_prog(
+                    "Best so far", (g["mfe"] / g["top"]) if g["top"] else 0,
+                    f'{g["mfe"]:+.2f}R of {g["top"]:.0f}R')
+                ladder_html = (h_journey(st, g) + bars
+                               + '<div class="sub" style="margin-top:6px">'
+                               'the bar is where the trade has been, not where price is '
+                               '&#183; the stop line is what is already safe'
+                               + (" &#183; running past TP5 until the signal flips"
+                                  if run > 0 else "") + "</div>")
+            else:
+                ladder_html = ""
             title = f"Open {side}"
             badge = ('<span class="badge b-ok">RUNNING</span>' if run > 0
                      else '<span class="badge b-ok">IN TRADE</span>')
