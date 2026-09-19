@@ -119,6 +119,9 @@ def csv_to_event(row):
         "logic": {
             "adx": f("adx"), "rsi": f("rsi"), "rsi_m5": f("rsi_m5"),
             "atr": f("atr"), "macd": f("macd_main"), "macd_sig": f("macd_signal"),
+            # the CSV has this column; not reading it left the MACD table empty
+            # for anyone analysing the .csv instead of the .jsonl
+            "macd_hist": f("macd_hist"),
             "vwap": f("vwap"), "close": f("close"),
             "vol": f("volume"), "vol_avg": f("vol_avg"),
             "bull_pct": f("bull_pct"), "bear_pct": f("bear_pct"),
