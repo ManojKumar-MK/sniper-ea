@@ -466,6 +466,25 @@ string   g_entryTag = "";        // "FULLTGT" / "SCALEOUT" / "SINGLETP" / "SIGNA
 //      INIT  CONFIG  SIGNAL  SKIP  ENTRY  TP  SL  EXIT  GUARD  HALT
 //      ERROR  TG  DATA
 //--------------------------------------------------------------------
+//--------------------------------------------------------------------
+//  Emoji by Unicode code point.
+//
+//  NOT written as "\x...." escapes. MQL5's escape parser does not reliably
+//  yield a UTF-16 code unit from a 4-digit form, and an emoji outside the BMP
+//  needs a surrogate PAIR, which no single escape can express at all. Writing
+//  the character directly into the source is worse again: MetaEditor can save
+//  the file as ANSI and destroy it silently.
+//
+//  ShortToString() takes a UTF-16 code unit and is unambiguous.
+//--------------------------------------------------------------------
+string Emo(uint cp)
+{
+   if(cp < 0x10000) return ShortToString((ushort)cp);
+   cp -= 0x10000;
+   return ShortToString((ushort)(0xD800 + (cp >> 10)))
+        + ShortToString((ushort)(0xDC00 + (cp & 0x3FF)));
+}
+
 void Say(const string tag,const string msg)
 {
    Print(StringFormat("[SNIPER][%-6s] %s",tag,msg));
@@ -543,13 +562,21 @@ int OnInit()
    }
 
    if(InpTgNotifyStart)
-      TelegramSend("\xF0\x9F\xA4\x96 " + TgB("EA online") + "\n"
+      TelegramSend(Emo(0x1F916) + " " + TgB("EA online") + "\n"
                  + _Symbol + "  " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)_Period),7) + "\n\n"
                  + TgPre(StringFormat("%-9s %.2f / %.2f\n%-9s %s\n%-9s %s",
                          "Lots d/e",(InpUseSessionLots?InpDayLot:InpFixedLot),
                                     (InpUseSessionLots?InpEveningLot:InpFixedLot),
                          "Mode",(InpSignalsOnly?"signals only":"live trading"),
-                         "IST now",TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES))));
+                         "IST now",IstClock(TimeCurrent())))
+                 + "\n" + TgB("Reading the close card") + "\n"
+                 + TgPre("R      what the trade actually made, in multiples of the risk\n"
+                         "Best   furthest it ran IN FAVOUR before it ended   (MFE)\n"
+                         "Worst  furthest it ran AGAINST you before it ended (MAE)")
+                 + "\nBoth are measured after entry, so they only appear on the closing "
+                   "message - never on the signal itself.\n"
+                 + TgM("Best far above R = the target closed too early. "
+                       "Worst near 0 = the stop was wider than it needed to be."));
    return(INIT_SUCCEEDED);
 }
 
@@ -630,6 +657,21 @@ void TrackExcursion()
          if(worst<g_mae) g_mae=worst;
       }
    }
+}
+
+//  The close card for a signals-only trade. Same shape as the live one in
+//  AuditAndLogExit(), minus Net: there is no position, so there is no money.
+//  Printing "Net 0.00" would be a fabricated figure rather than a missing one.
+string TgVirtualClose(double exitPx)
+{
+   return TgPre(StringFormat("%-7s %s\n%-7s %s\n%-7s %+.1f\n%-7s %+.2fR\n%-7s %+.2fR\n%-7s %+.2fR",
+          "Entry", DoubleToString(g_entry,_Digits),
+          "Exit",  DoubleToString(exitPx,_Digits),
+          "Pips",  PipsCaught(exitPx),
+          "R",     RealizedR(exitPx),
+          "Best",  ExcursionR(g_mfe),      // furthest in favour after entry
+          "Worst", ExcursionR(g_mae)))     // furthest against
+        + "\n" + TgM("Best/Worst = furthest in favour / against after entry, in R");
 }
 
 //====================================================================
@@ -910,10 +952,9 @@ void OpenTrade(int dir, double atr)
          LogEvent("EXIT_FLIP",fpx,0.0,0.0,0.0,RealizedR(fpx),0.0,
                   "virtual trade ended by the opposite signal");
          if(InpTgNotifyClose)
-            TelegramSend("\xF0\x9F\x94\x81 " + TgB("FLIP - signal ended") + "\n"
+            TelegramSend(Emo(0x1F501) + " " + TgB("FLIP - signal ended") + "\n"
                        + _Symbol + "  " + (g_dir==1?"BUY":"SELL") + "\n\n"
-                       + TgPre(StringFormat("%-6s %s\n%-6s %+.2fR",
-                               "Exit",DoubleToString(fpx,_Digits),"R",RealizedR(fpx))));
+                       + TgVirtualClose(fpx));
          g_virtActive=false;
       }
 
@@ -1085,7 +1126,7 @@ void ManageScaleOut()
             SaveState();
 
             if(InpTgNotifyTP)
-               TelegramSend("\xE2\x9C\x85 " + TgB(tpTag + " reached  " + tgRtxt) + "\n"
+               TelegramSend(Emo(0x2705) + " " + TgB(tpTag + " reached  " + tgRtxt) + "\n"
                           + tgHead + "  " + tgSide + "\n\n"
                           + TgPre(StringFormat("%-6s %s\n%-6s %s\n%-6s %s",
                                   tpTag,DoubleToString(g_tpPrice[i],_Digits),
@@ -1119,7 +1160,7 @@ void ManageScaleOut()
             SaveState();
 
             if(InpTgNotifyTP)
-               TelegramSend("\xF0\x9F\x9A\x80 " + TgB("TP5 reached - RUNNING ON  " + tgRtxt) + "\n"
+               TelegramSend(Emo(0x1F680) + " " + TgB("TP5 reached - RUNNING ON  " + tgRtxt) + "\n"
                           + tgHead + "  " + tgSide + "\n\n"
                           + TgPre(StringFormat("%-6s %s\n%-6s %s\n%-6s %s",
                                   "TP5",DoubleToString(g_tpPrice[4],_Digits),
@@ -1137,7 +1178,7 @@ void ManageScaleOut()
                LogEvent("TP5_EXIT",evPrice,remaining,0.0,tgR5[i],tgR5[i],0.0,
                         "full target reached, closed in full");
                if(InpTgNotifyTP)
-                  TelegramSend("\xF0\x9F\x8F\x81 " + TgB("TP5 HIT - FULL TARGET  " + tgRtxt) + "\n"
+                  TelegramSend(Emo(0x1F3C1) + " " + TgB("TP5 HIT - FULL TARGET  " + tgRtxt) + "\n"
                              + tgHead + "  " + tgSide + "\n\n"
                              + TgPre(StringFormat("%-6s %s\n%-6s %s",
                                      "TP5",DoubleToString(g_tpPrice[i],_Digits),
@@ -1169,7 +1210,7 @@ void ManageScaleOut()
                LogEvent(tpTag+"_EXIT",evPrice,remaining,0.0,tgR5[i],tgR5[i],0.0,
                         "remainder below min lot, closed in full");
                if(InpTgNotifyTP)
-                  TelegramSend("\xE2\x9C\x85 " + TgB(tpTag + " hit - closed in full  " + tgRtxt) + "\n"
+                  TelegramSend(Emo(0x2705) + " " + TgB(tpTag + " hit - closed in full  " + tgRtxt) + "\n"
                              + tgHead + "  " + tgSide + "\n\n"
                              + TgPre(StringFormat("%-6s %s\n%-6s %s",
                                      tpTag,DoubleToString(g_tpPrice[i],_Digits),
@@ -1205,7 +1246,7 @@ void ManageScaleOut()
          Say("TP",StringFormat("%s hit @ %s | +%.1fR | booked %.2f lots | %s",
              tpTag,DoubleToString(g_tpPrice[i],_Digits),tgR5[i],slice,tgSlLine));
          if(InpTgNotifyTP)
-            TelegramSend("\xE2\x9C\x85 " + TgB(tpTag + " booked  " + tgRtxt) + "\n"
+            TelegramSend(Emo(0x2705) + " " + TgB(tpTag + " booked  " + tgRtxt) + "\n"
                        + tgHead + "  " + tgSide + "\n\n"
                        + TgPre(StringFormat("%-6s %s\n%-6s %.2f lots\n%-6s %s",
                                tpTag,DoubleToString(g_tpPrice[i],_Digits),
@@ -1236,7 +1277,7 @@ void ManageScaleOut()
          SaveState();
 
          if(InpTgNotifyTP)
-            TelegramSend("\xF0\x9F\x9A\x80 " + TgB("TP5 reached - remainder RUNNING  " + tgRtxt) + "\n"
+            TelegramSend(Emo(0x1F680) + " " + TgB("TP5 reached - remainder RUNNING  " + tgRtxt) + "\n"
                        + tgHead + "  " + tgSide + "\n\n"
                        + TgPre("TP5    " + DoubleToString(g_tpPrice[4],_Digits) + "\n"
                              + "Stop   " + slLine));
@@ -1251,7 +1292,7 @@ void ManageScaleOut()
                 DoubleToString(g_tpPrice[i],_Digits),tgR5[i]));
             LogEvent("TP5_EXIT",evPrice,remaining,0.0,tgR5[i],tgR5[i],0.0,"final target, closed remainder");
             if(InpTgNotifyTP)
-               TelegramSend("\xF0\x9F\x8F\x81 " + TgB("TP5 hit - fully closed  " + tgRtxt) + "\n"
+               TelegramSend(Emo(0x1F3C1) + " " + TgB("TP5 hit - fully closed  " + tgRtxt) + "\n"
                           + tgHead + "  " + tgSide + "\n\n"
                           + TgPre("TP5    " + DoubleToString(g_tpPrice[i],_Digits)));
          }
@@ -1328,7 +1369,7 @@ void ManageRunner()
             LogEvent("SL_MOVE",newSL,0.0,remaining,rr,0.0,0.0,
                      "runner: stop trailed to "+behind);
             if(InpTgNotifyTP)
-               TelegramSend("\xF0\x9F\x9A\x80 " + TgB(StringFormat("Runner +%.1fR",rr)) + "\n"
+               TelegramSend(Emo(0x1F680) + " " + TgB(StringFormat("Runner +%.1fR",rr)) + "\n"
                           + _Symbol + "  " + (g_dir==1?"BUY":"SELL") + "\n\n"
                           + TgPre("Price  " + DoubleToString(px,_Digits) + "\n"
                                 + "Stop   " + behind + " " + DoubleToString(newSL,_Digits)));
@@ -1552,7 +1593,7 @@ void AuditAndLogExit()
 
    if(InpTgNotifyClose)
    {
-      string icon = (net>0) ? "\xF0\x9F\x92\xB0" : ((net<0) ? "\xE2\x9D\x8C" : "\xE2\x9E\x96");
+      string icon = (net>0) ? Emo(0x1F4B0) : ((net<0) ? Emo(0x274C) : Emo(0x2796));
       TelegramSend(icon + " " + TgB("CLOSED  " + evt) + "\n"
                  + _Symbol + "  " + (g_dir==1?"BUY":"SELL") + "\n\n"
                  + TgPre(StringFormat("%-7s %s\n%-7s %s\n%-7s %+.1f\n%-7s %+.2fR\n%-7s %+.2f\n"
@@ -1803,7 +1844,7 @@ void EmitPeriodSummary(const string kind,int idx)
                  + PadL(StringFormat("%+.1f",r),6)
                  + PadL(StringFormat("%+.2f",net),10);
 
-      string msg = "\xF0\x9F\x97\x93 " + TgB(label + " SUMMARY") + "\n"
+      string msg = Emo(0x1F5D3) + " " + TgB(label + " SUMMARY") + "\n"
                  + _Symbol + "  " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)_Period),7)
                  + "   " + TgM("dates IST") + "\n\n"
                  + TgPre(hdr + rows + tot) + "\n"
@@ -1846,7 +1887,7 @@ void TelegramDaySummary(const string dstr,double net,double winPct,double profFa
    int dg = _Digits;
    int n  = ArraySize(g_dayLog);
 
-   string msg = "\xF0\x9F\x93\x8A " + TgB("DAY SUMMARY  " + dstr) + "\n"
+   string msg = Emo(0x1F4CA) + " " + TgB("DAY SUMMARY  " + dstr) + "\n"
               + _Symbol + "  " + StringSubstr(EnumToString((ENUM_TIMEFRAMES)_Period),7)
               + "   " + TgM("times IST") + "\n\n";
 
@@ -1865,8 +1906,8 @@ void TelegramDaySummary(const string dstr,double net,double winPct,double profFa
       {
          sumPips += g_dayLog[i].pips;
          t += Pad(IntegerToString(i+1),3)
-            + Pad(g_dayLog[i].tIst,6)
-            + Pad(g_dayLog[i].xIst,6)
+            + Pad(Hm12(g_dayLog[i].tIst),6)
+            + Pad(Hm12(g_dayLog[i].xIst),6)
             + Pad((g_dayLog[i].dir==1?"B":"S"),2)
             + Pad(DoubleToString(g_dayLog[i].entry,dg),pw+1)
             + Pad(DoubleToString(g_dayLog[i].sl,dg),pw+1)
@@ -1985,7 +2026,7 @@ bool GuardsBlockTrading()
             StringFormat("overall loss guard [%s] | -%.2f of max %.2f (stop at %.0f%% = %.2f) | TRADING STOPPED",
                          DDModeText(),totalLoss,tCap,InpTotalLossStopPct,stopAt), totalLoss);
          if(InpTgNotifyHalt)
-            TelegramSend("\xF0\x9F\x9B\x91 " + TgB("MAX LOSS GUARD - TRADING STOPPED") + "\n"
+            TelegramSend(Emo(0x1F6D1) + " " + TgB("MAX LOSS GUARD - TRADING STOPPED") + "\n"
                        + _Symbol + "\n\n"
                        + TgPre(StringFormat("%-11s %.2f\n%-11s %.2f\n%-11s %.2f\n%-11s %.2f\n%-11s %.2f\n%-11s %.2f",
                                "Baseline", g_baseline,
@@ -2004,7 +2045,7 @@ bool GuardsBlockTrading()
          Say("HALT",StringFormat("overall loss WARNING | -%.2f is %.0f%% of the max %.2f",
              totalLoss, (tCap>0?totalLoss/tCap*100.0:0), tCap));
          if(InpTgNotifyHalt)
-            TelegramSend("\xE2\x9A\xA0\xEF\xB8\x8F " + TgB("MAX LOSS WARNING") + "\n"
+            TelegramSend(Emo(0x26A0) + Emo(0xFE0F) + " " + TgB("MAX LOSS WARNING") + "\n"
                        + _Symbol + "\n\n"
                        + TgPre(StringFormat("%-11s %.2f\n%-11s %.2f\n%-11s %.0f%%\n%-11s %.2f",
                                "Loss",      totalLoss,
@@ -2027,7 +2068,7 @@ bool GuardsBlockTrading()
          HaltAndFlatten("HALT_DAILYCAP","DAYCAP exit",
             StringFormat("daily loss cap | -%.2f >= %.2f | halted for the day",dayLoss,dCap), dayLoss);
          if(InpTgNotifyHalt)
-            TelegramSend("\xF0\x9F\x9B\x91 " + TgB("DAILY LOSS CAP") + "\n"
+            TelegramSend(Emo(0x1F6D1) + " " + TgB("DAILY LOSS CAP") + "\n"
                        + _Symbol + "\n\n"
                        + TgPre(StringFormat("%-11s %.2f\n%-11s %.2f\n%-11s %d\n%-11s %.2f",
                                "Day loss", dayLoss,
@@ -2044,7 +2085,7 @@ bool GuardsBlockTrading()
          Say("HALT",StringFormat("daily loss WARNING | -%.2f is %.0f%% of the cap %.2f",
              dayLoss, dayLoss/dCap*100.0, dCap));
          if(InpTgNotifyHalt)
-            TelegramSend("\xE2\x9A\xA0\xEF\xB8\x8F " + TgB("DAILY LOSS WARNING") + "\n"
+            TelegramSend(Emo(0x26A0) + Emo(0xFE0F) + " " + TgB("DAILY LOSS WARNING") + "\n"
                        + _Symbol + "\n\n"
                        + TgPre(StringFormat("%-11s %.2f\n%-11s %.2f\n%-11s %.0f%%\n%-11s %.2f",
                                "Day loss", dayLoss,
@@ -2062,7 +2103,7 @@ bool GuardsBlockTrading()
          StringFormat("loss count | %d losing trades today (max %d) | halted for the day",
                       g_dLoss,InpMaxLossesPerDay), dayLoss);
       if(InpTgNotifyHalt)
-         TelegramSend("\xF0\x9F\x9B\x91 " + TgB("MAX LOSSES PER DAY") + "\n"
+         TelegramSend(Emo(0x1F6D1) + " " + TgB("MAX LOSSES PER DAY") + "\n"
                     + _Symbol + "\n\n"
                     + TgPre(StringFormat("%-11s %d of %d\n%-11s %d\n%-11s %.2f",
                             "Losses",  g_dLoss, InpMaxLossesPerDay,
@@ -2089,7 +2130,7 @@ void SaveState()
    int h=FileOpen(StateFileName(),FILE_WRITE|FILE_TXT|FILE_ANSI);
    if(h==INVALID_HANDLE) return;                     // best effort - never block trading
 
-   FileWriteString(h,StringFormat("ver=2\r\n"));
+   FileWriteString(h,"ver=2\r\n");
    FileWriteString(h,StringFormat("day=%d\r\n",(int)g_dayStamp));
    FileWriteString(h,StringFormat("dayStartBal=%.2f\r\n",g_dayStartBal));
    FileWriteString(h,StringFormat("baseline=%.2f\r\n",g_baseline));
@@ -2558,8 +2599,10 @@ string NextNewsText()
 void SaySessionBanner(bool day)
 {
    string nm = day ? "DAY" : "EVENING";
-   Say("SESS",StringFormat("----- %s session open | %02d:00-%02d:00 IST | %s IST | %s -----",
+   Say("SESS",StringFormat("----- %s session open | %s - %s IST (inputs %d/%d) | %s IST | %s -----",
        nm,
+       IstHourLabel(day?InpDaySessionStartIST:InpDaySessionEndIST),
+       IstHourLabel(day?InpDaySessionEndIST:InpDaySessionStartIST),
        (day?InpDaySessionStartIST:InpDaySessionEndIST),
        (day?InpDaySessionEndIST:InpDaySessionStartIST),
        TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES),
@@ -2675,12 +2718,12 @@ void SayStartupBanner(const string why)
        TimeToString(ServerToIST(TimeCurrent()),TIME_DATE|TIME_MINUTES)));
 
    // --- the two IST sessions, side by side ---
-   Say("CONFIG",StringFormat("DAY     %02d:00-%02d:00 IST | %s | %s | %s | %s",
-       InpDaySessionStartIST, InpDaySessionEndIST,
+   Say("CONFIG",StringFormat("DAY     %s - %s IST (inputs %d/%d) | %s | %s | %s | %s",
+       IstHourLabel(InpDaySessionStartIST), IstHourLabel(InpDaySessionEndIST), InpDaySessionStartIST, InpDaySessionEndIST,
        SessionLotText(true), SessionStopText(true), SessionTargetText(true), SessionExitText()));
 
-   Say("CONFIG",StringFormat("EVENING %02d:00-%02d:00 IST | %s | %s | %s | %s",
-       InpDaySessionEndIST, InpDaySessionStartIST,
+   Say("CONFIG",StringFormat("EVENING %s - %s IST (inputs %d/%d) | %s | %s | %s | %s",
+       IstHourLabel(InpDaySessionEndIST), IstHourLabel(InpDaySessionStartIST), InpDaySessionEndIST, InpDaySessionStartIST,
        SessionLotText(false), SessionStopText(false), SessionTargetText(false), SessionExitText()));
 
    // --- what gates an entry ---
@@ -2958,7 +3001,7 @@ void NewsAnnounceUpcoming()
                     "Event",    HtmlEsc(g_news[i].name),
                     "Currency", (g_news[i].cur==""?"-":g_news[i].cur),
                     "Impact",   NewsImpText(g_news[i].imp),
-                    "Time",     TimeToString(ServerToIST(g_news[i].evTime),TIME_MINUTES),
+                    "Time",     IstClock(g_news[i].evTime),
                                 TimeToString(g_news[i].evTime,TIME_MINUTES),
                     "Starts",   mins);
 
@@ -2968,13 +3011,13 @@ void NewsAnnounceUpcoming()
       string tail;
       if(InpUseNewsFilter)
          tail = StringFormat("\nNo new entries %s - %s IST. Open trades keep running%s.",
-                TimeToString(ServerToIST(g_news[i].from),TIME_MINUTES),
-                TimeToString(ServerToIST(g_news[i].to),TIME_MINUTES),
+                IstClock(g_news[i].from),
+                IstClock(g_news[i].to),
                 (InpNewsCloseOpen?" until the flatten":""));
       else
          tail = "\nHeads-up only - the news filter is off, trading continues as normal.";
 
-      TelegramSend("\xF0\x9F\x93\xB0 " + TgB("NEWS AHEAD") + "\n"
+      TelegramSend(Emo(0x1F4F0) + " " + TgB("NEWS AHEAD") + "\n"
                  + _Symbol + "\n\n" + TgPre(body) + tail);
    }
 }
@@ -3011,7 +3054,7 @@ bool NewsBlocksTrading()
       {
          Say("NEWS",StringFormat("window clear | %s | entries resume",g_newsActive));
          if(InpNewsTgAlerts)
-            TelegramSend("\xE2\x9C\x85 " + TgB("NEWS WINDOW CLEAR") + "\n"
+            TelegramSend(Emo(0x2705) + " " + TgB("NEWS WINDOW CLEAR") + "\n"
                        + _Symbol + "\n\nEntries resume. (" + HtmlEsc(g_newsActive) + ")");
          g_newsActive="";
       }
@@ -3033,7 +3076,7 @@ bool NewsBlocksTrading()
       }
 
       if(InpNewsTgAlerts)
-         TelegramSend("\xE2\x8F\xB8 " + TgB("NEW ENTRIES PAUSED") + "\n"
+         TelegramSend(Emo(0x23F8) + " " + TgB("NEW ENTRIES PAUSED") + "\n"
                     + _Symbol + "\n\n"
                     + TgPre(StringFormat("%-9s %s\n%-9s -%d / +%d min\n%-9s %s",
                             "Event",   HtmlEsc(why),
@@ -3092,9 +3135,9 @@ void DoWeekendClose()
          double px=(g_dir==1)?SymbolInfoDouble(_Symbol,SYMBOL_BID):SymbolInfoDouble(_Symbol,SYMBOL_ASK);
          LogEvent("EXIT_WEEKEND",px,0.0,0.0,0.0,RealizedR(px),0.0,"signal closed before the weekend");
          if(InpTgNotifyClose)
-            TelegramSend("\xF0\x9F\x93\xB4 " + TgB("WEEKEND CLOSE - signal ended") + "\n"
+            TelegramSend(Emo(0x1F4F4) + " " + TgB("WEEKEND CLOSE - signal ended") + "\n"
                        + _Symbol + "  " + (g_dir==1?"BUY":"SELL") + "\n\n"
-                       + TgPre("Exit   " + DoubleToString(px,_Digits)));
+                       + TgVirtualClose(px));
          g_virtActive=false;
       }
       g_weekendFlat=true;
@@ -3108,7 +3151,7 @@ void DoWeekendClose()
           TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES)));
       ClosePositionTagged("WEEKEND exit","EXIT_WEEKEND");
       if(InpTgNotifyClose)
-         TelegramSend("\xF0\x9F\x93\xB4 " + TgB("WEEKEND CLOSE") + "\n"
+         TelegramSend(Emo(0x1F4F4) + " " + TgB("WEEKEND CLOSE") + "\n"
                     + _Symbol + "\n\nPosition flattened before the Friday close.");
    }
    g_weekendFlat=true;
@@ -3219,6 +3262,35 @@ double ServerGmtOffsetHours()
          return MathRound((double)diff/1800.0)/2.0;    // snapped to the nearest half hour
    }
    return InpServerGmtOffset;
+}
+
+// Label for an INPUT hour. The session inputs are 24-hour (0 = midnight,
+// 16 = 4 PM) and must stay that way - everything compares against dt.hour.
+// The banner prints both so "4" is never mistaken for 4 PM.
+string IstHourLabel(int h)
+{
+   int h12 = h % 12; if(h12==0) h12 = 12;
+   return StringFormat("%d %s", h12, (h < 12 ? "AM" : "PM"));
+}
+
+// IST on a 12-hour clock, the way it is read locally: "02:29 AM".
+// 24-hour "02:29" is what caused a 2 AM message to be mistaken for 2 PM.
+string IstClock(datetime tServer)
+{
+   MqlDateTime d; TimeToStruct(ServerToIST(tServer),d);
+   int h12 = d.hour % 12; if(h12==0) h12 = 12;
+   return StringFormat("%02d:%02d %s", h12, d.min, (d.hour < 12 ? "AM" : "PM"));
+}
+
+// "14:05" -> "02:05p". The stored value stays 24-hour because the state file
+// and the dashboard read it; only the Telegram table is rendered 12-hour.
+string Hm12(const string hhmm)
+{
+   if(StringLen(hhmm) < 4) return hhmm;
+   int h = (int)StringToInteger(StringSubstr(hhmm,0,2));
+   string mm = StringSubstr(hhmm,3,2);
+   int h12 = h % 12; if(h12==0) h12 = 12;
+   return StringFormat("%02d:%s%s", h12, mm, (h < 12 ? "a" : "p"));
 }
 
 datetime ServerToIST(datetime tServer)
@@ -3648,7 +3720,7 @@ void SendEntrySignal(double slPrice)
    SnapVals s; TakeSnapshot(s);
 
    string side = (g_dir==1) ? "BUY" : "SELL";
-   string arrow= (g_dir==1) ? "\xF0\x9F\x9F\xA2" : "\xF0\x9F\x94\xB4";   // green / red circle
+   string arrow= (g_dir==1) ? Emo(0x1F7E2) : Emo(0x1F534);   // green / red circle
    string tf   = StringSubstr(EnumToString((ENUM_TIMEFRAMES)_Period), 7);
    int    dg   = _Digits;
 
@@ -3681,7 +3753,7 @@ void SendEntrySignal(double slPrice)
    msg += "\n" + (g_fullTgt ? "No partials - full size to TP5, SL steps up one level at a time\n"
                              : StringFormat("Booking %.0f%% at TP1-TP4\n",InpPartialPct));
    msg += TgM(TimeToString(TimeCurrent(),TIME_MINUTES) + " srv / "
-            + TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES) + " IST");
+            + IstClock(TimeCurrent()) + " IST");
    TelegramSend(msg);
 }
 
@@ -3731,11 +3803,13 @@ void MonitorVirtual()
                   g_fullTgt?"full target: no partial":"scale-out mode: book slice here");
 
          if(InpTgNotifyTP)
-            TelegramSend(tpTag + " REACHED (" + rtxt + ")  " + side + "\n"
-                       + head + "\n"
-                       + tpTag + " @ " + DoubleToString(g_tpPrice[i],_Digits) + "\n"
-                       + (g_fullTgt ? "No partial - running to full target\n" : "")
-                       + slLine);
+            TelegramSend(Emo(0x2705) + " " + TgB(tpTag + " reached  " + rtxt) + "\n"
+                       + head + "  " + side + "\n\n"
+                       + TgPre(StringFormat("%-6s %s\n%-6s %s\n%-6s %s",
+                               tpTag, DoubleToString(g_tpPrice[i],_Digits),
+                               "Booked", (g_fullTgt ? "nothing - running to TP5"
+                                                    : "book slice here"),
+                               "Stop", slLine)));
       }
       else if(RunnerOn())
       {
@@ -3751,18 +3825,20 @@ void MonitorVirtual()
          LogEvent("TP5_REACHED",g_tpPrice[i],0.0,0.0,Rmult[i],Rmult[i],0.0,
                   "runner: not closed at TP5, running until the opposite signal");
          if(InpTgNotifyTP)
-            TelegramSend("TP5 REACHED (" + rtxt + ") - RUNNING ON  " + side + "\n"
-                       + head + "\n"
-                       + "TP5 @ " + DoubleToString(g_tpPrice[i],_Digits) + "\n"
-                       + "SL -> TP4 " + DoubleToString(g_virtSL,_Digits));
+            TelegramSend(Emo(0x1F680) + " " + TgB("TP5 reached - RUNNING ON  " + rtxt) + "\n"
+                       + head + "  " + side + "\n\n"
+                       + TgPre(StringFormat("%-6s %s\n%-6s %s\n%-6s %s",
+                               "TP5", DoubleToString(g_tpPrice[i],_Digits),
+                               "Booked", "nothing - running until the flip",
+                               "Stop", "SL -> TP4 " + DoubleToString(g_virtSL,_Digits))));
       }
       else
       {
          LogEvent("TP5_EXIT",g_tpPrice[i],0.0,0.0,Rmult[i],Rmult[i],0.0,"signal complete at full target");
          if(InpTgNotifyTP)
-            TelegramSend("TP5 REACHED (" + rtxt + ") - SIGNAL COMPLETE  " + side + "\n"
-                       + head + "\n"
-                       + "TP5 @ " + DoubleToString(g_tpPrice[i],_Digits));
+            TelegramSend(Emo(0x1F3C1) + " " + TgB("TP5 REACHED - SIGNAL COMPLETE  " + rtxt) + "\n"
+                       + head + "  " + side + "\n\n"
+                       + TgVirtualClose(g_tpPrice[i]));
          g_virtActive=false;
          return;
       }
@@ -3791,9 +3867,11 @@ void MonitorVirtual()
             string behind = (k==1) ? "TP5" : ("+" + DoubleToString(rr-InpRunnerStepR,1) + "R");
             LogEvent("SL_MOVE",newSL,0.0,0.0,rr,0.0,0.0,"runner: stop trailed to "+behind);
             if(InpTgNotifyTP)
-               TelegramSend(StringFormat("Runner +%.1fR  %s\n",rr,side) + head + "\n"
-                          + "@ " + DoubleToString(px,_Digits) + "\n"
-                          + "SL -> " + behind + " " + DoubleToString(newSL,_Digits));
+               TelegramSend(Emo(0x1F680) + " " + TgB(StringFormat("Runner +%.1fR",rr)) + "\n"
+                          + head + "  " + side + "\n\n"
+                          + TgPre(StringFormat("%-6s %s\n%-6s %s",
+                                  "Price", DoubleToString(px,_Digits),
+                                  "Stop",  behind + " " + DoubleToString(newSL,_Digits))));
          }
       }
    }
@@ -3811,8 +3889,9 @@ void MonitorVirtual()
 
          LogEvent(evt,g_virtSL,0.0,0.0,0.0,RealizedR(g_virtSL),0.0,tag);
          if(InpTgNotifyClose)
-            TelegramSend(tag + "  " + side + "\n" + head + "\n"
-                       + "@ " + DoubleToString(g_virtSL,_Digits));
+            TelegramSend((atBE ? Emo(0x2796) + " " : Emo(0x274C) + " ") + TgB(tag) + "\n"
+                       + head + "  " + side + "\n\n"
+                       + TgVirtualClose(g_virtSL));
          g_virtActive=false;
       }
    }

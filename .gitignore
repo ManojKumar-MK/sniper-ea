@@ -14,3 +14,9 @@ ea_trades.csv
 SniperEA_Log_*.csv
 SniperEA_Log_*.jsonl
 *_state.txt
+
+# MT5 input presets. These hold the live Telegram bot token and chat id, so they
+# stay on the machine that runs the EA. A private repo is not a secret store -
+# a token committed once lives in the history until the history is rewritten.
+*.set
+!*.example.set

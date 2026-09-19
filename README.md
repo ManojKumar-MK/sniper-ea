@@ -37,7 +37,9 @@ Requires Python 3.8+. Nothing to install.
 | File | What it answers |
 |---|---|
 | [DEPLOY_STEPS.md](DEPLOY_STEPS.md) | setting it up on a VPS, step by step |
+| `*.example.set` | MT5 input presets — trading and signals-only |
 | [EA_GUIDE.md](EA_GUIDE.md) | every input, and why it is there |
+| [TELEGRAM_MESSAGES.md](TELEGRAM_MESSAGES.md) | every alert it can send, with samples |
 | [REPORT_AND_DEPLOY.md](REPORT_AND_DEPLOY.md) | the dashboard, and backtest analysis |
 | [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md) | reaching it from a phone, behind a sign-in |
 | [RESTART_RECOVERY.md](RESTART_RECOVERY.md) | what survives a crash, and what does not |

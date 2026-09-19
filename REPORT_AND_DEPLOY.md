@@ -381,6 +381,43 @@ No recompile, no re-run, and it fixes history rather than just new rows. Use
 Leave the flag off and the EA's own conversion is used unchanged, which is the
 right thing when the offset was correct.
 
+### Running a signals-only instance alongside the trading one
+
+Give the two instances different `InpCsvPrefix` values, or they write the same
+`.csv`, the same `.jsonl` and the same `_state.txt` and overwrite each other.
+
+```
+InpCsvPrefix = "SniperEA_Log"             -> SniperEA_Log_XAUUSD_M15.jsonl
+InpCsvPrefix = "SniperEA_Signal_1.30v"    -> SniperEA_Signal_1.30v_XAUUSD_M15.jsonl
+```
+
+A dot in the prefix is fine — the extension is always appended last, and the
+loader dispatches on the ending, not on `splitext`.
+
+**Point each dashboard at one prefix, not at `*.jsonl`.** Both instances see the
+same EMA crosses, so a wildcard merges two copies of every trade:
+
+| Pattern | Result |
+|---|---|
+| `Files\*.jsonl` | **10 trades** — the same 5 counted twice |
+| `Files\SniperEA_Signal_1.30v_*.jsonl` | 5 trades, the signal feed |
+| `Files\SniperEA_Log_*.jsonl` | 5 trades, the account |
+
+```bat
+python ema_report.py "...\Files\SniperEA_Log_*.jsonl"          --serve 8800
+python ema_report.py "...\Files\SniperEA_Signal_1.30v_*.jsonl" --serve 8801
+```
+
+The state file follows automatically: `find_states()` derives its pattern from
+the log pattern, so a prefix-scoped glob gets that instance's Live card and not
+the other one's. A bare `*.jsonl` still picks up every state file, which is the
+right answer when you really did ask for both. `--state FILE` overrides either
+way.
+
+> Putting a version in the prefix means a new file when you move to v1.31.
+> Glob `SniperEA_Signal_*` rather than `SniperEA_Signal_1.30v_*` if you want the
+> history to carry across versions.
+
 ### Filtering
 
 A chip row above every tab filters by **symbol** and by **period** (all, this

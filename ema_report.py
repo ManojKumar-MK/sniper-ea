@@ -220,13 +220,25 @@ def find_states(log_paths, explicit):
             out.extend(sorted(glob.glob(pattern)) or
                        ([pattern] if os.path.exists(pattern) else []))
         return out
-    dirs, found = [], []
+    # Derive the state pattern from the LOG pattern, because the EA builds both
+    # from the same InpCsvPrefix: "<prefix>_<symbol>_<tf>" plus .jsonl / .csv /
+    # _state.txt. Two instances on one symbol (a trading one and a signals-only
+    # one) share a folder, so globbing every *_state.txt there would put both
+    # cards on the Live tab even when the logs were scoped to one of them.
+    found, seen = [], set()
     for pattern in log_paths:
         d = os.path.dirname(pattern) or "."
-        if d not in dirs:
-            dirs.append(d)
-    for d in dirs:
-        found.extend(sorted(glob.glob(os.path.join(d, "*_state.txt"))))
+        base = os.path.basename(pattern)
+        stem = base.rsplit(".", 1)[0] if "." in base else base
+        for cand in (os.path.join(d, stem + "_state.txt"),
+                     os.path.join(d, "*_state.txt")):
+            hits = sorted(glob.glob(cand))
+            if hits:
+                for h in hits:
+                    if h not in seen:
+                        seen.add(h)
+                        found.append(h)
+                break              # the derived pattern wins; the wide one is a fallback
     return found
 
 

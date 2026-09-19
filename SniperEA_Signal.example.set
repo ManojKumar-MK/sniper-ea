@@ -1,0 +1,160 @@
+; TEMPLATE - copy to SniperEA_Signal.set and fill in InpTgToken / InpTgChatId.
+; The real file is gitignored: it holds a live bot token.
+; -- Signal (Sniper core) --
+InpEmaFast=9
+InpEmaMid=21
+InpEmaTrend=50
+InpAtrPeriod=14
+InpTradeOnClose=true
+; -- Risk & stop --
+InpRiskPercent=0.5
+InpUseFixedLot=true
+InpFixedLot=0.05
+InpUseSessionLots=true
+InpDayLot=0.05
+InpEveningLot=0.05
+InpSlAtrMult=2.0
+; -- Take-profit: 5-level target ladder --
+InpUseScaleOut=true
+InpTP1_R=1.0
+InpTP2_R=2.0
+InpTP3_R=3.0
+InpTP4_R=4.0
+InpTP5_R=5.0
+InpPartialPct=20.0
+InpTrailBehindTP=true
+InpTpRMultiple=3.0
+InpMoveToBE_Single=true
+; -- FULL TARGET: never book a partial --
+InpUseFullTarget=true
+; -- Strategy Tester --
+InpTesterFreshLog=true
+; -- Signal audit --
+InpLogSkips=true
+; -- Heartbeat --
+InpHeartbeatMin=5
+; -- TP5: book it, or let it run --
+InpBookAtTP5=true
+InpRunnerStepR=1.0
+InpFlipExitAnyTime=true
+; -- IST session: stop size only (12 AM - 4 PM vs 4 PM - 12 AM) -
+InpDaySessionStartIST=0
+InpDaySessionEndIST=16
+InpUseHalfSlOutside=true
+InpOutsideSlFactor=0.5
+InpTpFromHalvedRisk=true
+; -- EVENING SESSION: skip it, narrow it, or punch holes in it --
+InpTradeEvening=true
+InpEveEntryStartIST=16
+InpEveEntryEndIST=0
+InpEveH16=true
+InpEveH17=true
+InpEveH18=true
+InpEveH19=true
+InpEveH20=true
+InpEveH21=true
+InpEveH22=true
+InpEveH23=true
+; -- Per-session risk % (only when session lots and fixed lot are
+InpUseSessionRisk=false
+InpDayRiskPct=0.5
+InpEveningRiskPct=0.25
+; -- IST clock conversion --
+InpAutoGmtOffset=false
+InpServerGmtOffset=3.0
+; -- Weekend handling --
+InpHoldOverWeekend=true
+InpFridayCloseBufferMin=15
+InpFridayCloseHour=-1
+InpFridayCloseMinute=0
+InpBlockFridayEntries=true
+; -- FUNDED / PROP ACCOUNT MODE --
+InpPropMode=false
+; -- On-chart dashboard --
+InpShowPanel=true
+InpPanelCorner=0
+InpPanelX=12
+InpPanelY=22
+InpPanelFont=9
+InpPanelFontName=Consolas
+InpPanelBg=1971730
+InpPanelText=14474460
+; -- Restart recovery --
+InpPersistState=true
+; -- Account baseline (all loss limits measure against this) --
+InpBaselineBalance=0.0
+; -- Daily loss guard --
+InpDayResetHour=0
+InpDayResetMinute=0
+InpDayResetUseIST=true
+InpMaxDailyLossPct=4.0
+InpMaxDailyLossMoney=0.0
+InpDailyWarnPct=75.0
+InpMaxLossesPerDay=3
+InpCloseOnDailyCap=true
+; -- Overall loss guard (account-level) --
+InpDrawdownMode=2
+InpMaxTotalLossPct=10.0
+InpMaxTotalLossMoney=0.0
+InpTotalLossStopPct=90.0
+InpTotalWarnPct=70.0
+; -- News filter --
+InpUseNewsFilter=false
+InpNewsMinsBefore=15
+InpNewsMinsAfter=15
+InpNewsImportance=2
+InpNewsCurrencies=USD
+InpNewsCloseOpen=false
+InpNewsManualTimes=
+InpNewsManualIsIST=false
+InpNewsTgAlerts=true
+InpNewsAlertMins=15
+; -- Other guards --
+InpMaxSpreadPts=70
+InpMagic=990551
+; -- Run mode --
+InpSignalsOnly=true
+; -- Session / time filter  (EDIT THESE TO TEST) --
+InpUseSessionFilter=false
+InpSessionStartHour=0
+InpSessionEndHour=11
+; -- Telegram alerts  (live/demo only - NOT in Strategy Tester) -
+InpUseTelegram=true
+InpTgToken=
+InpTgChatId=
+InpTgPrefix=SniperEntry SIGNAL 1.30v =>
+InpTgNotifyStart=true
+InpTgNotifyEntry=true
+InpTgNotifyTP=true
+InpTgNotifyClose=true
+InpTgNotifyHalt=true
+InpTgNotifyEOD=true
+InpTgNotifyPeriod=true
+InpTgHtmlStyle=true
+InpTgDayTable=true
+InpPipSize=0.0
+; -- CSV event log (for reports) --
+InpUseCsvLog=true
+InpCsvPrefix=SniperEA_Signal_1.30v
+InpUseJsonLog=true
+InpEchoLogToTerminal=true
+; -- Signal Quality Filter (optional) --
+InpEnableQFilter=false
+InpQfTrend=true
+InpAdxMin=25.0
+InpQfStruct=true
+InpStructMult=0.5
+InpQfEma50=true
+InpQfVwap=true
+InpQfBias=false
+InpBiasMin=70.0
+InpQfVolume=false
+InpQfCooldown=true
+InpCooldownBars=5
+; -- Bias score inputs --
+InpRsiPeriod=14
+InpMacdFast=12
+InpMacdSlow=26
+InpMacdSignal=9
+InpAdxPeriod=14
+InpVolAvgPeriod=20

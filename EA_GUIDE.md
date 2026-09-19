@@ -127,6 +127,42 @@ offset it resolved — check it once.
 > evening half-stop can then never trigger. The startup banner labels the entry
 > window as SERVER time directly under the IST session lines for this reason.
 
+### Clock formatting
+
+**Telegram messages only** are 12-hour: `02:29 PM`. Five places — the startup
+card, the entry card footer, and the three news lines — plus the end-of-day
+table, which uses the compact `02:29a` / `02:05p` so its columns keep their
+width on a phone.
+
+Everything else stays 24-hour, deliberately:
+
+| | Clock | Why |
+|---|---|---|
+| Telegram | **12-hour** | read on a phone, where `02:29` is ambiguous |
+| Experts tab, chart panel | 24-hour | scanned as a log, and unambiguous in sequence |
+| `t_ist` / `time_ist` in the logs | 24-hour | the dashboard parses them |
+| `entryIstFull` in the state file | 24-hour | **the dashboard parses this too** |
+
+That last row is the one that matters. `entryIstFull` briefly carried `02:29 PM`
+and would have silently broken the Live card's "held" figure, because
+`parse_ts()` accepts `%Y.%m.%d %H:%M` and nothing with an AM/PM suffix.
+
+> **The hour INPUTS stay 24-hour.** `InpDaySessionStartIST 0` is midnight and
+> `InpDaySessionEndIST 16` is 4 PM. So do `InpEveEntryStartIST`/`EndIST`,
+> `InpSessionStartHour`/`EndHour`, `InpDayResetHour`, `InpFridayCloseHour`, and
+> the `InpEveH16`…`InpEveH23` toggles. Set `4` expecting 4 PM and you get 4 AM.
+>
+> Nothing in the gating code was touched by the 12-hour change —
+> `InDaySessionIST()`, `SessionAllowed()`, `InEveningEntryWindow()`,
+> `EveningHourAllowed()` and `TradingDayStart()` all still compare `dt.hour`
+> against the raw inputs. The banners now print both forms so the two
+> conventions cannot be confused:
+>
+> ```
+> DAY     12 AM - 4 PM IST (inputs 0/16) | ...
+> EVENING 4 PM - 12 AM IST (inputs 16/0) | ...
+> ```
+
 ### The GMT offset — set it, don't detect it
 
 `InpAutoGmtOffset` now defaults to **`false`**, and `InpServerGmtOffset` is the
@@ -305,6 +341,63 @@ still 0.
 Every `EXIT_*` row now carries `mfe_r` and `mae_r` — the furthest the trade ran
 **in favour** and **against**, in R, sampled on every tick from entry. They are
 also two new CSV columns and two new lines on the Telegram close card.
+
+**Both run modes post them.** Live trading sends the full card from
+`AuditAndLogExit()`; a signals-only instance sends the same card from
+`TgVirtualClose()` on all four of its endings — flip, weekend close, TP5
+complete, and stop hit.
+
+```
+Entry   2412.40
+Exit    2439.90
+Pips    +275.0
+R       +5.00R
+Net     +512.30      <- live trading only
+Best    +5.56R       <- MFE
+Worst   -0.31R       <- MAE
+```
+
+The signals card omits **Net** on purpose. There is no position, so there is no
+money; printing `0.00` would be a fabricated figure rather than a missing one.
+Everything else is derived from price and is just as true for a signal as for a
+fill.
+
+### When MFE/MAE are sent — and when they are not
+
+**Once per trade, on whichever message ends it.** Never before.
+
+| Telegram message | Fires | Carries Best / Worst |
+|---|---|---|
+| EA online | startup | — |
+| BUY / SELL entry card | entry taken | **no** |
+| TP1 … TP4 reached | each rung | **no** |
+| TP5 reached — RUNNING ON | TP5, `InpBookAtTP5 = false` | **no** |
+| Runner +NR | each rung above TP5 | **no** |
+| **CLOSED / stop hit / flip / weekend / TP5 complete** | the trade ends | **yes** |
+| Day, week, month summary | period rolls | — |
+| News, guard, halt alerts | as they fire | — |
+
+The entry card cannot carry them: MFE and MAE measure movement *after* entry, so
+both are exactly `0.00R` at the moment the card is sent.
+
+The TP messages deliberately do not. At TP1 the MFE is `+1.0R` because the trade
+has just arrived there — it restates the headline. Repeating two figures on every
+rung costs attention and adds nothing. They are final figures, so they belong on
+the final message.
+
+> Mid-trade you can still see them: the dashboard's Live card reads the running
+> `mfe`/`mae` straight out of the state file, updated every tick. Telegram gets
+> the settled numbers; the dashboard shows them moving.
+
+### Message styling
+
+Every message is a styled card — `TgB()` for the heading, `TgPre()` for the
+monospace block that keeps columns aligned on a phone. Both run modes use the
+same shapes, so a signals-only feed and a trading account read identically apart
+from `Net`.
+
+Set `InpTgHtmlStyle = false` to send plain text instead; `TgB()` and `TgPre()`
+then pass their input through untouched.
 
 MFE says whether the targets were ever reachable; MAE says how much of the stop
 was actually needed. A book of trades with MAE never worse than −0.4R is telling

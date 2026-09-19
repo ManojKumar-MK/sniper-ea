@@ -105,6 +105,50 @@ the balance and equity columns get shifted and the equity chart goes wrong.
    A red button means the EA runs but never places an order, silently.
 6. Check there is a smiley face in the top-right corner of the chart.
 
+## Step 7b — The signals-only instance (optional)
+
+A second EA that posts Telegram signals and places no orders.
+
+1. Open a **second chart** of the same symbol and timeframe. One EA per chart.
+2. Drag the EA on, then **Load** `SniperEA_Signal.set` in the Inputs tab.
+3. Check three values survived the load:
+
+   | Input | Must be |
+   |---|---|
+   | `InpSignalsOnly` | `true` |
+   | `InpMagic` | **different** from your trading chart |
+   | `InpCsvPrefix` | **different** from your trading chart |
+
+Those last two are not cosmetic. Three close paths in the EA gate only on
+`POSITION_MAGIC == InpMagic`, so a shared magic number lets the "signals only"
+instance close your real position. A shared prefix makes both instances write the
+same log and the same state file.
+
+### The two preset files
+
+| File | For |
+|---|---|
+| `SniperEA_Trade.set` | the account — places orders |
+| `SniperEA_Signal.set` | the feed — posts to Telegram, places nothing |
+
+They differ in 11 inputs; the other 120 are identical.
+
+**Only the `.example.set` versions are in the repo.** The real files hold a live
+bot token and are gitignored — a private repo is not a secret store, and a token
+committed once stays in the history. On a new machine:
+
+```bat
+copy SniperEA_Trade.example.set  SniperEA_Trade.set
+copy SniperEA_Signal.example.set SniperEA_Signal.set
+```
+
+then fill in `InpTgToken` and `InpTgChatId` in the copies.
+
+Verify the pipe before trusting it: `InpTgNotifyStart` is on, so attaching the EA
+should post an "EA online" card straight away. If nothing arrives, the Experts
+tab says which of the two failures it was — the WebRequest whitelist, or the
+token/chat id.
+
 ## Step 8 — Find the log folder path
 
 1. In the data folder window, go into `MQL5\Files\`.
