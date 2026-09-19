@@ -575,6 +575,18 @@ int OnInit()
       if(InpServerGmtOffset==0)
          Say("CONFIG","TESTER | InpServerGmtOffset is 0 - set it to your broker's offset "
                       "or the IST sessions land in the wrong place");
+
+      // The Tester runs in its own agent sandbox, NOT MQL5/Files, and the path
+      // carries an agent number that changes. Printing it here turns "where did
+      // my backtest log go" into a copy and paste.
+      string dir = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\";
+      Say("CONFIG","TESTER | log folder -> " + dir);
+      if(InpUseJsonLog)
+         Say("CONFIG","TESTER | analyse it with:  python ema_report.py \""
+                      + dir + LogFileName(".jsonl") + "\" --html backtest.html");
+      else
+         Say("CONFIG","TESTER | InpUseJsonLog is OFF - the report has nothing to read. "
+                      "Turn it on and run again.");
    }
 
    if(InpTgNotifyStart)

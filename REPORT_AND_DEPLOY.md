@@ -677,17 +677,31 @@ accurate on any mode** — each closed bar's high and low are folded in alongsid
 the tick sampling, and bars are real OHLC regardless. Only the ordering of the
 best and worst points needs real ticks.
 
-**After the run**, the files are in the agent's sandbox, typically:
+**The EA prints the path for you.** The Tester runs in an agent sandbox, not
+`MQL5\Files`, and the folder carries an agent number that changes between runs.
+Rather than hunt for it, read the Journal tab at the start of the run:
 
 ```
-<terminal>/Tester/Agent-127.0.0.1-3000/MQL5/Files/EMA_XAUUSD_M15.jsonl
+[SNIPER][CONFIG] TESTER | log folder -> C:\Users\you\AppData\Roaming\MetaQuotes\
+                 Terminal\<hash>\Tester\Agent-127.0.0.1-3000\MQL5\Files\
+[SNIPER][CONFIG] TESTER | analyse it with:  python ema_report.py
+                 "...\SniperEA_Log_XAUUSD_M3.jsonl" --html backtest.html
 ```
 
-Then:
+Copy that second line and run it. If `InpUseJsonLog` is off it says so instead,
+rather than letting you finish a run with nothing to read.
 
-```bash
-python ema_report.py "<that path>" --html backtest_report.html
-```
+**Every indicator field is captured on historical data.** Nothing in the logging
+path is disabled in the Tester — `LogEvent`, `WriteTextRow`, `BuildJson` and
+`TakeSnapshot` carry no tester guards. Only Telegram (no `WebRequest`), the news
+calendar (unavailable) and GMT auto-detect (deliberately) are off. So a backtest
+over last June gives exactly the same 20 fields per decision that live trading
+does, and the filter tables work on it identically.
+
+> **Optimisation scatters the logs.** Each agent gets its own sandbox —
+> `Agent-127.0.0.1-3000`, `-3001`, and so on. A glob across them merges runs with
+> *different parameters* into one report, which is worse than useless. Analyse
+> single backtests, or one agent folder at a time.
 
 One self-contained HTML file — no server, no internet, nothing to install. It
 opens anywhere, prints to a PDF with `Ctrl/Cmd+P`, and carries every section the
