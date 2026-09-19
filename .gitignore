@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated reports and exports - rebuild them from the logs instead
+*.html
+ea_trades.csv
+
+# EA output. These are account data, not source: balances, equity and every
+# trade. Never commit them, and never to a repo that might turn public.
+SniperEA_Log_*.csv
+SniperEA_Log_*.jsonl
+*_state.txt
