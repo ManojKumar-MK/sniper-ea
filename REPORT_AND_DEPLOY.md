@@ -418,6 +418,48 @@ way.
 > Glob `SniperEA_Signal_*` rather than `SniperEA_Signal_1.30v_*` if you want the
 > history to carry across versions.
 
+### Where the Live card's entry time comes from
+
+Three sources, in order of trust:
+
+| | Source | Fixable later? |
+|---|---|---|
+| 1 | `entryTimeSrv` in the state file — the raw broker instant | yes |
+| 2 | the log's `ENTRY` row for that trade id, via `t_srv` | yes |
+| 3 | `entryIst` — a string converted once, long ago | **no** |
+
+The EA converts before it writes, so a wrong GMT offset bakes the error into
+the state file's formatted strings. One weekend restart resolved GMT-5.5 —
+`TimeCurrent()` freezes at the Friday close while `TimeGMT()` keeps running —
+and wrote `entryIst=05:45` for a trade opened at 21:15 IST.
+
+The dashboard recovers from that **without any change to the EA**: the state
+file names the trade (`tradeId`), and the log keeps that trade's `t_srv`, which
+is never adjusted. Matching the two gives the true instant:
+
+```
+Entered   2026.09.18 21:15 IST
+          18:45 broker (GMT+3.0) · from the log · held 17.6h
+```
+
+`from the log` marks a value recovered this way rather than read from the state
+file.
+
+**When the log cannot cover it** — a position adopted from before the log
+existed, or a log cleared by `InpTesterFreshLog` — there is genuinely nothing
+to compute from, and the card says so rather than presenting a number it cannot
+stand behind:
+
+```
+05:45 IST — unverified: this EA build stored only the formatted time,
+so a wrong GMT offset at the time is baked in.
+```
+
+EA v1.30+ writes `entryTimeSrv`, which removes the dependency on the log
+entirely and lets a restart repair a bad stamp. Useful, but not required — with
+`InpAutoGmtOffset = false` every new entry is stamped correctly in the first
+place.
+
 ### Filtering
 
 A chip row above every tab filters by **symbol** and by **period** (all, this

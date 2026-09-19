@@ -1495,7 +1495,7 @@ def state_offset(st, override=None):
         return None
 
 
-def entered_cell(st, held=True):
+def entered_cell(st, held=True, entry_map=None):
     """
     The Live card's entry time, on both clocks.
 
@@ -1507,6 +1507,11 @@ def entered_cell(st, held=True):
     which day - and with InpRunUntilFlip a runner can be held for days.
     """
     raw = entry_instant(st)
+    from_log = False
+    if raw is None and entry_map:
+        # no raw instant in the state file - recover it from the log instead
+        raw = entry_map.get(str(sint(st, "tradeId") or sint(st, "posId")))
+        from_log = raw is not None
     off = state_offset(st)
 
     if raw is not None and off is not None:
@@ -1536,6 +1541,8 @@ def entered_cell(st, held=True):
         # same calendar day on both clocks -> the time alone is unambiguous
         shown = srv[-5:] if srv[:10] == full[:10] else srv
         sub.append(esc(shown) + " broker" + off_txt)
+    if from_log:
+        sub.append("from the log")
 
     t = parse_ts(full) if held else None
     if t:
@@ -1548,7 +1555,7 @@ def entered_cell(st, held=True):
     return esc(full) + " IST" + tail
 
 
-def h_live(states, ctx):
+def h_live(states, ctx, entry_map=None):
     if not states:
         return ('<div class="note">No <code>_state.txt</code> found next to the logs, '
                 "so there is nothing live to show. The EA writes one when "
@@ -1582,7 +1589,7 @@ def h_live(states, ctx):
                 ("Initial stop", f'<span class="dim">{init_sl:.5f}</span>'),
                 ("1R", f"{risk:.5f}"),
                 ("Mode", esc(st.get("entryTag", "?"))),
-                ("Entered", entered_cell(st)),
+                ("Entered", entered_cell(st, entry_map=entry_map)),
             ]
             rungs = "".join(
                 f'<div class="rung{" hit" if hit else ""}" title="TP{n} at {px:.5f}'
@@ -1608,7 +1615,7 @@ def h_live(states, ctx):
             badge = '<span class="badge b-dim">NO POSITION</span>'
             has_last = (st.get("entryIstFull") or st.get("entryIst") or "").strip()
             rows = [("Last entry",
-                     entered_cell(st, held=False) if has_last else "&mdash;")]
+                     entered_cell(st, held=False, entry_map=entry_map) if has_last else "&mdash;")]
 
         d_net = sget(st, "dGrossP") - sget(st, "dGrossL")
         d_tr, d_w, d_l = sint(st, "dTrades"), sint(st, "dWins"), sint(st, "dLoss")
@@ -1925,7 +1932,7 @@ TAB_JS = """
 # ---------------------------------------------------------------- page
 
 def build_html(trades, states, ctx, sources, still_open, orphans, poll=None,
-               skips=None, filterbar=""):
+               skips=None, filterbar="", entry_map=None):
     """
     poll = (url, seconds) when served: the Live tab is refreshed in place on
     that interval and the whole-page meta refresh is dropped, so nothing jumps
@@ -1941,7 +1948,7 @@ def build_html(trades, states, ctx, sources, still_open, orphans, poll=None,
         f"<style>{CSS}</style></head><body>")
 
     if not trades:
-        live_only = h_live(states, ctx)
+        live_only = h_live(states, ctx, entry_map)
         return (head + "<header><div class='htop'><h1>EMA Strategy &mdash; dashboard</h1>"
                 f"<span class='sub'>no completed trades in the log yet &#183; "
                 f"{esc(now)}</span></div></header>"
@@ -2000,7 +2007,7 @@ def build_html(trades, states, ctx, sources, still_open, orphans, poll=None,
     nav += ('<button id="theme" class="dl" type="button" '
             'aria-label="Switch to light theme">Light</button>')
     panels = [
-        ("live", h_live(states, ctx)),
+        ("live", h_live(states, ctx, entry_map)),
         ("perf", perf),
         ("time", timing),
         ("sig", signals),
@@ -2401,6 +2408,35 @@ def log_signature(paths):
     return tuple(sig)
 
 
+_ENTRY_CACHE = {"sig": None, "map": {}}
+
+
+def entry_times(args):
+    """
+    {trade id -> raw broker-clock entry time}, from the log's ENTRY rows.
+
+    The state file's entryIst was converted once and cannot be re-derived from
+    itself. The LOG, though, keeps t_srv on every row - the broker's own stamp,
+    never adjusted - so the open trade's true entry time can be looked up by id
+    and converted correctly here, without touching the EA.
+
+    Cached against the logs' size and mtime, because the live poll runs every
+    few seconds and the log only changes when something happens.
+    """
+    sig = log_signature(args.logs)
+    if sig != _ENTRY_CACHE["sig"]:
+        events, _ = collect(args.logs, args.csv, quiet=True)
+        m = {}
+        for ev in events:
+            if ev.get("event") in ENTRY_EVENTS:
+                tid = str(ev.get("trade") or "")
+                t = parse_ts(ev.get("t_srv") or "")
+                if tid and t:
+                    m.setdefault(tid, t)      # the first ENTRY for that id wins
+        _ENTRY_CACHE["sig"], _ENTRY_CACHE["map"] = sig, m
+    return _ENTRY_CACHE["map"]
+
+
 _COUNT_CACHE = {"sig": None, "n": 0}
 
 
@@ -2531,7 +2567,7 @@ def serve(args):
                 if url.path == "/live.json":
                     states = read_states(args)
                     payload = {
-                        "html": h_live(states, ctx),
+                        "html": h_live(states, ctx, entry_times(args)),
                         "trades": count_trades(args),
                         "ts": datetime.now().strftime("%H:%M:%S"),
                     }
@@ -2559,7 +2595,8 @@ def serve(args):
                 page = build_html(trades, states, ctx, sources, still_open, orphans,
                                   poll=(live_url, args.poll, len(trades))
                                        if args.poll > 0 else None,
-                                  skips=skips, filterbar=bar)
+                                  skips=skips, filterbar=bar,
+                                  entry_map=entry_times(args))
             except Exception as exc:                       # never take the server down
                 page = (f"<!doctype html><meta charset=utf-8><style>{CSS}</style>"
                         f"<body><div class=wrap><h1>Error building the report</h1>"
@@ -2682,7 +2719,7 @@ def main():
 
     if args.html:
         page = build_html(trades, states, ctx, sources, still_open, orphans,
-                          skips=skips)
+                          skips=skips, entry_map=entry_times(args))
         with open(args.html, "w", encoding="utf-8") as fh:
             fh.write(page)
         print(f"\nWrote {args.html} ({len(page) / 1024:.0f} KB) - open it in any browser.")
