@@ -127,6 +127,39 @@ offset it resolved — check it once.
 > evening half-stop can then never trigger. The startup banner labels the entry
 > window as SERVER time directly under the IST session lines for this reason.
 
+### Daily profit target — `InpDailyProfitTarget` **0** (off)
+
+Stop taking new entries once the day's **realised** net reaches a figure.
+
+| Input | Default | |
+|---|---|---|
+| `InpDailyProfitTarget` | `0.0` | the figure; `0` = off |
+| `InpDayTargetClose` | `false` | `true` also flattens the open trade |
+| `InpDayTargetTgAlert` | `true` | 🎯 Telegram note when it fires |
+
+**Realised only** — `gGrossP - gGrossL` over closed trades. A floating winner
+cannot trip it and then evaporate.
+
+**It latches.** Once hit, a later loser does not re-open the day:
+
+```
+net +55.00   BLOCKED
+net +35.00   BLOCKED  (latched)
+```
+
+Otherwise "stop while ahead" quietly becomes "trade again once you give it
+back", which is the opposite of the rule. `dayTargetHit` is day-scoped in the
+state file, so a restart keeps the latch and the next trading day clears it.
+
+Independent of `InpPropMode` — it works on a personal account. Uses the same day
+boundary as the loss cap (`InpDayResetHour` / `InpDayResetUseIST`).
+
+> **What it cannot do.** A profit cap truncates winning days and leaves losing
+> days to run their full course. On a system with negative expectancy that
+> usually makes the result slightly worse, not better. Run the same window with
+> the target on and off and compare — the dashboard's equity curve shows the
+> difference directly. It is a discipline tool, not an edge.
+
 ### Clock formatting
 
 **Telegram messages only** are 12-hour: `02:29 PM`. Five places — the startup

@@ -245,6 +245,17 @@ input double   InpDailyWarnPct      = 75.0;  // warn on Telegram once the day's 
 input int      InpMaxLossesPerDay   = 3;     // stop after this many losing trades in a day (0 = off)
 input bool     InpCloseOnDailyCap   = true;  // flatten the open position when a cap is hit
 
+input group "-- Daily PROFIT target: stop while ahead --"
+input double   InpDailyProfitTarget = 0.0;   // stop taking NEW entries once the day's REALISED net
+                                             // profit reaches this. 0 = off.
+input bool     InpDayTargetClose    = false; // FALSE = an open trade keeps running to its own SL/TP.
+                                             // TRUE  = flatten it the moment the target is hit.
+input bool     InpDayTargetTgAlert  = true;  // Telegram note when the day closes on target
+//  Measured on CLOSED trades only (gross profit - gross loss for the day), so a floating
+//  winner does not trip it and then evaporate. Resets with the trading day, which follows
+//  InpDayResetHour / InpDayResetUseIST - the same boundary the daily loss cap uses.
+//  This is independent of InpPropMode: it works on a personal account too.
+
 input group "-- Overall loss guard (account-level) --"
 input int      InpDrawdownMode      = 2;     // 0 = from the static baseline, 1 = from PEAK equity (trailing), 2 = both
 //  Firms differ: some measure max loss from the account's starting balance, some from the
@@ -360,6 +371,7 @@ datetime g_dayStamp    = 0;
 double   g_dayStartBal = 0;      // balance at the start of the current trading day
 double   g_baseline    = 0;      // account baseline every loss limit is measured from
 bool     g_dayLocked   = false;  // day cap / loss-count hit - no more trades today
+bool     g_dayTargetHit= false;  // day's profit target reached - no more entries today
 bool     g_acctLocked  = false;  // overall loss guard hit - no more trades at all
 bool     g_warnDaily   = false;  // daily warning already sent today
 bool     g_warnTotal   = false;  // overall warning already sent
@@ -807,6 +819,7 @@ void OnTick()
    if(RunnerFlipExit()) return;
 
    if(GuardsBlockTrading()){ LogSkip("loss guard locked"); return; }
+   if(DailyTargetReached()){ LogSkip("daily profit target reached"); return; }
    if(!SessionAllowed()){ LogSkip("outside the entry window"); return; }
    {
       string eveWhy;
@@ -1691,6 +1704,7 @@ void RollDayIfNeeded()
       g_dayStartBal=AccountInfoDouble(ACCOUNT_BALANCE);
       g_dayLocked=false;
       g_warnDaily=false;
+      g_dayTargetHit=false;
       SaveState();
       SayStartupBanner("new trading day");       // settings in force for the day ahead
    }
@@ -1992,6 +2006,44 @@ void HaltAndFlatten(const string evt,const string cmt,const string sayMsg,double
 }
 
 //====================================================================
+//  DAILY PROFIT TARGET - stop while ahead
+//  Returns TRUE when no new entry may be taken for the rest of the day.
+//====================================================================
+bool DailyTargetReached()
+{
+   if(InpDailyProfitTarget <= 0.0) return false;
+   if(g_dayTargetHit) return true;
+
+   double net = g_dGrossP - g_dGrossL;          // realised, closed trades only
+   if(net < InpDailyProfitTarget) return false;
+
+   g_dayTargetHit = true;
+   Say("HALT",StringFormat("daily profit target | +%.2f >= %.2f | no more entries today "
+                           "(%d trades, W %d / L %d)",
+       net, InpDailyProfitTarget, g_dTrades, g_dWins, g_dLoss));
+   LogEvent("HALT_DAYTARGET",0.0,0.0,0.0,0.0,0.0,net,
+            StringFormat("daily profit target %.2f reached",InpDailyProfitTarget));
+
+   if(InpDayTargetClose && PositionOnSymbol())
+   {
+      Say("HALT","flattening the open trade on the daily target (InpDayTargetClose)");
+      ClosePositionTagged("DAYTARGET exit","EXIT_GUARD");
+   }
+
+   if(InpDayTargetTgAlert)
+      TelegramSend(Emo(0x1F3AF) + " " + TgB("DAILY TARGET REACHED") + "\n"
+                 + _Symbol + "\n\n"
+                 + TgPre(StringFormat("%-11s %+.2f\n%-11s %.2f\n%-11s %d  (W %d / L %d)\n%-11s %s",
+                         "Net today", net,
+                         "Target",    InpDailyProfitTarget,
+                         "Trades",    g_dTrades, g_dWins, g_dLoss,
+                         "Open trade",(InpDayTargetClose?"flattened":"left running")))
+                 + "\nNo more entries today. Resets at the day reset time.");
+   SaveState();
+   return true;
+}
+
+//====================================================================
 //  GUARDS - overall loss, daily loss, losing-trade count
 //  Returns TRUE when no new entry may be taken.
 //====================================================================
@@ -2140,6 +2192,7 @@ void SaveState()
    FileWriteString(h,StringFormat("dayLocked=%d\r\n",(int)g_dayLocked));
    FileWriteString(h,StringFormat("acctLocked=%d\r\n",(int)g_acctLocked));
    FileWriteString(h,StringFormat("warnDaily=%d\r\n",(int)g_warnDaily));
+   FileWriteString(h,StringFormat("dayTargetHit=%d\r\n",(int)g_dayTargetHit));
    FileWriteString(h,StringFormat("warnTotal=%d\r\n",(int)g_warnTotal));
    FileWriteString(h,StringFormat("lastSignal=%d\r\n",g_lastSignal));
    FileWriteString(h,StringFormat("dTrades=%d\r\n",g_dTrades));
@@ -2210,6 +2263,7 @@ void StateApply(const string key,const string val)
    else if(key=="dayLocked")   g_dayLocked  =(StringToInteger(val)!=0);
    else if(key=="acctLocked")  g_acctLocked =(StringToInteger(val)!=0);
    else if(key=="warnDaily")   g_warnDaily  =(StringToInteger(val)!=0);
+   else if(key=="dayTargetHit")g_dayTargetHit=(StringToInteger(val)!=0);
    else if(key=="warnTotal")   g_warnTotal  =(StringToInteger(val)!=0);
    else if(key=="lastSignal")  g_lastSignal =(int)StringToInteger(val);
    else if(key=="dTrades")     g_dTrades    =(int)StringToInteger(val);
@@ -2344,7 +2398,7 @@ void LoadState()
       string v=StringSubstr(ln,eq+1);
 
       // day-scoped values are dropped when the saved state is from an earlier day
-      bool dayScoped = (k=="dayStartBal"||k=="dayLocked"||k=="warnDaily"||
+      bool dayScoped = (k=="dayStartBal"||k=="dayLocked"||k=="warnDaily"||k=="dayTargetHit"||
                         k=="dTrades"||k=="dWins"||k=="dLoss"||k=="dGrossP"||k=="dGrossL"||
                         k=="dSwap"||k=="dComm"||k=="dR"||k=="dBest"||k=="dWorst");
       if(dayScoped && !sameDay) continue;
@@ -2562,6 +2616,10 @@ void PanelUpdate()
       if(g_dayLocked||g_acctLocked) rc=cBad;
       PanelRow(r++,room,rc);
    }
+   else if(InpDailyProfitTarget>0)
+      PanelRow(r++,StringFormat("Target  %+.2f of %.2f%s",
+               net, InpDailyProfitTarget, (g_dayTargetHit?"  DONE":"")),
+               (g_dayTargetHit?cGood:cTxt));
    else
       PanelRow(r++,"Funding guards off", cTxt);
 
@@ -2810,6 +2868,10 @@ void SayStartupBanner(const string why)
       }
       else wk="weekend guard ARMED BUT INACTIVE - no friday session reported, set InpFridayCloseHour";
    }
+   Say("CONFIG",StringFormat("daily target | %s | open trade %s",
+       (InpDailyProfitTarget>0 ? StringFormat("stop at +%.2f realised",InpDailyProfitTarget) : "off"),
+       (InpDayTargetClose?"flattened on target":"left running")));
+
    Say("CONFIG","guards | " + wk);
 
    {
