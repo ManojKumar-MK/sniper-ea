@@ -422,11 +422,19 @@ way.
 
 Three sources, in order of trust:
 
-| | Source | Fixable later? |
+| | Source | Exact? |
 |---|---|---|
 | 1 | `entryTimeSrv` in the state file — the raw broker instant | yes |
 | 2 | the log's `ENTRY` row for that trade id, via `t_srv` | yes |
-| 3 | `entryIst` — a string converted once, long ago | **no** |
+| 3 | `entryBar` in the state file | **yes when adopted** — `AdoptOpenPosition()` sets it to `POSITION_TIME`; otherwise it is the bar open |
+| 4 | `entryIst` — a string converted once, long ago | no, and unrepairable |
+
+Only an `ENTRY` row is used for (2). An `ADOPTED` row's `t_srv` is when the EA
+re-attached, not when the trade opened.
+
+The card names which one it used — `from the broker's position time`,
+`from the log`, `bar open, to the minute` — so an approximate value is never
+passed off as an exact one.
 
 The EA converts before it writes, so a wrong GMT offset bakes the error into
 the state file's formatted strings. One weekend restart resolved GMT-5.5 —

@@ -1467,6 +1467,15 @@ def clock_note(st):
 MQL5_EPOCH = datetime(1970, 1, 1)
 
 
+def state_raw_time(st, key):
+    """A raw MQL5 datetime out of the state file, or None."""
+    try:
+        v = int(float(st.get(key) or 0))
+    except (TypeError, ValueError):
+        return None
+    return (MQL5_EPOCH + timedelta(seconds=v)) if v > 0 else None
+
+
 def entry_instant(st):
     """
     The RAW entry time on the broker clock, as the EA recorded it.
@@ -1479,11 +1488,7 @@ def entry_instant(st):
 
     Needs EA v1.30+ with entryTimeSrv. None for anything older.
     """
-    try:
-        v = int(float(st.get("entryTimeSrv") or 0))
-    except (TypeError, ValueError):
-        return None
-    return (MQL5_EPOCH + timedelta(seconds=v)) if v > 0 else None
+    return state_raw_time(st, "entryTimeSrv")
 
 
 def state_offset(st, override=None):
@@ -1506,12 +1511,22 @@ def entered_cell(st, held=True, entry_map=None):
     The date matters too: the EA only recorded HH:MM, which says nothing about
     which day - and with InpRunUntilFlip a runner can be held for days.
     """
-    raw = entry_instant(st)
-    from_log = False
-    if raw is None and entry_map:
-        # no raw instant in the state file - recover it from the log instead
+    # Every source of the entry instant, best first. Only the formatted
+    # strings are unrepairable, so they come last.
+    raw, how = entry_instant(st), ""          # 1. entryTimeSrv, exact, v1.30+
+    if raw is None and entry_map:             # 2. the log's ENTRY row, exact
         raw = entry_map.get(str(sint(st, "tradeId") or sint(st, "posId")))
-        from_log = raw is not None
+        if raw is not None:
+            how = "from the log"
+    if raw is None:
+        # 3. entryBar. AdoptOpenPosition() sets it to POSITION_TIME, so for an
+        #    adopted trade it IS the entry instant; for a live entry it is the
+        #    open of the bar the trade was placed on, so say so.
+        raw = state_raw_time(st, "entryBar")
+        if raw is not None:
+            how = ("from the broker's position time"
+                   if "ADOPTED" in (st.get("entryTag") or "").upper()
+                   else "bar open, to the minute")
     off = state_offset(st)
 
     if raw is not None and off is not None:
@@ -1541,8 +1556,8 @@ def entered_cell(st, held=True, entry_map=None):
         # same calendar day on both clocks -> the time alone is unambiguous
         shown = srv[-5:] if srv[:10] == full[:10] else srv
         sub.append(esc(shown) + " broker" + off_txt)
-    if from_log:
-        sub.append("from the log")
+    if how:
+        sub.append(how)
 
     t = parse_ts(full) if held else None
     if t:
@@ -2428,7 +2443,9 @@ def entry_times(args):
         events, _ = collect(args.logs, args.csv, quiet=True)
         m = {}
         for ev in events:
-            if ev.get("event") in ENTRY_EVENTS:
+            # ENTRY only: an ADOPTED row's t_srv is when the EA re-attached,
+            # which is not when the trade opened
+            if ev.get("event") == "ENTRY":
                 tid = str(ev.get("trade") or "")
                 t = parse_ts(ev.get("t_srv") or "")
                 if tid and t:
