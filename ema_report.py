@@ -1884,22 +1884,43 @@ def h_live(states, ctx, entry_map=None):
 
 # ---------------------------------------------------------------- trades tab
 
-TRADE_COLS = ["entry_ist", "exit_ist", "symbol", "side", "mode", "session",
-              "exit", "tp_reached", "sl_moves", "r", "net", "adx", "rsi",
-              "spread", "ema_gap_atr"]
+# One row per trade: what it was, how it ended, how far it travelled, and every
+# indicator the filters read at the moment it was taken. This is the table to
+# pivot in a spreadsheet - the HTML tables are a first pass, not the ceiling.
+TRADE_COLS = [
+    # identity
+    "entry_ist", "exit_ist", "symbol", "side", "mode", "session", "exit",
+    # outcome
+    "r", "net", "tp_reached", "sl_moves", "mins",
+    # the journey - what was on the table vs what was taken
+    "mfe_r", "mae_r", "peak_r", "tp5_r",
+    # what the filters saw at entry. *_own are signed toward the trade, so
+    # positive always means "with it" on a SELL as well as a BUY
+    "adx", "rsi", "rsi_m5", "macd_own", "gap_own", "bias_own", "vol_ratio",
+    "spread", "atr",
+]
 
 
 def trade_rows(trades, ctx):
+    def r2(v, n=2):
+        return "" if v is None else round(v, n)
+
     for t in trades:
         lg = t["logic"]
         yield {
             "entry_ist": t["t_ist"], "exit_ist": t["x_ist"], "symbol": t["sym"],
             "side": t["dir"], "mode": t["mode"], "session": t["session"],
-            "exit": t["exit"], "tp_reached": t["tp_reached"],
-            "sl_moves": t["sl_moves"], "r": round(t["r"], 2),
-            "net": "" if ctx.anon else round(t["net"], 2),
+            "exit": t["exit"],
+            "r": r2(t["r"]), "net": "" if ctx.anon else r2(t["net"]),
+            "tp_reached": t["tp_reached"], "sl_moves": t["sl_moves"],
+            "mins": r2(t["mins"], 1),
+            "mfe_r": r2(t["mfe"]), "mae_r": r2(t["mae"]),
+            "peak_r": r2(t["peak_r"]), "tp5_r": r2(t["tp5_r"]),
             "adx": lg.get("adx", ""), "rsi": lg.get("rsi", ""),
-            "spread": lg.get("spread", ""), "ema_gap_atr": lg.get("ema_gap_atr", ""),
+            "rsi_m5": lg.get("rsi_m5", ""), "macd_own": lg.get("macd_own", ""),
+            "gap_own": lg.get("gap_own", ""), "bias_own": lg.get("bias_own", ""),
+            "vol_ratio": lg.get("vol_ratio", ""), "spread": lg.get("spread", ""),
+            "atr": lg.get("atr", ""),
         }
 
 

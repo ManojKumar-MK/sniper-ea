@@ -507,6 +507,25 @@ entirely and lets a restart repair a bad stamp. Useful, but not required — wit
 `InpAutoGmtOffset = false` every new entry is stamped correctly in the first
 place.
 
+### The trade export — one row per trade, every input beside the outcome
+
+**Download CSV** on the Trades tab (or `/trades.csv` when serving) gives 25
+columns built for a pivot table:
+
+```
+identity   entry_ist exit_ist symbol side mode session exit
+outcome    r net tp_reached sl_moves mins
+journey    mfe_r mae_r peak_r tp5_r
+inputs     adx rsi rsi_m5 macd_own gap_own bias_own vol_ratio spread atr
+```
+
+The `_own` columns are **signed toward the trade**, so positive always means
+"with it" whether the trade was a BUY or a SELL. Sort by `macd_own` and the
+losing half collects at one end; sort by the raw histogram and it does not.
+
+`mfe_r` beside `r` is the pair worth sorting on first: it is how much was on the
+table against how much was taken.
+
 ### Tuning the filters from the log
 
 The EA records **20 indicator fields at every decision** — not just on trades
