@@ -1464,6 +1464,37 @@ def clock_note(st):
             f'{tail}</span>')
 
 
+MQL5_EPOCH = datetime(1970, 1, 1)
+
+
+def entry_instant(st):
+    """
+    The RAW entry time on the broker clock, as the EA recorded it.
+
+    Preferred over the formatted strings because those were converted once,
+    with whatever GMT offset was in force at the time. One weekend restart
+    resolved GMT-5.5 (TimeCurrent() frozen at the Friday close while TimeGMT()
+    kept running) and froze "05:45" into the state file for a trade opened at
+    21:15 IST. A raw instant can be re-converted; a formatted string cannot.
+
+    Needs EA v1.30+ with entryTimeSrv. None for anything older.
+    """
+    try:
+        v = int(float(st.get("entryTimeSrv") or 0))
+    except (TypeError, ValueError):
+        return None
+    return (MQL5_EPOCH + timedelta(seconds=v)) if v > 0 else None
+
+
+def state_offset(st, override=None):
+    if override is not None:
+        return override
+    try:
+        return float(st.get("gmtOffset"))
+    except (TypeError, ValueError):
+        return None
+
+
 def entered_cell(st, held=True):
     """
     The Live card's entry time, on both clocks.
@@ -1475,23 +1506,33 @@ def entered_cell(st, held=True):
     The date matters too: the EA only recorded HH:MM, which says nothing about
     which day - and with InpRunUntilFlip a runner can be held for days.
     """
-    full = (st.get("entryIstFull") or "").strip()
+    raw = entry_instant(st)
+    off = state_offset(st)
+
+    if raw is not None and off is not None:
+        # convert here, from the broker's own instant, so the value shown is
+        # right even if the EA formatted it under a wrong offset earlier
+        ist = raw + timedelta(hours=IST_HOURS - off)
+        full = ist.strftime("%Y.%m.%d %H:%M")
+        srv = raw.strftime("%Y.%m.%d %H:%M")
+    else:
+        full = (st.get("entryIstFull") or "").strip()
+        srv = (st.get("entrySrvFull") or "").strip()
+
     short = (st.get("entryIst") or "").strip()
     if not full:
         if not short:
             return "?"
-        # a state file written before the EA carried the date
-        return (esc(short) + ' IST<span class="dim"> \u2013 time only, '
-                'this EA build predates the date stamp</span>')
+        # No raw instant and no date: this came from a build that only ever
+        # stored the formatted time. It was converted once, and if the offset
+        # was wrong then, it is wrong now and cannot be repaired from here.
+        return (esc(short) + ' IST<span class="warn"> \u2013 unverified: this EA '
+                'build stored only the formatted time, so a wrong GMT offset at '
+                'the time is baked in. Recompile to fix.</span>')
 
     sub = []
-    srv = (st.get("entrySrvFull") or "").strip()
     if srv:
-        try:
-            off = float(st.get("gmtOffset"))
-            off_txt = f" (GMT{off:+.1f})"
-        except (TypeError, ValueError):
-            off_txt = ""
+        off_txt = f" (GMT{off:+.1f})" if off is not None else ""
         # same calendar day on both clocks -> the time alone is unambiguous
         shown = srv[-5:] if srv[:10] == full[:10] else srv
         sub.append(esc(shown) + " broker" + off_txt)

@@ -163,6 +163,27 @@ and would have silently broken the Live card's "held" figure, because
 > EVENING 4 PM - 12 AM IST (inputs 16/0) | ...
 > ```
 
+### The state file keeps the raw entry instant
+
+`entryTimeSrv` is the entry time on the broker's clock, unconverted.
+`entryIst`, `entryIstFull` and `entrySrvFull` are derived from it and are
+rebuilt on every startup by `StampEntryClock()`.
+
+**This exists because a formatted string cannot be corrected.** A weekend
+restart once resolved GMT-5.5 — `TimeCurrent()` frozen at the Friday close
+while `TimeGMT()` kept running — and wrote `entryIst=05:45` for a trade opened
+at 21:15 IST. Fixing the offset afterwards changed nothing: the wrong string
+was already in the file, and every restart carried it forward, because
+`AdoptOpenPosition()` returns early when the state matches the live position
+and never re-stamped.
+
+Now that path re-derives the display from `entryTimeSrv` with whatever offset
+is in force, so **a restart repairs a stamp written under a bad offset**. The
+dashboard converts from the raw instant too, and says so plainly when a state
+file predates it:
+
+> `05:45 IST — unverified: this EA build stored only the formatted time`
+
 ### The GMT offset — set it, don't detect it
 
 `InpAutoGmtOffset` now defaults to **`false`**, and `InpServerGmtOffset` is the

@@ -432,6 +432,10 @@ struct DayTrade
 DayTrade g_dayLog[];
 string   g_entryIst = "";   // entry time of the live trade, IST HH:MM (kept short for the
                             // end-of-day Telegram table, whose columns are width-aligned)
+datetime g_entryTimeSrv=0; // the RAW entry instant on the broker clock. The
+                            // formatted strings below are derived from it and can be
+                            // rebuilt; a bad GMT offset once froze "05:45" into the
+                            // state file with no way to correct it.
 string   g_entryIstFull=""; // the same instant with its DATE, IST - what the dashboard shows
 string   g_entrySrvFull=""; // and on the BROKER's clock, so the conversion can be checked
 
@@ -964,7 +968,6 @@ void OpenTrade(int dir, double atr)
       g_virtSL=sl; g_initSL=sl; g_curSL=sl; g_origVol=0.0; g_posId=0;
       g_fullTgt=fullTgt; g_tradeId=(long)TimeCurrent();
       g_entryTag = ModeTag(fullTgt,slFactor);
-      g_entryIst = TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES);
       StampEntryClock(TimeCurrent());
       g_entryBar = iTime(_Symbol,_Period,0);
       double Rs[5]={InpTP1_R,InpTP2_R,InpTP3_R,InpTP4_R,InpTP5_R};
@@ -1023,7 +1026,6 @@ void OpenTrade(int dir, double atr)
       g_curSL  =sl;
       g_fullTgt=fullTgt;
       g_entryTag=modeTag;
-      g_entryIst=TimeToString(ServerToIST(TimeCurrent()),TIME_MINUTES);
       StampEntryClock(TimeCurrent());
       g_entryBar=iTime(_Symbol,_Period,0);
       double Rmult[5]={InpTP1_R,InpTP2_R,InpTP3_R,InpTP4_R,InpTP5_R};
@@ -2168,6 +2170,7 @@ void SaveState()
    FileWriteString(h,StringFormat("mae=%.8f\r\n",g_mae));
    FileWriteString(h,StringFormat("entryBar=%d\r\n",(int)g_entryBar));
    FileWriteString(h,StringFormat("entryTag=%s\r\n",g_entryTag));
+   FileWriteString(h,StringFormat("entryTimeSrv=%d\r\n",(int)g_entryTimeSrv));
    FileWriteString(h,StringFormat("entryIst=%s\r\n",g_entryIst));
    FileWriteString(h,StringFormat("entryIstFull=%s\r\n",g_entryIstFull));
    FileWriteString(h,StringFormat("entrySrvFull=%s\r\n",g_entrySrvFull));
@@ -2236,6 +2239,7 @@ void StateApply(const string key,const string val)
    else if(key=="fullTgt")     g_fullTgt    =(StringToInteger(val)!=0);
    else if(key=="entryTag")    g_entryTag   =val;
    else if(key=="entryIst")    g_entryIst   =val;
+   else if(key=="entryTimeSrv")g_entryTimeSrv=(datetime)StringToInteger(val);
    else if(key=="entryIstFull")g_entryIstFull=val;
    else if(key=="entrySrvFull")g_entrySrvFull=val;
    else if(key=="flipFrom")    g_flipFrom   =(long)StringToInteger(val);
@@ -2371,6 +2375,11 @@ void AdoptOpenPosition()
    {
       // state file matched the live position - nothing to reconstruct
       g_curSL = liveSL;
+      // ...except the clock. Re-derive the entry time from the RAW instant with
+      // whatever offset is in force now, so a restart repairs a stamp that was
+      // written while the offset was wrong instead of carrying it forever.
+      if(g_entryTimeSrv==0) g_entryTimeSrv=(datetime)PositionGetInteger(POSITION_TIME);
+      StampEntryClock(g_entryTimeSrv);
       Say("STATE",StringFormat("resumed | %s %.2f lots from %s | SL %s | TPs hit %d%d%d%d%d | full state recovered",
           (liveDir==1?"BUY":"SELL"), liveVol, DoubleToString(liveEntry,_Digits),
           DoubleToString(liveSL,_Digits),
@@ -2397,7 +2406,6 @@ void AdoptOpenPosition()
    g_curSL    = liveSL;
    g_fullTgt  = InpUseScaleOut && InpUseFullTarget;
    g_entryTag = ModeTag(g_fullTgt,slFac) + "-ADOPTED";
-   g_entryIst = TimeToString(ServerToIST((datetime)PositionGetInteger(POSITION_TIME)),TIME_MINUTES);
    StampEntryClock((datetime)PositionGetInteger(POSITION_TIME));
    g_entryBar = (datetime)PositionGetInteger(POSITION_TIME);
    g_qfFlags  = "";
@@ -3308,6 +3316,8 @@ datetime ServerToIST(datetime tServer)
 // means the IST conversion can be checked rather than trusted.
 void StampEntryClock(datetime tServer)
 {
+   g_entryTimeSrv = tServer;
+   g_entryIst     = TimeToString(ServerToIST(tServer),TIME_MINUTES);
    g_entryIstFull = TimeToString(ServerToIST(tServer),TIME_DATE|TIME_MINUTES);
    g_entrySrvFull = TimeToString(tServer,TIME_DATE|TIME_MINUTES);
 }
