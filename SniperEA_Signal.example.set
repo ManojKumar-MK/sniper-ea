@@ -140,6 +140,7 @@ InpPipSize=0.0
 ; -- CSV event log (for reports) --
 InpUseCsvLog=true
 InpCsvPrefix=SniperEA_Signal_1.30v
+InpCommentLogic=true
 InpUseJsonLog=true
 InpEchoLogToTerminal=true
 ; -- Signal Quality Filter (optional) --

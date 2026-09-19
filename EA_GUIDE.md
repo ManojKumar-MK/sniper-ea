@@ -127,6 +127,41 @@ offset it resolved — check it once.
 > evening half-stop can then never trigger. The startup banner labels the entry
 > window as SERVER time directly under the IST session lines for this reason.
 
+### Reason-code in the order comment — `InpCommentLogic` **true**
+
+MetaTrader's own Strategy Tester report shows the **order comment** and nothing
+else of ours. The report is built from the trade ledger, so it cannot reach the
+EA's variables — the comment is the only channel into it.
+
+```
+SNP B FT A28 R55 M+12 B72
+    │ │  │    │    │    └ bias for the trade's OWN side, %
+    │ │  │    │    └ MACD histogram x10, + = momentum WITH the trade
+    │ │  │    └ RSI
+    │ │  └ ADX
+    │ └ mode: FT FH SO PH S1
+    └ side
+```
+
+**Not JSON — it cannot be.** MT5 caps an order comment at **31 characters**, and
+`{"adx":28}` alone is a third of that budget. This is the densest honest form.
+Walked over 2,400 combinations of the extremes, the longest output is **29
+characters**, so the broker never truncates it silently.
+
+Two details that are deliberate:
+
+- **Signed toward the trade.** `M+12` means momentum was *with* the position,
+  on a SELL as well as a BUY. The raw histogram would mean opposite things on
+  the two sides.
+- **`SINGLETP` shortens to `S1`, not `TP`.** `AuditAndLogExit()` classifies an
+  exit by searching the comment for `"TP"`, so a mode code containing it could
+  make a stopped-out trade book as a target hit.
+
+> It is four fields, rounded. The `.csv` still carries all twenty at full
+> precision and is what you tune filters against — this is a label on the MT5
+> report, not a replacement for it. Set `InpCommentLogic = false` to go back to
+> the plain `SNP B FT`.
+
 ### Daily profit target — `InpDailyProfitTarget` **0** (off)
 
 Stop taking new entries once the day's **realised** net reaches a figure.

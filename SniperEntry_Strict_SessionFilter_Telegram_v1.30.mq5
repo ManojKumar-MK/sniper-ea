@@ -330,6 +330,9 @@ input double   InpPipSize        = 0.0;        // price value of 1 pip (0 = auto
 input group "-- CSV event log (for reports) --"
 input bool     InpUseCsvLog      = true;       // write every event to MQL5/Files/<name>.csv
 input string   InpCsvPrefix      = "SniperEA_Log";  // file becomes <prefix>_<symbol>_<tf>.csv
+input bool     InpCommentLogic  = true;      // put a compressed reason-code in the ORDER COMMENT, so the
+                                               // indicator state shows up in MetaTrader's OWN report - the
+                                               // one place the .csv cannot reach.
 input bool     InpUseJsonLog    = false;       // ALSO write a machine-readable .jsonl file (one JSON object per line)
 input bool     InpEchoLogToTerminal = true;    // echo each event to the Experts tab as a JSON object
 //  One row per event, ALWAYS the same columns (see CSV_HEADER below):
@@ -916,6 +919,60 @@ void EvaluateSignal()
 }
 
 //====================================================================
+//  ORDER COMMENT - the reason, compressed to fit
+//
+//  MetaTrader's own Strategy Tester report shows the order comment and nothing
+//  else of ours: it is built from the trade ledger and has no access to an EA's
+//  variables. So the comment is the ONLY channel into that report.
+//
+//  It caps at 31 characters, which rules JSON out entirely - {"adx":28} alone
+//  is a third of the budget. This is the densest honest form: four fields,
+//  rounded, signed toward the trade. The .csv still carries all twenty at full
+//  precision. Read this as a label on the MT5 report, not a substitute for it.
+//
+//      SNP B FT A28 R55 M+12 B72
+//          │ │  │    │    │    └ bias for the trade's OWN side, %
+//          │ │  │    │    └ MACD histogram x10, + = momentum WITH the trade
+//          │ │  │    └ RSI
+//          │ │  └ ADX
+//          │ └ mode
+//          └ side
+//====================================================================
+string ModeCode(const string tag)
+{
+   if(tag=="FULLTGT")        return "FT";
+   if(tag=="FULLTGT_HALFSL") return "FH";
+   if(tag=="SCALEOUT")       return "SO";
+   if(tag=="PART_HALFSL")    return "PH";
+   if(tag=="SINGLETP")       return "S1";   // deliberately not "TP" - AuditAndLogExit
+   return "NA";                             // classifies an exit by searching for it
+}
+
+int ClampI(double v,int lo,int hi)
+{
+   int n=(int)MathRound(v);
+   return (n<lo) ? lo : ((n>hi) ? hi : n);
+}
+
+string EntryComment(int dir,const string modeTag)
+{
+   string head = "SNP " + ((dir==1) ? "B " : "S ") + ModeCode(modeTag);
+   if(!InpCommentLogic) return head;
+
+   SnapVals s; TakeSnapshot(s);
+   double bias = (dir==1) ? s.bull : s.bear;
+   double hist = (s.macdM - s.macdS) * (double)dir;    // + = momentum with the trade
+
+   string c = head + StringFormat(" A%d R%d M%+d B%d",
+                     ClampI(s.adx,0,999), ClampI(s.rsi,0,999),
+                     ClampI(hist*10.0,-999,999), ClampI(bias,0,100));
+
+   // a broker truncates a long comment silently, which would corrupt the last
+   // field rather than drop it - so cut it here, where it is visible
+   return (StringLen(c) > 31) ? StringSubstr(c,0,31) : c;
+}
+
+//====================================================================
 //  ORDER PLACEMENT
 //====================================================================
 void OpenTrade(int dir, double atr)
@@ -1023,7 +1080,7 @@ void OpenTrade(int dir, double atr)
    tp=NormalizeDouble(tp,_Digits);
 
    string modeTag = ModeTag(fullTgt,slFactor);
-   string cmt     = "SNP " + (dir==1?"BUY ":"SELL ") + modeTag;     // stays under the 31-char limit
+   string cmt     = EntryComment(dir,modeTag);      // <= 31 chars; see EntryComment
 
    bool ok=(dir==1)?trade.Buy(lots,_Symbol,0.0,sl,tp,cmt)
                    :trade.Sell(lots,_Symbol,0.0,sl,tp,cmt);
