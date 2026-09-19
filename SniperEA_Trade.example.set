@@ -92,6 +92,10 @@ InpMaxDailyLossMoney=0.0
 InpDailyWarnPct=75.0
 InpMaxLossesPerDay=3
 InpCloseOnDailyCap=true
+; -- Daily PROFIT target: stop while ahead --
+InpDailyProfitTarget=50.0
+InpDayTargetClose=false
+InpDayTargetTgAlert=true
 ; -- Overall loss guard (account-level) --
 InpDrawdownMode=2
 InpMaxTotalLossPct=10.0

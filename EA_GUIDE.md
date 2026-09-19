@@ -154,6 +154,15 @@ state file, so a restart keeps the latch and the next trading day clears it.
 Independent of `InpPropMode` — it works on a personal account. Uses the same day
 boundary as the loss cap (`InpDayResetHour` / `InpDayResetUseIST`).
 
+> **It does nothing on a signals-only instance.** The tally it reads
+> (`g_dGrossP` / `g_dGrossL`) is only ever incremented by `AuditAndLogExit()`,
+> and all three of its call sites are unreachable when `InpSignalsOnly` is on —
+> the `OnTick` branch, the flip block (gated on `PositionOnSymbol()`, and a
+> signals instance holds no position with its magic), and `RunnerFlipExit()`
+> (which returns early). So the day tally stays at zero and the target can never
+> fire. `SniperEA_Signal.set` therefore ships it as `0`, rather than implying a
+> feed can "stop while ahead".
+
 > **What it cannot do.** A profit cap truncates winning days and leaves losing
 > days to run their full course. On a system with negative expectancy that
 > usually makes the result slightly worse, not better. Run the same window with
