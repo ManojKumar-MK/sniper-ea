@@ -335,6 +335,34 @@ def ladder(st):
 # pairing entries with their exits
 # --------------------------------------------------------------------------
 
+def logic_plus(raw, direction):
+    """
+    The entry snapshot, plus two fields derived from it.
+
+    InpQfBias compares the bias score for the trade's OWN side, and InpQfVolume
+    compares volume against its average - but the log carries bull_pct, bear_pct,
+    vol and vol_avg separately. Without these two, neither filter's threshold can
+    be tuned from the report.
+    """
+    lg = dict(raw or {})
+    d = str(direction or "").upper()
+    if lg.get("bull_pct") is not None and lg.get("bear_pct") is not None:
+        lg["bias_own"] = lg["bull_pct"] if d.startswith("B") else lg["bear_pct"]
+    if lg.get("vol_avg"):
+        lg["vol_ratio"] = round((lg.get("vol") or 0.0) / lg["vol_avg"], 2)
+
+    # Signed TOWARD the trade. A +1.5 MACD histogram is bullish: helpful on a
+    # BUY, a warning on a SELL. Bucketing the raw value mixes the two and the
+    # two halves cancel, which is how a real edge hides in plain sight.
+    sign = 1.0 if d.startswith("B") else -1.0
+    for src, dst in (("macd_hist", "macd_own"), ("ema_gap_atr", "gap_own")):
+        if lg.get(src) is not None:
+            lg[dst] = round(lg[src] * sign, 3)
+    if lg.get("rsi") is not None:
+        lg["rsi_own"] = round(lg["rsi"] if sign > 0 else 100.0 - lg["rsi"], 1)
+    return lg
+
+
 def build_trades(events):
     """
     One record per completed trade. Events are grouped by trade id first, so a
@@ -428,7 +456,7 @@ def build_trades(events):
             "mfe": mfe,
             "mae": mae,
             "mins": duration_mins(entry.get("t_ist", ""), exits[-1].get("t_ist", "")),
-            "logic": entry.get("logic", {}) or {},
+            "logic": logic_plus(entry.get("logic"), entry.get("dir")),
             "filters": entry.get("filters", {}) or {},
             "acct": exits[-1].get("acct", {}) or {},
         })
@@ -452,7 +480,8 @@ def collect_skips(events):
             "dir": ev.get("skip_dir", "") or ev.get("dir", ""),
             "session": ev.get("session", ""),
             "reason": (ev.get("note", "") or "unknown").strip(),
-            "logic": ev.get("logic", {}) or {},
+            "logic": logic_plus(ev.get("logic"),
+                                ev.get("skip_dir") or ev.get("dir")),
             "filters": ev.get("filters", {}) or {},
         })
     return out
@@ -2135,7 +2164,33 @@ def build_html(trades, states, ctx, sources, still_open, orphans, poll=None,
                   ctx, "Spread", sort_key=lambda x: x[0])
         + h_table("By RSI at entry",
                   bucket(trades, lambda t: num_bucket(t, "rsi", [0, 30, 40, 50, 60, 70], "RSI")),
-                  ctx, "RSI", sort_key=lambda x: x[0]))
+                  ctx, "RSI", sort_key=lambda x: x[0])
+        + h_table("By MACD histogram, signed toward the trade",
+                  bucket(trades, lambda t: num_bucket(t, "macd_own",
+                         [-3, -1, -0.3, 0, 0.3, 1, 3], "hist")),
+                  ctx, "MACD hist", sort_key=lambda x: x[0],
+                  note="Positive = momentum WITH the trade, negative = against it, on "
+                       "both sides. A negative reading is the classic late entry.")
+        + h_table("By EMA21-50 gap, signed toward the trade",
+                  bucket(trades, lambda t: num_bucket(t, "gap_own",
+                         [-2, -1, -0.5, 0, 0.5, 1, 2], "gap")),
+                  ctx, "Gap (ATR)", sort_key=lambda x: x[0],
+                  note="This is what InpQfStruct measures. Its threshold is "
+                       "InpStructMult x ATR, so read the cut-off straight off this table.")
+        + h_table("By bias score for its own side",
+                  bucket(trades, lambda t: num_bucket(t, "bias_own",
+                         [0, 30, 45, 60, 75, 90], "bias")),
+                  ctx, "Bias %", sort_key=lambda x: x[0],
+                  note="Bull score on a BUY, bear score on a SELL - the figure "
+                       "InpQfBias compares against InpBiasMin.")
+        + h_table("By volume vs its average",
+                  bucket(trades, lambda t: num_bucket(t, "vol_ratio",
+                         [0, 0.6, 0.85, 1.0, 1.3, 2.0], "vol x")),
+                  ctx, "Volume", sort_key=lambda x: x[0],
+                  note="What InpQfVolume tests (it requires > 1.00).")
+        + h_table("By M5 RSI at entry",
+                  bucket(trades, lambda t: num_bucket(t, "rsi_m5", [0, 30, 40, 50, 60, 70], "M5 RSI")),
+                  ctx, "M5 RSI", sort_key=lambda x: x[0]))
 
     tabs = [("live", "Live"), ("perf", "Performance"), ("time", "Timing"),
             ("sig", "Signals &amp; filters"), ("trades", "Trades")]
@@ -2882,6 +2937,11 @@ def main():
     table("How trades ended", bucket(trades, lambda t: t["exit"]), mt)
     table("By ADX at entry", bucket(trades, lambda t: num_bucket(t, "adx", [0, 15, 20, 25, 30, 40], "ADX")), mt)
     table("By spread at entry", bucket(trades, lambda t: num_bucket(t, "spread", [0, 20, 35, 50, 70], "spread")), mt)
+    table("By RSI at entry", bucket(trades, lambda t: num_bucket(t, "rsi", [0, 30, 40, 50, 60, 70], "RSI")), mt)
+    table("By MACD histogram (signed to the trade)", bucket(trades, lambda t: num_bucket(t, "macd_own", [-3, -1, -0.3, 0, 0.3, 1, 3], "hist")), mt)
+    table("By EMA21-50 gap (signed, ATR)", bucket(trades, lambda t: num_bucket(t, "gap_own", [-2, -1, -0.5, 0, 0.5, 1, 2], "gap")), mt)
+    table("By bias for its own side", bucket(trades, lambda t: num_bucket(t, "bias_own", [0, 30, 45, 60, 75, 90], "bias")), mt)
+    table("By volume vs average", bucket(trades, lambda t: num_bucket(t, "vol_ratio", [0, 0.6, 0.85, 1.0, 1.3, 2.0], "vol x")), mt)
     funnel_report(trades)
     runner_report(trades)
     excursion_report(trades)

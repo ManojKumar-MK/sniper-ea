@@ -507,6 +507,53 @@ entirely and lets a restart repair a bad stamp. Useful, but not required — wit
 `InpAutoGmtOffset = false` every new entry is stamped correctly in the first
 place.
 
+### Tuning the filters from the log
+
+The EA records **20 indicator fields at every decision** — not just on trades
+taken, but on every `SKIP` too, so a filter is judged against what it refused as
+well as what it let through:
+
+```
+ema9 ema21 ema50 ema9_prev ema21_prev ema_gap_atr atr adx rsi rsi_m5
+macd macd_sig macd_hist vwap close vol vol_avg bull_pct bear_pct spread
+```
+
+The Signals tab breaks the trades down by each of the ones a filter keys on:
+
+| Table | Tunes |
+|---|---|
+| By ADX | `InpAdxMin` |
+| By EMA21-50 gap | `InpStructMult` — the table is in ATR units, same as the input |
+| By bias for its own side | `InpBiasMin` |
+| By volume vs its average | `InpQfVolume` (it requires > 1.00) |
+| By MACD histogram | no input yet — but it is where an edge usually shows |
+| By RSI, M5 RSI, spread | context |
+
+**Three of these are signed toward the trade.** A `+1.5` MACD histogram is
+bullish: helpful on a BUY, a warning on a SELL. Bucketing the raw value mixes
+the two and they cancel — which is exactly how a real edge hides in plain sight.
+`macd_own`, `gap_own` and `rsi_own` flip sign on a SELL, so positive always
+means *with* the trade. Measured on 120 trades with a known edge planted in
+momentum:
+
+```
+raw macd_hist                signed toward the trade
+ 1-3     +0.27R               1-3     +0.68R   PF 3.81
+-3--1    +0.18R               0.3-1   +0.78R   PF 5.08
+-1--0.3  +0.27R              -1--0.3  -0.30R   PF 0.25
+  no pattern                 -3--1    -0.21R   PF 0.30
+```
+
+`bias_own` is the same idea: bull score on a BUY, bear score on a SELL — the
+figure `InpQfBias` actually compares against `InpBiasMin`.
+
+> For a backtest you need `InpUseJsonLog = true` and `InpLogSkips = true`. Both
+> are already on in `SniperEA_Trade.set`.
+
+> Read a row as a reason to stop doing something, not to start. A bucket with
+> five trades means nothing — raise `--min-trades` until the tables stop
+> flickering between runs.
+
 ### Filtering
 
 A chip row above every tab filters by **symbol** and by **period** (all, this
