@@ -1,0 +1,633 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © mailtomktech
+//@version=6
+indicator('ICT Sweep Model — PDH/PDL [entry · stop · 1:N · log]', overlay = true, max_labels_count = 500, max_lines_count = 500, max_boxes_count = 500)
+
+//═════════════════════════════════════════════════════════════════════════════
+//  ICT SWEEP MODEL  —  previous-day high / low raid, then reversal
+//
+//  ONE model, stated mechanically so it can be ported to MQL5 without a
+//  judgement call anywhere:
+//
+//    1  RAID      price trades THROUGH yesterday's high (or low) and closes
+//                 back inside it. A close beyond the level is a breakout, the
+//                 opposite read, and does not arm anything.
+//    2  MSS       within N bars, price CLOSES through the most recent
+//                 short-term swing against the raid. That is the market
+//                 structure shift - the moment the lower-timeframe trend
+//                 actually turns, as opposed to one candle looking strong.
+//    3  ENTRY     on the FAIR VALUE GAP left by the displacement leg that
+//                 caused the MSS. Price is expected to retrace into that
+//                 imbalance before delivering; the limit sits there.
+//    4  STOP      beyond the raid extreme plus a buffer. That price is where
+//                 the idea is simply wrong.
+//    5  TARGET    a fixed multiple of the risk — your 1:N — or the opposite
+//                 previous-day level, which is where ICT says the draw is.
+//
+//  A NOTE ON "SURE-SHOT", because it matters more than any setting here:
+//  no sweep model wins every time, and one that appeared to would mean a bug.
+//  What a FIXED 1:N model does give you is an exact breakeven to test against:
+//
+//        at 1:N you need better than  1/(1+N)  wins to make money
+//        1:2 → 33.3%     1:3 → 25%     1:5 → 16.7%
+//
+//  The stats panel prints your actual win rate beside that number and says
+//  which side of it you are on. That is the whole point of the script: not to
+//  promise the edge, but to measure whether this model has one on YOUR market
+//  before you commit it to an EA.
+//
+//  NON-REPAINTING BY CONSTRUCTION. Yesterday's levels are read with the
+//  standard [1] + lookahead_on idiom, every decision is taken on a CLOSED bar,
+//  and stop/target are frozen at entry. What you backtest is what an EA gets.
+//═════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────
+G_MODEL = 'Model — the raid'
+useLongs   = input.bool(true,  'Longs (raid of PDL)',  inline = 'side', group = G_MODEL)
+useShorts  = input.bool(true,  'Shorts (raid of PDH)', inline = 'side', group = G_MODEL, tooltip = 'A PDL raid sets up a BUY, a PDH raid sets up a SELL. Turn one off to test a single side.')
+useWeekly  = input.bool(false, 'Also raid the previous WEEK high/low', group = G_MODEL, tooltip = 'PWH/PWL are heavier pools than PDH/PDL, so the reversals from them tend to run further — but they set up a few times a month, not daily. Both levels are watched when this is on, and the log names which one it was.')
+confirmBars = input.int(6, 'Confirm within … bars', minval = 1, maxval = 50, group = G_MODEL, tooltip = 'How long a raid stays armed waiting for its confirming close. Too short and you miss slow reversals; too long and you are entering on something unrelated to the raid. 6 bars on 5m is half an hour.')
+confirmMode = input.string('MSS — close through the last swing', 'Confirmation', options = ['MSS — close through the last swing', 'Close beyond the raid candle', 'Raid candle close only (aggressive)'], group = G_MODEL, tooltip = 'MSS is the real thing and the default: price must CLOSE through the most recent short-term swing on the other side of the raid, which is the moment lower-timeframe structure actually turns.\n\nCLOSE BEYOND THE RAID CANDLE is a cruder proxy - it only asks that one candle closed past the raid candle, which can happen inside a continuing trend without any structure shift at all.\n\nRAID CANDLE ONLY enters on the raid candle itself, before any confirmation exists.')
+mssPivot    = input.int(2, 'Swing length for the MSS', minval = 1, maxval = 10, group = G_MODEL, tooltip = 'Bars either side of a swing point. 1-2 is the short-term structure ICT breaks for an entry. Larger means only bigger swings count, which gives later and rarer entries.\n\nNOTE: a swing needs this many bars AFTER it to be confirmed, so the level being broken is always one that was visible in real time - no lookahead.')
+entryMode   = input.string('FVG of the MSS leg (limit)', 'Entry', options = ['FVG of the MSS leg (limit)', 'Market at MSS', 'Limit at 50% of the raid leg'], group = G_MODEL, tooltip = 'FVG is the model: the displacement that broke structure leaves a 3-candle imbalance, and price is expected back into it before delivering. Best price, and some setups leave without you.\n\nMARKET always fills, at a worse price. Compare the two on the stats panel rather than assuming the better fill wins - missed trades are a cost too.')
+fvgSide     = input.string('Near edge (first touch)', 'Where in the FVG', options = ['Near edge (first touch)', 'CE — 50% of the gap', 'Far edge (deepest)'], group = G_MODEL, tooltip = 'NEAR EDGE fills most often, at the worst price of the three. CE is the ICT standard - the consequent encroachment, the midpoint. FAR EDGE is the best price and the one price most often fails to reach.')
+fvgLook     = input.int(5, 'Search … bars back for the gap', minval = 1, maxval = 20, group = G_MODEL, tooltip = 'How far back from the MSS bar to look for the imbalance. The gap should be part of the displacement leg, so keep this short - a gap from twenty bars ago is not the one that broke structure.')
+fvgNone     = input.string('Skip the trade', 'If the leg left no FVG', options = ['Skip the trade', 'Enter at market'], group = G_MODEL, tooltip = 'Displacement without an imbalance is weaker displacement, so SKIP is the honest default - it keeps the model to what it says it is. ENTER AT MARKET trades it anyway and the log marks it, so you can see afterwards whether the no-gap trades were worth taking.')
+limitBars   = input.int(8, 'Limit order lives for … bars', minval = 1, maxval = 50, group = G_MODEL, tooltip = 'An order not filled inside this window is cancelled rather than left hanging into a market that has moved on.')
+
+G_RISK = 'Risk — stop and target'
+stopMode   = input.string('Beyond the raid extreme', 'Stop placement', options = ['Beyond the raid extreme', 'Beyond the FVG'], group = G_RISK, tooltip = 'RAID EXTREME is the invalidation of the idea: if price goes back through the wick that raided the level, the raid was not rejected after all. Wider, and rarely hit by noise.\n\nBEYOND THE FVG is much tighter, so the same target is a far larger R - but a normal retrace through the gap takes you out of a trade that was still right. Tighter stops buy R with hit rate; the panel shows the trade.')
+stopBufAtr = input.float(0.25, 'Stop buffer (× ATR14)', minval = 0.0, step = 0.05, group = G_RISK, tooltip = 'How far beyond the raid extreme the stop sits. 0 puts it exactly at the wick, where a one-tick overshoot takes you out. 0.25 ATR is a reasonable allowance for spread and noise on gold.')
+tgtMode    = input.string('Fixed R multiple', 'Target', options = ['Fixed R multiple', 'Opposite previous-day level', 'Nearer of the two'], group = G_RISK, tooltip = 'FIXED = your 1:N, always, which is the only setting that makes the breakeven maths below exact. OPPOSITE LEVEL = deliver to the other side of yesterday\'s range, the ICT draw, at whatever R that happens to be. NEARER = take whichever comes first, which raises the hit rate and lowers the average R.')
+rMult      = input.float(3.0, 'N  (reward multiple)', minval = 0.5, maxval = 20, step = 0.5, group = G_RISK, tooltip = 'The N in 1:N. Breakeven win rate is 1/(1+N): 1:2 needs 33.3%, 1:3 needs 25%, 1:5 needs 16.7%. Raising N does NOT raise expectancy on its own — it lowers the hit rate too, and the stats panel shows you which way that trade-off went.')
+beAt       = input.float(0.0, 'Move stop to breakeven at … R', minval = 0.0, maxval = 10, step = 0.5, group = G_RISK, tooltip = '0 = off, the stop never moves. Anything above 0 pulls the stop to entry once price is that far in profit, which converts some losers into scratches and some winners into scratches. It changes the distribution, not obviously for the better - measure it.')
+ambigMode  = input.string('Stop first (conservative)', 'If one bar touches both', options = ['Stop first (conservative)', 'Target first (optimistic)'], group = G_RISK, tooltip = 'When a single candle spans both your stop and your target, the chart cannot say which came first. STOP FIRST assumes the worse case. Assuming the target instead makes every backtest look better than the live result will be, which is the single most common way a model flatters itself.')
+
+G_FILTER = 'Filters'
+oneADay    = input.bool(true,  'One trade per level per day', group = G_FILTER, tooltip = 'Once the PDH raid has been traded, ignore further PDH raids until tomorrow. Stops a single choppy level from producing six losses in an afternoon.')
+maxPerDay  = input.int(2, 'Max trades per day', minval = 1, maxval = 20, group = G_FILTER)
+useKz      = input.bool(false, 'Only inside a killzone', group = G_FILTER, tooltip = 'Restrict entries to the London and New York windows. Anchored to New York time, so daylight saving is handled automatically.')
+kzLdn      = input.session('0200-0500', 'London', inline = 'kz', group = G_FILTER)
+kzNy       = input.session('0700-1000', 'New York', inline = 'kz', group = G_FILTER, tooltip = 'New York clock. LDN 02:00-05:00 NY = 11:30-14:30 IST in US summer; NY 07:00-10:00 = 16:30-19:30 IST.')
+useTimeStop = input.bool(true, 'Give up after … bars', inline = 'ts', group = G_FILTER)
+timeStopBars = input.int(60, '', minval = 5, maxval = 500, inline = 'ts', group = G_FILTER, tooltip = 'A trade that has gone nowhere for this long is closed at market. The reversal either happens soon after the raid or it did not happen.')
+closeEod   = input.bool(true, 'Flat after …', inline = 'eod', group = G_FILTER)
+eodSess    = input.session('1600-1700', '', inline = 'eod', group = G_FILTER, tooltip = 'Any open trade is closed at market once price enters this window, read in New York time. An intraday model that carries overnight is a different model, and an EA left holding through the gap is how a small loss becomes a large one.\n\nThis is a CUTOFF, not "the last bar of the day" — a script cannot know a bar is the day\'s last one until the next bar exists, and neither can an EA.')
+
+G_VIS = 'Visuals'
+showLevels = input.bool(true, 'Draw PDH / PDL', group = G_VIS)
+showTrade  = input.bool(true, 'Draw entry / stop / target', group = G_VIS)
+showMarks  = input.bool(true, 'Mark raids and entries', group = G_VIS)
+showFvg    = input.bool(true, 'Draw the entry FVG', group = G_VIS)
+colLong    = input.color(color.new(#089981, 0), 'Long', inline = 'c', group = G_VIS)
+colShort   = input.color(color.new(#f23645, 0), 'Short', inline = 'c', group = G_VIS)
+
+G_LOG = 'Trade log'
+showLog    = input.bool(true, 'Show the log', group = G_LOG)
+logPos     = input.string('Bottom Right', 'Log position', options = ['Top Left','Top Right','Middle Left','Middle Right','Bottom Left','Bottom Right'], group = G_LOG)
+logRows    = input.int(10, 'Rows', minval = 1, maxval = 30, group = G_LOG)
+logSize    = input.string('small', 'Font', options = ['tiny','small','normal','large','huge'], group = G_LOG)
+logTz      = input.string('Asia/Kolkata', 'Timezone', options = ['Asia/Kolkata','America/New_York','Europe/London','Asia/Tokyo','UTC','Exchange'], group = G_LOG)
+showStats  = input.bool(true, 'Show the stats panel', group = G_LOG, tooltip = 'Win rate against the breakeven your N demands, plus expectancy in R. This is the panel that decides whether the model is worth porting to an EA.')
+statsPos   = input.string('Top Right', 'Stats position', options = ['Top Left','Top Right','Middle Left','Middle Right','Bottom Left','Bottom Right'], group = G_LOG)
+
+G_ALERT = 'Alerts / EA bridge'
+alertOn    = input.bool(false, 'Fire alerts on entry and exit', group = G_ALERT, tooltip = 'Emits a compact machine-readable line an EA or webhook can parse: side, entry, stop, target. Off by default so it does not fire while you are still testing.')
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────────────────
+f_pos(string _p) =>
+    switch _p
+        'Top Left'     => position.top_left
+        'Top Right'    => position.top_right
+        'Middle Left'  => position.middle_left
+        'Middle Right' => position.middle_right
+        'Bottom Left'  => position.bottom_left
+        'Bottom Right' => position.bottom_right
+        => position.top_right
+
+f_px(float _v) => na(_v) ? '—' : str.tostring(_v, format.mintick)
+
+// ─────────────────────────────────────────────────────────────────────────
+//  LEVELS  —  yesterday's and last week's extremes
+//
+//  [1] on a lookahead_on request is the standard non-repainting idiom: on
+//  today's forming daily bar, high[1] is YESTERDAY's completed high, which is
+//  information you genuinely had at the open. Without the [1] this would be
+//  today's high-so-far and every backtest would be fiction.
+// ─────────────────────────────────────────────────────────────────────────
+[pdh, pdl] = request.security(syminfo.tickerid, 'D', [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, 'W', [high[1], low[1]], lookahead = barmerge.lookahead_on)
+
+atr14   = ta.atr(14)
+
+// Short-term structure. ta.pivot* confirms a swing only once mssPivot bars have
+// printed after it, so the level an MSS breaks was always visible in real time.
+float _ph = ta.pivothigh(high, mssPivot, mssPivot)
+float _pl = ta.pivotlow(low,  mssPivot, mssPivot)
+var float lastPH = na
+var float lastPL = na
+if not na(_ph)
+    lastPH := _ph
+if not na(_pl)
+    lastPL := _pl
+newDay  = ta.change(time('D')) != 0
+inLdn   = not na(time(timeframe.period, kzLdn, 'America/New_York'))
+inNy    = not na(time(timeframe.period, kzNy,  'America/New_York'))
+inKz    = inLdn or inNy
+string kzTag = inLdn ? 'LDN' : inNy ? 'NY' : '-'
+
+// the flat-out window. Deliberately a cutoff rather than "the last bar of the
+// day": a live script cannot know a bar is the last one until the next bar has
+// opened, so anything built on that would be untradeable by an EA.
+bool isEod = closeEod and not na(time(timeframe.period, eodSess, 'America/New_York'))
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────────────────
+// armed raid awaiting confirmation
+var int    armDir  = 0        // +1 = long setup (PDL raided), -1 = short setup
+var float  armExt  = na       // running extreme of the raid (where the stop goes)
+var float  armOpp  = na       // raid candle's opposite end (the confirmation line)
+var float  armMid  = na       // 50% of the raid leg (the limit price)
+var int    armBar  = na
+var string armLvl  = ''       // which pool: PDH / PDL / PWH / PWL
+var float  armMss  = na       // the swing whose break IS the structure shift
+
+// working limit order
+var int    ordDir  = 0
+var float  ordPx   = na
+var float  ordStop = na
+var int    ordBar  = na
+var string ordLvl  = ''
+var string ordVia  = ''
+var float  ordFvgT = na
+var float  ordFvgB = na
+// the gap drawn on the chart for the live setup
+var box    fvgBox  = na
+
+// open position
+var int    pos       = 0
+var float  entryPx   = na
+var float  stopPx    = na
+var float  tgtPx     = na
+var float  riskPx    = na
+var int    entryBar  = na
+var int    entryTime = na
+var string entryLvl  = ''
+var string entryKz   = ''
+var string entryVia  = ''     // how it was entered: FVG / CE / market
+var bool   beDone    = false
+
+// per-day bookkeeping
+var bool doneLong  = false
+var bool doneShort = false
+var int  dayCount  = 0
+
+if newDay
+    doneLong  := false
+    doneShort := false
+    dayCount  := 0
+
+// the log
+var array<int>    lgTime = array.new_int()
+var array<int>    lgDir  = array.new_int()
+var array<float>  lgEnt  = array.new_float()
+var array<float>  lgStp  = array.new_float()
+var array<float>  lgExit = array.new_float()
+var array<float>  lgR    = array.new_float()
+var array<string> lgRes  = array.new_string()
+var array<string> lgWhy  = array.new_string()
+
+f_log(int _t, int _d, float _e, float _s, float _x, float _r, string _res, string _why) =>
+    array.push(lgTime, _t)
+    array.push(lgDir,  _d)
+    array.push(lgEnt,  _e)
+    array.push(lgStp,  _s)
+    array.push(lgExit, _x)
+    array.push(lgR,    _r)
+    array.push(lgRes,  _res)
+    array.push(lgWhy,  _why)
+    if array.size(lgDir) > 200
+        array.shift(lgTime)
+        array.shift(lgDir)
+        array.shift(lgEnt)
+        array.shift(lgStp)
+        array.shift(lgExit)
+        array.shift(lgR)
+        array.shift(lgRes)
+        array.shift(lgWhy)
+    true
+
+// ─────────────────────────────────────────────────────────────────────────
+//  1 — THE RAID
+//
+//  Through the level by a WICK, closing back inside. A close beyond it is a
+//  breakout: the same candle read the opposite way, and arming on it would be
+//  buying the top of a run rather than fading a stop-hunt.
+// ─────────────────────────────────────────────────────────────────────────
+f_raidHi(float _lvl) => not na(_lvl) and high > _lvl and close < _lvl
+f_raidLo(float _lvl) => not na(_lvl) and low  < _lvl and close > _lvl
+
+//  THE IMBALANCE
+//  A 3-candle fair value gap on the displacement leg: for a bullish one, the
+//  low of a candle sits ABOVE the high of the candle two back, leaving a band
+//  no trade passed through. Searching from the MSS bar backwards and stopping
+//  at the first hit gives the gap that belongs to this leg, not an older one.
+f_findFvg(int _dir, int _look) =>
+    bool  _f = false
+    float _t = na
+    float _b = na
+    for i = 0 to _look
+        if _dir == 1
+            if low[i] > high[i + 2]
+                _t := low[i]
+                _b := high[i + 2]
+                _f := true
+                break
+        else
+            if high[i] < low[i + 2]
+                _b := high[i]
+                _t := low[i + 2]
+                _f := true
+                break
+    [_f, _t, _b]
+
+bool raidPdh = f_raidHi(pdh)
+bool raidPdl = f_raidLo(pdl)
+bool raidPwh = useWeekly and f_raidHi(pwh)
+bool raidPwl = useWeekly and f_raidLo(pwl)
+
+bool raidUp   = raidPdl or raidPwl          // a LOW was raided → long setup
+bool raidDn   = raidPdh or raidPwh          // a HIGH was raided → short setup
+string raidLvlUp = raidPdl ? 'PDL' : raidPwl ? 'PWL' : ''
+string raidLvlDn = raidPdh ? 'PDH' : raidPwh ? 'PWH' : ''
+
+// may we arm at all?
+bool allowLong  = useLongs  and (not oneADay or not doneLong)  and dayCount < maxPerDay
+bool allowShort = useShorts and (not oneADay or not doneShort) and dayCount < maxPerDay
+
+if barstate.isconfirmed and pos == 0 and ordDir == 0
+    if raidUp and allowLong
+        armDir := 1
+        armExt := low
+        armOpp := high
+        armMid := math.avg(high, low)
+        armBar := bar_index
+        armLvl := raidLvlUp
+        armMss := lastPH                      // the swing high a long must break
+    else if raidDn and allowShort
+        armDir := -1
+        armExt := high
+        armOpp := low
+        armMid := math.avg(high, low)
+        armBar := bar_index
+        armLvl := raidLvlDn
+        armMss := lastPL                      // the swing low a short must break
+
+// while armed, the raid can extend — the stop follows the true extreme
+if armDir == 1 and bar_index > armBar
+    armExt := math.min(armExt, low)
+if armDir == -1 and bar_index > armBar
+    armExt := math.max(armExt, high)
+
+// and a NEARER swing may confirm while we wait; breaking the closest one is
+// what short-term structure means, so the target level follows it down (or up)
+if armDir == 1 and not na(_ph)
+    armMss := na(armMss) ? _ph : math.min(armMss, _ph)
+if armDir == -1 and not na(_pl)
+    armMss := na(armMss) ? _pl : math.max(armMss, _pl)
+
+// the window expires
+if armDir != 0 and bar_index - armBar > confirmBars
+    armDir := 0
+
+// ─────────────────────────────────────────────────────────────────────────
+//  2 — CONFIRMATION, 3 — ENTRY
+// ─────────────────────────────────────────────────────────────────────────
+// MSS is the default and the real test: a CLOSE through the last opposing
+// swing. The other two are kept so you can measure what the stricter test is
+// worth rather than take my word for it.
+bool _mssUp = not na(armMss) and close > armMss
+bool _mssDn = not na(armMss) and close < armMss
+bool confUp = armDir ==  1 and (confirmMode == 'Raid candle close only (aggressive)' ? bar_index == armBar : confirmMode == 'MSS — close through the last swing' ? _mssUp : close > armOpp)
+bool confDn = armDir == -1 and (confirmMode == 'Raid candle close only (aggressive)' ? bar_index == armBar : confirmMode == 'MSS — close through the last swing' ? _mssDn : close < armOpp)
+bool kzOk   = not useKz or inKz
+
+f_target(int _dir, float _e, float _r) =>
+    float _fixed = _dir == 1 ? _e + rMult * _r : _e - rMult * _r
+    float _opp   = _dir == 1 ? pdh : pdl
+    float _out   = _fixed
+    if tgtMode == 'Opposite previous-day level' and not na(_opp) and (_dir == 1 ? _opp > _e : _opp < _e)
+        _out := _opp
+    if tgtMode == 'Nearer of the two' and not na(_opp) and (_dir == 1 ? _opp > _e : _opp < _e)
+        _out := _dir == 1 ? math.min(_fixed, _opp) : math.max(_fixed, _opp)
+    _out
+
+// A trade is OPENED in exactly one place. Each branch below only raises a
+// request; the block after them acts on it. Pine will not let a function
+// assign to a global, and having one open path is what keeps the Pine and the
+// eventual MQL5 version provably the same trade.
+int    _openDir = 0
+float  _openPx  = na
+float  _openRaw = na
+string _openLvl = ''
+string _openVia = ''
+
+// ── at the MSS: decide market, FVG limit, or 50% limit ──────────────────
+if barstate.isconfirmed and pos == 0 and ordDir == 0 and kzOk and (confUp or confDn)
+    int _d = confUp ? 1 : -1
+
+    if entryMode == 'Market at MSS'
+        _openDir := _d
+        _openPx  := close
+        _openRaw := armExt
+        _openLvl := armLvl
+        _openVia := 'MSS'
+        armDir   := 0
+
+    else if entryMode == 'Limit at 50% of the raid leg'
+        ordDir  := _d
+        ordPx   := armMid
+        ordStop := armExt
+        ordBar  := bar_index
+        ordLvl  := armLvl
+        ordVia  := '50%'
+        ordFvgT := na
+        ordFvgB := na
+        armDir  := 0
+
+    else
+        // the FVG left by the leg that just broke structure
+        [_found, _ft, _fb] = f_findFvg(_d, fvgLook)
+        // near edge is the side price reaches FIRST coming back: the TOP of a
+        // bullish gap, the BOTTOM of a bearish one
+        float _near = _d == 1 ? _ft : _fb
+        float _far  = _d == 1 ? _fb : _ft
+        float _cand = not _found ? na : fvgSide == 'Near edge (first touch)' ? _near : fvgSide == 'Far edge (deepest)' ? _far : math.avg(_ft, _fb)
+        // A gap the price has already passed would fill the instant it is
+        // placed, which is a market order wearing a limit order's name. If the
+        // candidate is not on the retrace side of the close, there is no
+        // pullback entry to be had and the setup is treated as gapless.
+        bool _usable = _found and not na(_cand) and (_d == 1 ? _cand < close : _cand > close)
+        // Entering at the far edge AND stopping just beyond it leaves a risk of
+        // one ATR buffer and an R figure that is arithmetic rather than a
+        // trade. The raid extreme is the honest stop in that combination.
+        bool _degen = stopMode == 'Beyond the FVG' and fvgSide == 'Far edge (deepest)'
+        if _usable
+            ordDir  := _d
+            ordPx   := _cand
+            ordStop := (stopMode == 'Beyond the FVG' and not _degen) ? _far : armExt
+            ordBar  := bar_index
+            ordLvl  := armLvl
+            ordVia  := fvgSide == 'CE — 50% of the gap' ? 'FVG·CE' : fvgSide == 'Far edge (deepest)' ? 'FVG·far' : 'FVG'
+            ordFvgT := _ft
+            ordFvgB := _fb
+            armDir  := 0
+        else if fvgNone == 'Enter at market'
+            _openDir := _d
+            _openPx  := close
+            _openRaw := armExt
+            _openLvl := armLvl
+            _openVia := 'MSS·nogap'
+            armDir   := 0
+        else
+            // displacement with no imbalance is not this model's setup
+            armDir := 0
+
+// a resting limit fills when price trades back to it
+if ordDir != 0 and pos == 0
+    bool _fill = ordDir == 1 ? low <= ordPx : high >= ordPx
+    if _fill
+        _openDir := ordDir
+        _openPx  := ordPx
+        _openRaw := ordStop
+        _openLvl := ordLvl
+        _openVia := ordVia
+        ordDir   := 0
+    else if bar_index - ordBar > limitBars
+        ordDir := 0
+
+// ── the single open path ────────────────────────────────────────────────
+// A stop that is not on the losing side of the entry, or is a rounding error
+// away from it, produces an R figure that means nothing. Drop the trade rather
+// than log a 40R win that was never available.
+bool _riskOk = false
+if _openDir != 0
+    float _bufChk = stopBufAtr * atr14
+    float _sChk   = _openDir == 1 ? _openRaw - _bufChk : _openRaw + _bufChk
+    _riskOk := (_openDir == 1 ? _sChk < _openPx : _sChk > _openPx) and math.abs(_openPx - _sChk) >= syminfo.mintick * 2
+
+if _openDir != 0 and _riskOk
+    float _buf = stopBufAtr * atr14
+    float _s   = _openDir == 1 ? _openRaw - _buf : _openRaw + _buf
+    float _r   = math.abs(_openPx - _s)
+    pos       := _openDir
+    entryPx   := _openPx
+    stopPx    := _s
+    riskPx    := _r
+    tgtPx     := f_target(_openDir, _openPx, _r)
+    entryBar  := bar_index
+    entryTime := time
+    entryLvl  := _openLvl
+    entryVia  := _openVia
+    entryKz   := kzTag
+    beDone    := false
+    dayCount  += 1
+    if _openDir == 1
+        doneLong := true
+    else
+        doneShort := true
+    if alertOn
+        alert('{"model":"ict_sweep","event":"entry","side":"' + (_openDir == 1 ? 'buy' : 'sell') + '","level":"' + _openLvl + '","via":"' + _openVia + '","entry":' + str.tostring(_openPx, format.mintick) + ',"stop":' + str.tostring(_s, format.mintick) + ',"target":' + str.tostring(tgtPx, format.mintick) + '}', alert.freq_once_per_bar_close)
+
+// ─────────────────────────────────────────────────────────────────────────
+//  4 / 5 — MANAGEMENT AND EXIT
+//
+//  The ambiguous-bar rule earns its place here. When one candle contains both
+//  the stop and the target, the chart genuinely cannot say which was touched
+//  first, and the default assumes the stop. Assuming the target instead is how
+//  a backtest ends up promising a win rate the live account never sees.
+// ─────────────────────────────────────────────────────────────────────────
+float exitPx  = na
+string exitWhy = ''
+
+if pos != 0
+    // breakeven, when asked for
+    if beAt > 0.0 and not beDone
+        float _prog = pos == 1 ? (high - entryPx) / riskPx : (entryPx - low) / riskPx
+        if _prog >= beAt
+            stopPx := entryPx
+            beDone := true
+
+    bool _hitStop = pos == 1 ? low  <= stopPx : high >= stopPx
+    bool _hitTgt  = pos == 1 ? high >= tgtPx  : low  <= tgtPx
+
+    if _hitStop and _hitTgt
+        if ambigMode == 'Stop first (conservative)'
+            exitPx  := stopPx
+            exitWhy := beDone and stopPx == entryPx ? 'BE' : 'SL'
+        else
+            exitPx  := tgtPx
+            exitWhy := 'TP'
+    else if _hitStop
+        exitPx  := stopPx
+        exitWhy := beDone and stopPx == entryPx ? 'BE' : 'SL'
+    else if _hitTgt
+        exitPx  := tgtPx
+        exitWhy := 'TP'
+    else if useTimeStop and bar_index - entryBar >= timeStopBars
+        exitPx  := close
+        exitWhy := 'time'
+    else if isEod
+        exitPx  := close
+        exitWhy := 'EOD'
+
+if pos != 0 and not na(exitPx)
+    float _r = riskPx > 0 ? ((pos == 1 ? exitPx - entryPx : entryPx - exitPx) / riskPx) : 0.0
+    f_log(entryTime, pos, entryPx, stopPx, exitPx, _r, exitWhy, entryLvl + '·' + entryVia + '·' + entryKz)
+    if alertOn
+        alert('{"model":"ict_sweep","event":"exit","side":"' + (pos == 1 ? 'buy' : 'sell') + '","reason":"' + exitWhy + '","exit":' + str.tostring(exitPx, format.mintick) + ',"r":' + str.tostring(_r, '#.##') + '}', alert.freq_once_per_bar_close)
+    pos     := 0
+    entryPx := na
+    stopPx  := na
+    tgtPx   := na
+
+// ─────────────────────────────────────────────────────────────────────────
+//  DRAWING
+// ─────────────────────────────────────────────────────────────────────────
+plot(showLevels ? pdh : na, 'PDH', color = color.new(color.red, 30),   style = plot.style_linebr, linewidth = 1)
+plot(showLevels ? pdl : na, 'PDL', color = color.new(color.green, 30), style = plot.style_linebr, linewidth = 1)
+plot(showLevels and useWeekly ? pwh : na, 'PWH', color = color.new(color.red, 60),   style = plot.style_linebr, linewidth = 2)
+plot(showLevels and useWeekly ? pwl : na, 'PWL', color = color.new(color.green, 60), style = plot.style_linebr, linewidth = 2)
+
+plot(showTrade and pos != 0 ? entryPx : na, 'Entry',  color = color.new(color.blue, 0),  style = plot.style_linebr, linewidth = 2)
+plot(showTrade and pos != 0 ? stopPx  : na, 'Stop',   color = color.new(color.red, 0),   style = plot.style_linebr, linewidth = 2)
+plot(showTrade and pos != 0 ? tgtPx   : na, 'Target', color = color.new(color.green, 0), style = plot.style_linebr, linewidth = 2)
+
+if showMarks and barstate.isconfirmed and (raidUp or raidDn)
+    label.new(bar_index, raidUp ? low : high, '⟂', xloc = xloc.bar_index, style = raidUp ? label.style_label_up : label.style_label_down, color = color.new(color.gray, 40), textcolor = color.white, size = size.tiny, tooltip = 'RAID of ' + (raidUp ? raidLvlUp : raidLvlDn) + '\nWicked through the level and closed back inside.\nArmed, waiting for a confirming close.')
+
+// the imbalance the order is waiting in, redrawn as it is set and cleared once
+// the setup resolves either way
+if showFvg and ordDir != 0 and not na(ordFvgT) and ordDir != ordDir[1]
+    fvgBox := box.new(bar_index, ordFvgT, bar_index + limitBars, ordFvgB, xloc = xloc.bar_index, border_color = na, bgcolor = color.new(ordDir == 1 ? colLong : colShort, 80))
+if not na(fvgBox) and ordDir == 0 and pos == 0
+    box.delete(fvgBox)
+    fvgBox := na
+
+plotshape(showMarks and pos != 0 and pos[1] == 0 and pos ==  1, 'Buy',  shape.triangleup,   location.belowbar, colLong,  size = size.small)
+plotshape(showMarks and pos != 0 and pos[1] == 0 and pos == -1, 'Sell', shape.triangledown, location.abovebar, colShort, size = size.small)
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STATS  —  the panel this script exists for
+//
+//  A fixed 1:N model has an exact breakeven: 1/(1+N). Printing the measured
+//  win rate next to it turns "does this model work" from an opinion into a
+//  comparison of two numbers.
+// ─────────────────────────────────────────────────────────────────────────
+var table st = table.new(f_pos(statsPos), 2, 9, bgcolor = color.new(color.white, 8), border_width = 1, border_color = color.new(color.gray, 70))
+
+f_stRow(int _r, string _k, string _v, color _c) =>
+    table.cell(st, 0, _r, _k, text_color = color.black, text_halign = text.align_left,  text_size = logSize)
+    table.cell(st, 1, _r, _v, text_color = _c,          text_halign = text.align_right, text_size = logSize)
+    true
+
+if showStats and barstate.islast
+    table.clear(st, 0, 0, 1, 8)
+    table.set_position(st, f_pos(statsPos))
+    int   _n = array.size(lgR)
+    int   _w = 0
+    int   _l = 0
+    int   _b = 0
+    float _sum = 0.0
+    if _n > 0
+        for i = 0 to _n - 1
+            float _ri = array.get(lgR, i)
+            _sum += _ri
+            if _ri > 0.05
+                _w += 1
+            else if _ri < -0.05
+                _l += 1
+            else
+                _b += 1
+    float _wr   = _n > 0 ? (_w * 100.0) / _n : na
+    float _need = 100.0 / (1.0 + rMult)
+    float _exp  = _n > 0 ? _sum / _n : na
+
+    table.cell(st, 0, 0, 'SWEEP MODEL', text_color = color.white, bgcolor = color.new(color.black, 0), text_halign = text.align_left, text_size = logSize)
+    table.cell(st, 1, 0, '1:' + str.tostring(rMult, '#.#'), text_color = color.white, bgcolor = color.new(color.black, 0), text_halign = text.align_right, text_size = logSize)
+    f_stRow(1, 'Trades', str.tostring(_n), color.gray)
+    f_stRow(2, 'Won / lost / BE', str.tostring(_w) + ' / ' + str.tostring(_l) + ' / ' + str.tostring(_b), color.gray)
+    f_stRow(3, 'Win rate', na(_wr) ? '—' : str.tostring(_wr, '#.#') + '%', na(_wr) ? color.gray : (_wr >= _need ? color.green : color.red))
+    f_stRow(4, 'Breakeven needs', str.tostring(_need, '#.#') + '%', color.gray)
+    f_stRow(5, 'Expectancy', na(_exp) ? '—' : (_exp >= 0 ? '+' : '') + str.tostring(_exp, '#.##') + ' R', na(_exp) ? color.gray : (_exp > 0 ? color.green : color.red))
+    f_stRow(6, 'Total', na(_exp) ? '—' : (_sum >= 0 ? '+' : '') + str.tostring(_sum, '#.#') + ' R', _sum > 0 ? color.green : _sum < 0 ? color.red : color.gray)
+    // the honest reading of the two numbers above
+    string _v = _n < 30 ? 'too few trades to judge' : na(_wr) ? '—' : _wr >= _need ? 'clears breakeven' : 'below breakeven'
+    color  _vc = _n < 30 ? color.gray : (_wr >= _need ? color.green : color.red)
+    f_stRow(7, 'Verdict', _v, _vc)
+    table.cell(st, 0, 8, 'state', text_color = color.gray, text_halign = text.align_left, text_size = logSize)
+    table.cell(st, 1, 8, pos != 0 ? (pos == 1 ? 'LONG' : 'SHORT') : ordDir != 0 ? ordVia + ' resting' : armDir != 0 ? 'armed ' + armLvl : 'flat', text_color = color.gray, text_halign = text.align_right, text_size = logSize)
+
+// ─────────────────────────────────────────────────────────────────────────
+//  TRADE LOG
+// ─────────────────────────────────────────────────────────────────────────
+var table lt = table.new(f_pos(logPos), 7, 34, bgcolor = color.new(color.white, 8), border_width = 1, border_color = color.new(color.gray, 70))
+
+if showLog and barstate.islast
+    table.clear(lt, 0, 0, 6, 33)
+    table.set_position(lt, f_pos(logPos))
+    string _tz = logTz == 'Exchange' ? syminfo.timezone : logTz
+    color  _hb = color.new(color.black, 0)
+    table.cell(lt, 0, 0, 'Time',   text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 1, 0, 'Dir',    text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 2, 0, 'Setup',  text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 3, 0, 'Entry',  text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 4, 0, 'Stop',   text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 5, 0, 'Exit',   text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_left)
+    table.cell(lt, 6, 0, 'R',      text_color = color.white, bgcolor = _hb, text_size = logSize, text_halign = text.align_right)
+
+    int _row = 1
+    // the live trade, pinned
+    if pos != 0
+        float _open = riskPx > 0 ? ((pos == 1 ? close - entryPx : entryPx - close) / riskPx) : 0.0
+        table.cell(lt, 0, _row, str.format_time(entryTime, 'HH:mm', _tz), text_color = color.gray, text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 1, _row, pos == 1 ? 'LONG' : 'SHORT', text_color = color.white, bgcolor = pos == 1 ? color.new(colLong, 20) : color.new(colShort, 20), text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 2, _row, '● ' + entryLvl + '·' + entryVia + '·' + entryKz, text_color = color.new(color.purple, 0), text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 3, _row, f_px(entryPx), text_color = color.blue, text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 4, _row, f_px(stopPx),  text_color = color.red,  text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 5, _row, f_px(tgtPx),   text_color = color.green,text_size = logSize, text_halign = text.align_left)
+        table.cell(lt, 6, _row, (_open >= 0 ? '+' : '') + str.tostring(_open, '#.##'), text_color = _open >= 0 ? color.green : color.red, text_size = logSize, text_halign = text.align_right)
+        _row += 1
+
+    int _n2 = array.size(lgDir)
+    if _n2 > 0
+        int _shown = 0
+        for i = _n2 - 1 to 0
+            if _shown >= logRows
+                break
+            int    _d  = array.get(lgDir, i)
+            float  _ri = array.get(lgR, i)
+            string _rs = array.get(lgRes, i)
+            color  _rc = _rs == 'TP' ? color.green : _rs == 'SL' ? color.red : color.gray
+            table.cell(lt, 0, _row, str.format_time(array.get(lgTime, i), 'HH:mm', _tz), text_color = color.gray, text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 1, _row, _d == 1 ? 'LONG' : 'SHORT', text_color = _d == 1 ? colLong : colShort, text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 2, _row, array.get(lgWhy, i) + '  ' + _rs, text_color = _rc, text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 3, _row, f_px(array.get(lgEnt, i)),  text_color = color.black, text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 4, _row, f_px(array.get(lgStp, i)),  text_color = color.red,   text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 5, _row, f_px(array.get(lgExit, i)), text_color = _rc,         text_size = logSize, text_halign = text.align_left)
+            table.cell(lt, 6, _row, (_ri >= 0 ? '+' : '') + str.tostring(_ri, '#.##'), text_color = _ri > 0 ? color.green : _ri < 0 ? color.red : color.gray, text_size = logSize, text_halign = text.align_right)
+            _row   += 1
+            _shown += 1
+    if _row == 1
+        table.cell(lt, 0, 1, 'No trades yet', text_color = color.gray, text_size = logSize, text_halign = text.align_left)
+
+// ─────────────────────────────────────────────────────────────────────────
+//  ALERT CONDITIONS (for the simple alert dialog; the EA bridge uses alert())
+// ─────────────────────────────────────────────────────────────────────────
+alertcondition(pos != 0 and pos[1] == 0 and pos ==  1, 'Sweep model — BUY',  'PDL/PWL raid confirmed — BUY')
+alertcondition(pos != 0 and pos[1] == 0 and pos == -1, 'Sweep model — SELL', 'PDH/PWH raid confirmed — SELL')
