@@ -256,6 +256,22 @@ input bool     InpDayTargetTgAlert  = true;  // Telegram note when the day close
 //  InpDayResetHour / InpDayResetUseIST - the same boundary the daily loss cap uses.
 //  This is independent of InpPropMode: it works on a personal account too.
 
+input group "-- Daily LOSS cap: stop while it is still small --"
+input bool     InpUseDayLossCap   = false;   // OFF by default. Independent of InpPropMode, so it
+                                             // works on a personal account too - unlike
+                                             // InpMaxDailyLossPct / InpMaxDailyLossMoney above,
+                                             // which do NOTHING while InpPropMode is false.
+input double   InpDayLossCapMoney = 80.0;    // stop taking NEW entries once the day is this far down
+input bool     InpDayLossCapClose = true;    // TRUE = flatten the open trade the moment the cap is hit
+                                             // FALSE = it keeps running to its own SL/TP, so the day
+                                             //         can still end worse than the cap
+input bool     InpDayLossTgAlert  = true;    // Telegram note when the day closes on the cap
+//  Measured from EQUITY against the balance the trading day opened on, so the OPEN trade's
+//  floating loss counts. A cap that only reads closed trades is not a cap: a losing position
+//  can be 200 down and the guard would still be reporting zero.
+//  Resets with the trading day - InpDayResetHour / InpDayResetUseIST, the same boundary the
+//  profit target and the prop guards use.
+
 input group "-- Overall loss guard (account-level) --"
 input int      InpDrawdownMode      = 2;     // 0 = from the static baseline, 1 = from PEAK equity (trailing), 2 = both
 //  Firms differ: some measure max loss from the account's starting balance, some from the
@@ -375,6 +391,7 @@ double   g_dayStartBal = 0;      // balance at the start of the current trading 
 double   g_baseline    = 0;      // account baseline every loss limit is measured from
 bool     g_dayLocked   = false;  // day cap / loss-count hit - no more trades today
 bool     g_dayTargetHit= false;  // day's profit target reached - no more entries today
+bool     g_dayLossHit  = false;  // day's loss cap reached - no more entries today
 bool     g_acctLocked  = false;  // overall loss guard hit - no more trades at all
 bool     g_warnDaily   = false;  // daily warning already sent today
 bool     g_warnTotal   = false;  // overall warning already sent
@@ -835,6 +852,7 @@ void OnTick()
 
    if(GuardsBlockTrading()){ LogSkip("loss guard locked"); return; }
    if(DailyTargetReached()){ LogSkip("daily profit target reached"); return; }
+   if(DailyLossCapHit()){ LogSkip("daily loss cap reached"); return; }
    if(!SessionAllowed()){ LogSkip("outside the entry window"); return; }
    {
       string eveWhy;
@@ -1774,6 +1792,7 @@ void RollDayIfNeeded()
       g_dayLocked=false;
       g_warnDaily=false;
       g_dayTargetHit=false;
+      g_dayLossHit=false;
       SaveState();
       SayStartupBanner("new trading day");       // settings in force for the day ahead
    }
@@ -2113,6 +2132,54 @@ bool DailyTargetReached()
 }
 
 //====================================================================
+//  DAILY LOSS CAP - stop while the loss is still small
+//
+//  Deliberately NOT behind InpPropMode. The cap in the prop group does nothing
+//  on a personal account, which is exactly where an unattended EA can spend a
+//  whole session giving back a week.
+//
+//  Measured from EQUITY, so the open trade's floating loss counts. Reading only
+//  closed trades would let a position sit 200 down while the guard reported
+//  zero, and a cap that can be breached without noticing is not a cap.
+//====================================================================
+bool DailyLossCapHit()
+{
+   if(!InpUseDayLossCap || InpDayLossCapMoney <= 0.0) return false;
+   if(g_dayLossHit) return true;
+
+   double eq   = AccountInfoDouble(ACCOUNT_EQUITY);
+   double loss = g_dayStartBal - eq;               // floating loss included
+   if(loss < InpDayLossCapMoney) return false;
+
+   g_dayLossHit = true;
+   double realised = g_dGrossP - g_dGrossL;
+   Say("HALT",StringFormat("daily loss cap | -%.2f >= %.2f | no more entries today "
+                           "(%d trades, W %d / L %d, realised %+.2f)",
+       loss, InpDayLossCapMoney, g_dTrades, g_dWins, g_dLoss, realised));
+   LogEvent("HALT_DAYLOSS",0.0,0.0,0.0,0.0,0.0,-loss,
+            StringFormat("daily loss cap %.2f reached",InpDayLossCapMoney));
+
+   if(InpDayLossCapClose && PositionOnSymbol())
+   {
+      Say("HALT","flattening the open trade on the daily loss cap (InpDayLossCapClose)");
+      ClosePositionTagged("DAYLOSS exit","EXIT_GUARD");
+   }
+
+   if(InpDayLossTgAlert)
+      TelegramSend(Emo(0x1F6D1) + " " + TgB("DAILY LOSS CAP") + "\n"
+                 + _Symbol + "\n\n"
+                 + TgPre(StringFormat("%-11s %.2f\n%-11s %.2f\n%-11s %+.2f\n%-11s %d  (W %d / L %d)\n%-11s %s",
+                         "Day loss",  loss,
+                         "Cap",       InpDayLossCapMoney,
+                         "Realised",  realised,
+                         "Trades",    g_dTrades, g_dWins, g_dLoss,
+                         "Open trade",(InpDayLossCapClose?"flattened":"left running")))
+                 + "\nNo more entries today. Resets at the day reset time.");
+   SaveState();
+   return true;
+}
+
+//====================================================================
 //  GUARDS - overall loss, daily loss, losing-trade count
 //  Returns TRUE when no new entry may be taken.
 //====================================================================
@@ -2262,6 +2329,7 @@ void SaveState()
    FileWriteString(h,StringFormat("acctLocked=%d\r\n",(int)g_acctLocked));
    FileWriteString(h,StringFormat("warnDaily=%d\r\n",(int)g_warnDaily));
    FileWriteString(h,StringFormat("dayTargetHit=%d\r\n",(int)g_dayTargetHit));
+   FileWriteString(h,StringFormat("dayLossHit=%d\r\n",(int)g_dayLossHit));
    FileWriteString(h,StringFormat("warnTotal=%d\r\n",(int)g_warnTotal));
    FileWriteString(h,StringFormat("lastSignal=%d\r\n",g_lastSignal));
    FileWriteString(h,StringFormat("dTrades=%d\r\n",g_dTrades));
@@ -2333,6 +2401,7 @@ void StateApply(const string key,const string val)
    else if(key=="acctLocked")  g_acctLocked =(StringToInteger(val)!=0);
    else if(key=="warnDaily")   g_warnDaily  =(StringToInteger(val)!=0);
    else if(key=="dayTargetHit")g_dayTargetHit=(StringToInteger(val)!=0);
+   else if(key=="dayLossHit")  g_dayLossHit  =(StringToInteger(val)!=0);
    else if(key=="warnTotal")   g_warnTotal  =(StringToInteger(val)!=0);
    else if(key=="lastSignal")  g_lastSignal =(int)StringToInteger(val);
    else if(key=="dTrades")     g_dTrades    =(int)StringToInteger(val);
@@ -2468,6 +2537,7 @@ void LoadState()
 
       // day-scoped values are dropped when the saved state is from an earlier day
       bool dayScoped = (k=="dayStartBal"||k=="dayLocked"||k=="warnDaily"||k=="dayTargetHit"||
+                        k=="dayLossHit"||
                         k=="dTrades"||k=="dWins"||k=="dLoss"||k=="dGrossP"||k=="dGrossL"||
                         k=="dSwap"||k=="dComm"||k=="dR"||k=="dBest"||k=="dWorst");
       if(dayScoped && !sameDay) continue;
@@ -2685,16 +2755,39 @@ void PanelUpdate()
       if(g_dayLocked||g_acctLocked) rc=cBad;
       PanelRow(r++,room,rc);
    }
-   else if(InpDailyProfitTarget>0)
-      PanelRow(r++,StringFormat("Target  %+.2f of %.2f%s",
-               net, InpDailyProfitTarget, (g_dayTargetHit?"  DONE":"")),
-               (g_dayTargetHit?cGood:cTxt));
+   else if(InpUseDayLossCap || InpDailyProfitTarget>0)
+   {
+      string line="";
+      if(InpDailyProfitTarget>0)
+         line += StringFormat("Target %+.2f/%.2f%s", net, InpDailyProfitTarget,
+                              (g_dayTargetHit?" DONE":""));
+      if(InpUseDayLossCap)
+      {
+         // room LEFT in the cap, measured the same way the guard measures it
+         double dl = g_dayStartBal - eq;
+         line += (line==""?"":"   ")
+               + StringFormat("Loss cap %.2f left of %.2f%s",
+                              MathMax(InpDayLossCapMoney-dl,0), InpDayLossCapMoney,
+                              (g_dayLossHit?" HIT":""));
+      }
+      color lc = cTxt;
+      if(g_dayTargetHit) lc = cGood;
+      if(InpUseDayLossCap)
+      {
+         double dl = g_dayStartBal - eq;
+         if(dl >= InpDayLossCapMoney*0.75) lc = cWarn;
+         if(g_dayLossHit)                  lc = cBad;
+      }
+      PanelRow(r++,line,lc);
+   }
    else
       PanelRow(r++,"Funding guards off", cTxt);
 
    string gate="", gateWhy="";
    if(g_acctLocked)                         gate="ACCOUNT LOCKED";
    else if(g_dayLocked)                     gate="DAY LOCKED";
+   else if(g_dayLossHit)                    gate="DAY LOSS CAP - no more entries";
+   else if(g_dayTargetHit)                  gate="DAY TARGET - no more entries";
    else if(g_newsActive!="")                gate="NEWS PAUSE: "+g_newsActive;
    else if(!SessionAllowed())               gate="outside the entry window";
    else if(EveningEntryBlocked(gateWhy))    gate=gateWhy;
@@ -2940,6 +3033,16 @@ void SayStartupBanner(const string why)
    Say("CONFIG",StringFormat("daily target | %s | open trade %s",
        (InpDailyProfitTarget>0 ? StringFormat("stop at +%.2f realised",InpDailyProfitTarget) : "off"),
        (InpDayTargetClose?"flattened on target":"left running")));
+
+   Say("CONFIG",StringFormat("daily loss cap | %s | open trade %s | measured on equity, so a floating loss counts",
+       (InpUseDayLossCap ? StringFormat("stop at -%.2f",InpDayLossCapMoney) : "off"),
+       (InpDayLossCapClose?"flattened on the cap":"left running")));
+
+   // the cap that silently does nothing is worth naming, since its value looks set
+   if(!InpPropMode && !InpUseDayLossCap && (InpMaxDailyLossPct>0 || InpMaxDailyLossMoney>0))
+      Say("CONFIG","daily loss cap | NOTE: InpMaxDailyLossPct/Money are inside the prop guards and "
+                   "do NOTHING while InpPropMode is false. Use InpUseDayLossCap for a cap on a "
+                   "personal account.");
 
    Say("CONFIG","guards | " + wk);
 

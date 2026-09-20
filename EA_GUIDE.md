@@ -204,6 +204,52 @@ boundary as the loss cap (`InpDayResetHour` / `InpDayResetUseIST`).
 > the target on and off and compare — the dashboard's equity curve shows the
 > difference directly. It is a discipline tool, not an edge.
 
+### Daily loss cap — `InpUseDayLossCap` **false**
+
+The mirror of the profit target, and **independent of `InpPropMode`**.
+
+```
+InpUseDayLossCap    false     master switch
+InpDayLossCapMoney  80.0      stop taking entries once the day is this far down
+InpDayLossCapClose  true      flatten the open trade the moment the cap is hit
+InpDayLossTgAlert   true
+```
+
+> **Why a second cap exists.** `InpMaxDailyLossPct` and `InpMaxDailyLossMoney`
+> live inside the prop guards, and `GuardsBlockTrading()` returns on its first
+> line while `InpPropMode` is false. So on a personal account those values sit
+> in the `.set` file looking configured and **do nothing at all** — which is
+> precisely the account where an unattended EA can spend a session giving back a
+> week. The startup banner now says so out loud when it detects that state.
+
+**Measured from equity against the balance the day opened on, so the open
+trade's floating loss counts.** Reading only closed trades would let a position
+sit 200 down while the guard reported zero, and a cap that can be breached
+without noticing is not a cap.
+
+`InpDayLossCapClose` decides what happens to that open trade:
+
+| | |
+|---|---|
+| `true` *(default)* | flattened at the cap — the day ends near the number |
+| `false` | keeps running to its own SL/TP, so **the day can still end worse than the cap** |
+
+Resets with the trading day — `InpDayResetHour` / `InpDayResetUseIST`, the same
+boundary the profit target and the prop guards use. The flag is day-scoped in
+the state file, so a restart mid-day keeps the cap locked rather than handing
+back a fresh allowance.
+
+The dashboard shows the room left in it, ambers at 75 % used, and reds once hit:
+
+```
+Target +12.00/50.00   Loss cap 31.40 left of 80.00
+```
+
+> **What it cannot do.** A cap does not improve expectancy — it truncates the
+> left tail of the daily distribution and nothing else. Its value is that you
+> stop trading a bad day at a number you chose in advance rather than one you
+> talk yourself into at the time.
+
 ### Clock formatting
 
 **Telegram messages only** are 12-hour: `02:29 PM`. Five places — the startup

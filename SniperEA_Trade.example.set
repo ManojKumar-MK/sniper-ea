@@ -96,6 +96,11 @@ InpCloseOnDailyCap=true
 InpDailyProfitTarget=50.0
 InpDayTargetClose=false
 InpDayTargetTgAlert=true
+; -- Daily LOSS cap: stop while it is still small --
+InpUseDayLossCap=false
+InpDayLossCapMoney=80.0
+InpDayLossCapClose=true
+InpDayLossTgAlert=true
 ; -- Overall loss guard (account-level) --
 InpDrawdownMode=2
 InpMaxTotalLossPct=10.0
