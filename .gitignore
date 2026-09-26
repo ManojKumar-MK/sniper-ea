@@ -40,7 +40,5 @@ SniperEA_Log_*.jsonl
 # folders. Verify a set is token-free before adding anything else here.
 !kz-grid/sets_kz/*.set
 !kz-grid/*.set
-!sweep-grid/sets_sweep/*.set
-!sweep-grid/*.set
 !turtle-grid/sets_turtle/*.set
 !turtle-grid/*.set

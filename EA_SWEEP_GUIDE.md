@@ -115,7 +115,11 @@ The CSV note carries `SETUP=`.
 1. **Compile it (F7).** None of the `InpSw*` inputs exist in any older `.ex5`, and MT5
    **silently ignores keys it does not recognise** — you would get a grid of identical
    runs and never know why.
-2. Backtest it. `sweep-grid/` is a one-click grid — see [sweep-grid/README.md](sweep-grid/README.md).
+2. Backtest it. **There is no sweep grid any more** — it was removed as unused while
+   the killzone work took priority. To test this EA, copy `turtle-grid/` to
+   `sweep-grid/`, point `EXPERT` in the `.bat` at `SniperSweep_PDHPDL_v1.00.ex5`, and
+   write sets that vary the `InpSw*` inputs. The old grid is in git history at
+   `git show 0b0925e:ema-strategy/sweep-grid/` if you want it back verbatim.
 3. Demo it. Real spread and slippage change these results, and a structural stop is
    more slippage-sensitive than a fixed one.
 

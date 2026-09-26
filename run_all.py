@@ -2,7 +2,7 @@
 """
 One click, every grid.
 
-Runs kz-grid, sweep-grid and turtle-grid across M5 and M3, merges each
+Runs kz-grid and turtle-grid across M5 and M3, merges each
 grid's runs, then copies the SUMMARIES into backtest-results/<stamp>/ so they
 can be committed and compared later.
 
@@ -35,9 +35,6 @@ GRIDS = {
     "kz":     dict(folder="kz-grid",     sets="sets_kz",
                    expert="SniperEntry_Strict_SessionFilter_Telegram_v1.30.ex5",
                    out="results_kz"),
-    "sweep":  dict(folder="sweep-grid",  sets="sets_sweep",
-                   expert="SniperSweep_PDHPDL_v1.00.ex5",
-                   out="results_sw"),
     "turtle": dict(folder="turtle-grid", sets="sets_turtle",
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_tu"),
