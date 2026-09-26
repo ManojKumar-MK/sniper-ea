@@ -1,6 +1,6 @@
 # turtle-grid — does the killzone-range filter earn its place?
 
-21 sets × 3 timeframes (M3, M5, M15) = **63 backtests**, then one merged table.
+33 sets × 3 timeframes (M3, M5, M15) = **99 backtests**, then one merged table.
 
 ```
 RUN_TURTLE.bat          double-click this
@@ -36,10 +36,10 @@ Then double-click `RUN_TURTLE.bat`. Edit `MT5DIR` at the top of it if you instal
 elsewhere.
 
 > **Compile first.** None of the `InpKzr*` inputs exist in an older `.ex5`, and MT5
-> silently ignores keys it does not recognise — you would get 21 identical runs and
+> silently ignores keys it does not recognise — you would get 33 identical runs and
 > spend an evening wondering why the model has no parameters.
 
-## The 21 sets
+## The 33 sets
 
 Every set changes **one thing** against `TU_ref_kz60`.
 
@@ -70,6 +70,38 @@ separate `TU_tgt_none`.
 | `TU_mode1_near2` | the same, widened to 2 ATR |
 | `TU_days3` | weekly level built from 3 sessions instead of 5 |
 | `TU_days10` | built from 10 |
+
+### The signal quality filter
+
+**`InpEnableQFilter` is `false` in the control**, which is the EA's default and the
+Pine's — "original behaviour", every EMA 9/21 cross taken. So the seven `InpQf*` flags
+below it do nothing until the master switch is on, and none of these conditions has
+ever been tested here. That is what this block is for.
+
+| Set | What it changes |
+|---|---|
+| `TU_qf_default` | master **on** with the ticks the EA ships (trend, struct, EMA50, VWAP, cooldown) |
+| `TU_qf_all` | every condition, including bias and volume which ship off |
+| `TU_qf_trend` | ADX ≥ 25 **only** |
+| `TU_qf_struct` | \|EMA21−EMA50\| ≥ 0.5 ATR **only** |
+| `TU_qf_ema50` | price on the right side of EMA50 **only** |
+| `TU_qf_vwap` | price on the right side of VWAP **only** |
+| `TU_qf_cooldown` | 5 bars between signals **only** |
+| `TU_qf_bias` | the bias score ≥ 70 **only** |
+| `TU_qf_volume` | volume > average **only** |
+| `TU_qf_adx20` | default ticks, ADX threshold 20 |
+| `TU_qf_adx30` | default ticks, ADX threshold 30 |
+| `TU_qf_cool10` | default ticks, cooldown 10 bars |
+
+The one-condition-at-a-time runs are the point of this block. `TU_qf_default` turns on
+five conditions at once, and if it helps you still cannot say which one did the work —
+or whether one of them is quietly costing you while the other four carry it. Read the
+singles against `TU_ref_kz60` first, then check whether `TU_qf_default` beats the best
+single by enough to justify four extra conditions.
+
+A filter can only ever **remove** trades, so compare expectancy per trade and drawdown,
+not net. Cutting trade count in half and keeping 60% of the profit is a good filter;
+the net alone makes it look like a loss.
 
 ### Stopping for the day
 

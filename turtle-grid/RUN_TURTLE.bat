@@ -47,7 +47,7 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
 
 echo.
 echo   Tester terminal : %MT5DIR%\terminal64.exe
-echo   Sets            : sets_turtle  (21 runs x 3 timeframes = 63 backtests)
+echo   Sets            : sets_turtle  (33 runs x 3 timeframes = 99 backtests)
 echo   Portable cmd    : %MT5DIR%\terminal64.exe /portable
 echo   Your LIVE terminal is not touched.
 echo.

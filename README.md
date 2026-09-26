@@ -61,9 +61,9 @@ into `backtest-results/<timestamp>/` ready to commit.
 |---|---|---|
 | [kz-grid/](kz-grid/) | SniperEntry_Strict v1.30 | 10 — killzone entry window |
 | [sweep-grid/](sweep-grid/) | SniperSweep_PDHPDL v1.00 | 14 — PDH/PDL raid model |
-| [turtle-grid/](turtle-grid/) | SniperTurtle_KZ v1.00 | 21 — killzone ranges, daily targets |
+| [turtle-grid/](turtle-grid/) | SniperTurtle_KZ v1.00 | 33 — killzone ranges, daily targets, quality filter |
 
-135 backtests in all. Narrow it with `--grids turtle` or `--periods M5`; see what
+171 backtests in all. Narrow it with `--grids turtle` or `--periods M5`; see what
 would run first with `--list`; pass anything else straight through after `--`:
 
 ```
