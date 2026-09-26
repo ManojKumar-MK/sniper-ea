@@ -148,6 +148,23 @@ more", it is:
 - On a $25k challenge the target is not about profit at all. It is about not being in
   the market after you have already done the day's work.
 
+## "no EA logs found"
+
+The run **succeeded** — that line only ever prints after the report was written and
+filed. It is a note about a second, optional thing: the EA's own CSV/JSONL trade log,
+which `ema_report.py` reads for per-trade detail, the skip audit and MFE/MAE.
+
+It appears when the set's `InpCsvPrefix` is not unique. The EA names its file
+`<InpCsvPrefix>_<symbol>_<tf>.csv`, and the collector matches on the set name, so a
+shared prefix means the logs cannot be told apart — and worse, every set writes to the
+same file and overwrites the one before.
+
+Every set here now carries `InpCsvPrefix=<its own name>`. If you see this message
+again, check that first.
+
+**The grid comparison is unaffected either way.** Net, profit factor and drawdown come
+from MT5's own report, not from the EA's log.
+
 ## "finished in 0.0 min but NO REPORT was written"
 
 Every run ends in seconds, no report, and MT5's log shows the terminal connecting
