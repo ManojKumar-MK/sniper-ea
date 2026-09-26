@@ -182,6 +182,42 @@ the trap that made an earlier backtest look risk-sized when it was flat-lot, so 
 stated in the `.set` header too. To size by risk, set **both** `InpUseSessionLots` and
 `InpUseFixedLot` to false — only then does the percentage apply.
 
+---
+
+## The FundedNext 25k preset
+
+[`SniperTurtle_FundedNext_25k.example.set`](SniperTurtle_FundedNext_25k.example.set) —
+for a **Stellar 1-Step $25K**, with the plan's figures taken in **cash**, as the page
+states them, so there is no percentage to mis-key.
+
+| Plan rule | | EA stops first at |
+|---|---|---|
+| Profit target | $2,500 | `InpDailyProfitTarget` $250/day → 10 such days |
+| Daily loss limit | $750 | **$600** (`InpMaxDailyLossMoney`) |
+| Maximum loss | $1,500 | **$1,200** (80% of `InpMaxTotalLossMoney`) |
+| Drawdown type | **Static** | `InpDrawdownMode=0` |
+| Min trading days | 2 | — see the warning below |
+| News trading | Allowed | `InpUseNewsFilter=false` |
+| Max risk | 3% at any time | 0.35%/trade = **$87.50**, one position |
+
+Plus a **soft cash cap at $250** that flattens and ends the day — which is about 2.9
+losing trades, so it lands in the same place as `InpMaxLossesPerDay=3` rather than
+fighting it.
+
+**Why $600 and not $750.** The daily cap has no stop-at-% of its own, unlike the total
+loss guard — it halts at exactly the figure given. Set it to $750 and the EA stops at
+the precise moment you have breached. The headroom has to be in the number.
+
+**Why static and not "both".** `InpDrawdownMode=2` adds a trailing-from-peak stop this
+firm does not measure. It would halt you mid-challenge on a rule that does not exist.
+Do not set it to 2 to be safe; here it is the less safe choice.
+
+**Min 2 trading days is the risk nobody plans for.** Killzone-only entries can go quiet
+for days. Confirm in the backtest that this configuration trades often enough to clear
+that rule — passing on profit and failing on activity is a real way to lose a
+challenge. `turtle-grid/TU_fn25k` runs exactly this configuration so you can count the
+trading days rather than hope.
+
 ### Before it goes on a live chart
 
 - Fill `InpTgToken` / `InpTgChatId` on the machine; they are blank in the repo.

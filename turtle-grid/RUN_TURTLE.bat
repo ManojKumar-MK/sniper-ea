@@ -47,7 +47,7 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
 
 echo.
 echo   Tester terminal : %MT5DIR%\terminal64.exe
-echo   Sets            : sets_turtle  (9 runs x 3 timeframes = 27 backtests)
+echo   Sets            : sets_turtle  (21 runs x 3 timeframes = 63 backtests)
 echo   Portable cmd    : %MT5DIR%\terminal64.exe /portable
 echo   Your LIVE terminal is not touched.
 echo.
@@ -68,7 +68,7 @@ echo.
 python run_backtests.py --merge-all
 echo.
 echo ===== done =====
-echo   all_results.csv holds every run. TU_ref_nofilter is the control - every
+echo   all_results.csv holds every run. TU_ref_kz60 is the control - every
 echo   other set changes ONE thing against it, so read it first and rank
 echo   the rest by their WORST timeframe, not their best.
 pause

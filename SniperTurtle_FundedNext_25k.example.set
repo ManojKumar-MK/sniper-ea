@@ -1,0 +1,183 @@
+;SniperTurtle_KZ_v1.00  -  FundedNext Stellar 1-Step $25K
+; PLAN RULES, as the page states them:
+;   Profit target      $2,500      Daily loss limit   $750
+;   Maximum loss       $1,500      Drawdown type      STATIC
+;   Min trading days   2           News trading       ALLOWED
+;   Max risk           3% at any time
+;
+; WHERE THIS EA STOPS FIRST, so a limit is never touched:
+;   daily   $600   of the $750   (the daily cap has NO stop-at-%, so the
+;                                 headroom has to be in the number itself)
+;   soft    $250   ends the day long before that, and flattens
+;   total  $1200   = 80% of the $1,500
+;   3 losing trades in a day also ends it
+;   +$250 realised stops NEW entries for the day (10 such days = the target)
+;
+; Static drawdown means InpDrawdownMode=0. Do not set 2 "to be safe": it adds
+; a trailing-from-peak stop this firm does not measure, and would halt you
+; mid-challenge on a rule that does not exist.
+;
+; Max risk 3% = $750 open at any time. One position at 0.35% never approaches
+; it, but do not run this alongside another EA on the same account without
+; checking the combined exposure.
+;
+; MIN 2 TRADING DAYS: killzone-only entries can go quiet. Confirm in the
+; backtest that it trades often enough to clear that rule - passing on profit
+; and failing on activity is a real way to lose a challenge.
+;
+; Telegram is left OFF - fill InpTgToken / InpTgChatId on the machine.
+InpEmaFast=9
+InpEmaMid=21
+InpEmaTrend=50
+InpAtrPeriod=14
+InpTradeOnClose=true
+InpRiskPercent=0.35000000
+InpUseFixedLot=false
+InpFixedLot=0.10000000
+InpUseSessionLots=false
+InpDayLot=0.05000000
+InpEveningLot=0.05000000
+InpSlAtrMult=2.00000000
+InpUseScaleOut=true
+InpTP1_R=1.00000000
+InpTP2_R=2.00000000
+InpTP3_R=3.00000000
+InpTP4_R=4.00000000
+InpTP5_R=5.00000000
+InpPartialPct=20.00000000
+InpTrailBehindTP=true
+InpTpRMultiple=3.00000000
+InpMoveToBE_Single=true
+InpUseFullTarget=true
+InpTesterFreshLog=true
+InpLogSkips=true
+InpHeartbeatMin=5
+InpBookAtTP5=true
+InpRunnerStepR=1.00000000
+InpFlipExitAnyTime=true
+InpDaySessionStartIST=0
+InpDaySessionEndIST=16
+InpUseHalfSlOutside=true
+InpOutsideSlFactor=0.50000000
+InpTpFromHalvedRisk=true
+InpTradeEvening=true
+InpEveEntryStartIST=16
+InpEveEntryEndIST=0
+InpEveH16=true
+InpEveH17=true
+InpEveH18=true
+InpEveH19=true
+InpEveH20=true
+InpEveH21=true
+InpEveH22=true
+InpEveH23=true
+InpUseSessionRisk=false
+InpDayRiskPct=0.50000000
+InpEveningRiskPct=0.25000000
+InpAutoGmtOffset=false
+InpServerGmtOffset=3.00000000
+InpHoldOverWeekend=false
+InpFridayCloseBufferMin=15
+InpFridayCloseHour=-1
+InpFridayCloseMinute=0
+InpBlockFridayEntries=true
+InpPropMode=true
+InpShowPanel=true
+InpPanelCorner=0
+InpPanelX=12
+InpPanelY=22
+InpPanelFont=9
+InpPanelFontName=Consolas
+InpPanelBg=C'18,22,30'
+InpPanelText=clrGainsboro
+InpPersistState=true
+InpBaselineBalance=25000.00000000
+InpDayResetHour=0
+InpDayResetMinute=0
+InpDayResetUseIST=false
+InpMaxDailyLossPct=0.00000000
+InpMaxDailyLossMoney=600.00000000
+InpDailyWarnPct=75.00000000
+InpMaxLossesPerDay=3
+InpCloseOnDailyCap=true
+InpDailyProfitTarget=250.00000000
+InpDayTargetClose=false
+InpDayTargetTgAlert=true
+InpUseDayLossCap=true
+InpDayLossCapMoney=250.00000000
+InpDayLossCapClose=true
+InpDayLossTgAlert=true
+InpDrawdownMode=0
+InpMaxTotalLossPct=0.00000000
+InpMaxTotalLossMoney=1500.00000000
+InpTotalLossStopPct=80.00000000
+InpTotalWarnPct=70.00000000
+InpUseNewsFilter=false
+InpNewsMinsBefore=15
+InpNewsMinsAfter=15
+InpNewsImportance=2
+InpNewsCurrencies=
+InpNewsCloseOpen=false
+InpNewsManualTimes=
+InpNewsManualIsIST=false
+InpNewsTgAlerts=true
+InpNewsAlertMins=15
+InpMaxSpreadPts=40
+InpMagic=994000
+InpSignalsOnly=false
+InpUseKzWindow=true
+InpKzLeadMin=60
+InpKzAsia=true
+InpKzAsiaSess=1900-2400
+InpKzLondon=true
+InpKzLondonSess=0200-0500
+InpKzNY=true
+InpKzNYSess=0700-1000
+InpKzCloseAtEnd=false
+InpKzrOn=true
+InpKzrDays=5
+InpKzrAlertSweep=true
+InpKzrFilter=false
+InpKzrFilterMode=0
+InpKzrSweepBars=12
+InpKzrNearAtr=1.00000000
+InpUseSessionFilter=true
+InpSessionStartHour=0
+InpSessionEndHour=11
+InpUseTelegram=false
+InpTgToken=
+InpTgChatId=
+InpTgPrefix=SniperTurtle
+InpTgNotifyStart=true
+InpTgNotifyEntry=true
+InpTgNotifyTP=true
+InpTgNotifyClose=true
+InpTgNotifyHalt=true
+InpTgNotifyEOD=true
+InpTgNotifyPeriod=true
+InpTgHtmlStyle=true
+InpTgDayTable=true
+InpPipSize=0.00000000
+InpUseCsvLog=true
+InpCsvPrefix=SniperTurtle_Log
+InpCommentLogic=true
+InpUseJsonLog=false
+InpEchoLogToTerminal=true
+InpEnableQFilter=false
+InpQfTrend=true
+InpAdxMin=25.00000000
+InpQfStruct=true
+InpStructMult=0.50000000
+InpQfEma50=true
+InpQfVwap=true
+InpQfBias=false
+InpBiasMin=70.00000000
+InpQfVolume=false
+InpQfCooldown=true
+InpCooldownBars=5
+InpRsiPeriod=14
+InpMacdFast=12
+InpMacdSlow=26
+InpMacdSignal=9
+InpAdxPeriod=14
+InpVolAvgPeriod=20

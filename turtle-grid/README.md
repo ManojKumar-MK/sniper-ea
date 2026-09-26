@@ -1,6 +1,6 @@
 # turtle-grid — does the killzone-range filter earn its place?
 
-12 sets × 3 timeframes (M3, M5, M15) = **36 backtests**, then one merged table.
+21 sets × 3 timeframes (M3, M5, M15) = **63 backtests**, then one merged table.
 
 ```
 RUN_TURTLE.bat          double-click this
@@ -36,25 +36,33 @@ Then double-click `RUN_TURTLE.bat`. Edit `MT5DIR` at the top of it if you instal
 elsewhere.
 
 > **Compile first.** None of the `InpKzr*` inputs exist in an older `.ex5`, and MT5
-> silently ignores keys it does not recognise — you would get 12 identical runs and
+> silently ignores keys it does not recognise — you would get 21 identical runs and
 > spend an evening wondering why the model has no parameters.
 
-## The 12 sets
+## The 21 sets
 
 Every set changes **one thing** against `TU_ref_kz60`.
 
 That control is the EA as it ships: killzone entry window **on** with a 60-minute
-lead, ranges recording, filter off. It should reproduce SniperEA's numbers *restricted
-to the killzones* — not SniperEA's numbers outright, because it is awake 58% of the day
-rather than all of it.
+lead, ranges recording, filter off, no daily target. It should reproduce SniperEA's
+numbers *restricted to the killzones* — not SniperEA outright, because it is awake 58%
+of the day rather than all of it. It is also the **no-target** run, so there is no
+separate `TU_tgt_none`.
+
+### The killzone window
 
 | Set | What it changes |
 |---|---|
-| `TU_ref_kz60` | **the control.** Window on, lead 60, filter off |
+| `TU_ref_kz60` | **the control.** Window on, lead 60, filter off, no daily target |
 | `TU_nokzwindow` | window off — trades all day. What is the window itself worth? |
 | `TU_lead30` | open 30 min before each killzone instead of 60 |
 | `TU_lead120` | open 120 min before |
 | `TU_closeatend` | flatten when the killzone ends instead of running to target |
+
+### The range filter
+
+| Set | What it changes |
+|---|---|
 | `TU_mode0_sweep12` | only enter within 12 bars of a weekly sweep in the trade's favour |
 | `TU_mode0_sweep6` | the same, tightened to 6 bars |
 | `TU_mode0_sweep24` | the same, loosened to 24 bars |
@@ -63,8 +71,28 @@ rather than all of it.
 | `TU_days3` | weekly level built from 3 sessions instead of 5 |
 | `TU_days10` | built from 10 |
 
-All twelve share the same sizing spine: Telegram off, prop mode off, session and fixed
-lots off, `InpRiskPercent=0.5`.
+### Stopping for the day
+
+`InpDailyProfitTarget` is **cash in the account currency**, measured on **closed trades
+only**, so a floating winner cannot trip it and then evaporate. It stops *new entries*;
+an open trade keeps running unless `InpDayTargetClose` is on.
+
+| Set | What it changes |
+|---|---|
+| `TU_tgt50` | stop taking entries at +$50 realised for the day |
+| `TU_tgt100` | +$100 |
+| `TU_tgt200` | +$200 |
+| `TU_tgt500` | +$500 |
+| `TU_tgt100_close` | +$100 **and** flatten the open trade at that moment |
+| `TU_cap80` | soft daily loss cap at $80 |
+| `TU_cap250` | soft daily loss cap at $250 |
+| `TU_tgt100_cap80` | both ends: +$100 stops, −$80 stops |
+| `TU_fn25k` | the whole FundedNext 25k configuration as a single run |
+
+All of them share the sizing spine — Telegram off, session and fixed lots off,
+`InpRiskPercent=0.5` — **except `TU_fn25k`**, which carries its own 0.35% and its prop
+guards, because the point of that one is to run the live configuration rather than a
+variable in isolation.
 
 Two of these answer questions the defaults only assume:
 
@@ -74,6 +102,19 @@ Two of these answer questions the defaults only assume:
 - **`TU_closeatend`** tests carrying a trade past its killzone. The default lets it run
   because the window is about *when to enter*; this run is what says whether that is
   true here or merely tidy.
+
+### Reading the daily-target runs, specifically
+
+A daily target **cannot increase** gross profit — it only ever removes trades that
+would have happened after the target was hit. So the question is never "did it earn
+more", it is:
+
+- Did it cut the **worst days**? Compare max daily loss and the drawdown, not the net.
+- Did it cost much? A target that halves net for a small drawdown improvement is a bad
+  trade on a personal account and possibly a good one on a funded account, where
+  breaching ends everything.
+- On a $25k challenge the target is not about profit at all. It is about not being in
+  the market after you have already done the day's work.
 
 ## Reading the output
 
