@@ -6,8 +6,12 @@ REM
 REM  Runs against a SEPARATE PORTABLE MT5 so your live terminal keeps
 REM  running untouched. Set up once:
 REM    1. Install a second MT5 to C:\MT5-Tester (not the default path)
-REM    2. Shortcut with /portable appended:
-REM         "C:\MT5-Tester\terminal64.exe" /portable
+REM    2. Shortcut with /portable appended - this exact command line:
+REM         C:\MT5-Tester\terminal64.exe /portable
+REM       /portable is what makes the terminal keep its data folder
+REM       BESIDE terminal64.exe instead of under %APPDATA%. This script
+REM       passes it to every tester run too, so both halves agree on
+REM       where MQL5\Profiles\Tester actually is.
 REM    3. Launch it, log in, copy the .ex5 into C:\MT5-Tester\MQL5\Experts\
 REM    4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it
 REM       downloads the history
@@ -21,7 +25,7 @@ REM ===================================================================
 set MT5DIR=C:\MT5-Tester
 set EXPERT=SniperSweep_PDHPDL_v1.00.ex5
 set OPTS=--skip-done --allow-running --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
- --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%"
+ --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable
 
 if not exist "%MT5DIR%\terminal64.exe" (
   echo.
@@ -44,8 +48,14 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
 echo.
 echo   Tester terminal : %MT5DIR%\terminal64.exe
 echo   Sets            : sets_sweep  (14 runs x 3 timeframes = 42 backtests)
+echo   Portable cmd    : %MT5DIR%\terminal64.exe /portable
 echo   Your LIVE terminal is not touched.
 echo.
+REM  Open the portable terminal once, by hand, if you still need to log in
+REM  or download history. Close it again before the runs start - MT5 will
+REM  not start a tester pass while the same portable instance is open.
+REM      start "" "%MT5DIR%\terminal64.exe" /portable
+
 
 echo ===== sweep grid, M15 =====
 python run_backtests.py --sets sets_sweep --out results_sw_M15 --period M15 %OPTS%

@@ -360,8 +360,15 @@ def run_one(args, terminal, tester_dir, set_file, out_dir):
     print(f"  running {name} ...", end="", flush=True)
     t0 = time.time()
     try:
-        subprocess.run([terminal, f"/config:{ini}"], check=False,
-                       timeout=args.timeout)
+        cmd = [terminal, f"/config:{ini}"]
+        if args.portable:
+            # A portable terminal keeps its data folder BESIDE terminal64.exe.
+            # Without this flag the same exe writes to %APPDATA%\MetaQuotes\
+            # Terminal\<hash> instead, so the .ini we just staged into
+            # --data-dir\MQL5\Profiles\Tester is in a folder the terminal
+            # never reads, and no report is ever produced.
+            cmd.append("/portable")
+        subprocess.run(cmd, check=False, timeout=args.timeout)
     except subprocess.TimeoutExpired:
         print(f" TIMED OUT after {args.timeout}s")
         return None
@@ -591,6 +598,11 @@ def main():
     ap.add_argument("--login", default="", help="account number, if the terminal has several")
     ap.add_argument("--terminal", default="", help="full path to terminal64.exe")
     ap.add_argument("--data-dir", default="", help="MT5 data folder (File > Open Data Folder)")
+    ap.add_argument("--portable", action="store_true",
+                    help="launch the terminal with /portable. REQUIRED when the tester "
+                         "MT5 was installed outside the default path and you run it from "
+                         "a /portable shortcut - its data folder is then beside "
+                         "terminal64.exe, and --data-dir must point there too.")
     ap.add_argument("--timeout", type=int, default=0,
                     help="seconds per run. 0 = pick from the timeframe (M1/M3 8h, M5 6h, "
                          "M15+ 3h). A 2h default silently killed long M3 runs.")

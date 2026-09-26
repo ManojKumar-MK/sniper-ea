@@ -15,7 +15,19 @@ The runner drives a **separate portable MT5** so your live terminal keeps runnin
 untouched.
 
 1. Install a second MT5 to `C:\MT5-Tester` (not the default path)
-2. Shortcut with `/portable` appended: `"C:\MT5-Tester\terminal64.exe" /portable`
+2. Shortcut with `/portable` appended — this exact command line:
+
+   ```
+   C:\MT5-Tester\terminal64.exe /portable
+   ```
+
+   `/portable` is what makes the terminal keep its data folder **beside
+   `terminal64.exe`** instead of under `%APPDATA%\MetaQuotes\Terminal\<hash>`.
+   The `.bat` passes `--portable` to every tester run as well, so both halves
+   agree on where `MQL5\Profiles\Tester` actually is. Without it the runner
+   stages each `.set` into `C:\MT5-Tester\...` while the terminal reads from
+   `%APPDATA%` — every run produces no report and the failure looks like a
+   missing EA.
 3. Launch it, log in, **compile the EA with F7** and copy `SniperSweep_PDHPDL_v1.00.ex5`
    into `C:\MT5-Tester\MQL5\Experts\`
 4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it downloads the history
