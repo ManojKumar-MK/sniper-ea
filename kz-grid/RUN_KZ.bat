@@ -28,7 +28,7 @@ REM ===================================================================
 
 set MT5DIR=C:\MT5-Tester
 set EXPERT=SniperEntry_Strict_SessionFilter_Telegram_v1.30.ex5
-set OPTS=--skip-done --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
+set OPTS=--skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable
 
 if not exist "%MT5DIR%\terminal64.exe" (

@@ -71,6 +71,10 @@ python run_all.py --grids turtle --periods M5 -- --from 2026.01.01 --to 2026.09.
 
 Each grid's own `.bat` still works if you only want that one.
 
+Runs use a **$25,000 deposit** by default, matching the FundedNext 25k account.
+Risk-% sizing is a fraction of the balance, so this sets position size on every
+set — `--deposit 50000` to change it.
+
 **Close the tester terminal before running.** A second launch of the same
 terminal hands off to the open instance and exits, so every pass "finishes" in
 seconds with no report. The runner refuses to start in that state and names the

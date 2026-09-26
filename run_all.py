@@ -61,7 +61,8 @@ def run_grid(key, g, periods, passthrough, mt5dir):
     for p in periods:
         cmd = [sys.executable, "run_backtests.py",
                "--sets", g["sets"], "--out", f"{g['out']}_{p}", "--period", p,
-               "--expert", g["expert"], "--skip-done", "--portable"]
+               "--expert", g["expert"], "--skip-done", "--portable",
+               "--deposit", str(args.deposit)]
         if mt5dir:
             cmd += ["--terminal", os.path.join(mt5dir, "terminal64.exe"),
                     "--data-dir", mt5dir]
@@ -140,6 +141,10 @@ def main():
                     help="comma list of timeframes (default: M5,M3)")
     ap.add_argument("--mt5dir", default=r"C:\MT5-Tester",
                     help=r"portable MT5 folder (default: C:\MT5-Tester)")
+    ap.add_argument("--deposit", type=int, default=25000,
+                    help="tester starting balance (default 25000, the FundedNext 25k "
+                         "account). Risk-%% sizing is a fraction of the balance, so this "
+                         "changes position size on every set - not just the funded one.")
     ap.add_argument("--with-reports", action="store_true",
                     help="also copy MT5's raw report_*.htm into backtest-results")
     ap.add_argument("--collect-only", action="store_true",
@@ -159,6 +164,7 @@ def main():
     print(f"  grids    : {', '.join(keys)}")
     print(f"  periods  : {', '.join(periods)}")
     print(f"  backtests: {total}")
+    print(f"  deposit  : {args.deposit:,} USD")
     for k in keys:
         g = GRIDS[k]
         exe = os.path.join(args.mt5dir, "MQL5", "Experts", g["expert"])

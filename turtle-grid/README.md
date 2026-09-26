@@ -171,6 +171,30 @@ If you genuinely need to override it, `--allow-running` still exists — but it 
 being passed on every run by default, which is what let this failure through in the
 first place.
 
+## Deposit: 25,000
+
+The runs use a **$25,000** starting balance, matching the FundedNext 25k account these
+sets are aimed at. `--deposit 50000` changes it.
+
+This is not cosmetic. Risk-% sizing is a fraction of the **balance**, so the deposit
+sets position size on every set, not just `TU_fn25k`. At the old $5,000 default the
+funded run was meaningless:
+
+| | at $5,000 | intended at $25,000 |
+|---|---|---|
+| risk 0.35%/trade | $17.50 | $87.50 |
+| daily cap $600 | 12% of the account | 2.4% |
+| total stop $1,200 | 24% | 4.8% |
+
+The cash guards do not scale with the deposit, so at $5,000 they sat at a large
+multiple of the per-trade risk and would effectively never have fired — the run would
+have looked like a configuration with no guards at all, and said nothing about whether
+the real ones are survivable.
+
+For the other sets the deposit mostly scales the absolute numbers, and the comparison
+between them holds either way. Percentages — drawdown %, return % — do shift, so do not
+compare a run at one deposit against a run at another.
+
 ## Reading the output
 
 `all_results.csv` holds every run.

@@ -638,7 +638,14 @@ def main():
     ap.add_argument("--to", dest="date_to", default="2026.09.18")
     ap.add_argument("--model", default="real", choices=list(MODELS),
                     help="real = every tick based on real ticks (default)")
-    ap.add_argument("--deposit", type=int, default=5000)
+    ap.add_argument("--deposit", type=int, default=25000,
+                    help="tester starting balance. 25000 matches the FundedNext 25k "
+                         "account these sets are aimed at. It is NOT cosmetic: risk-%% "
+                         "sizing is a fraction of the BALANCE, so a 5000 deposit makes "
+                         "every position a fifth of the intended size while the cash "
+                         "guards (InpMaxDailyLossMoney and friends) stay put - the "
+                         "guards then sit at a multiple of the risk they were set "
+                         "against and effectively never fire.")
     ap.add_argument("--currency", default="USD")
     ap.add_argument("--leverage", type=int, default=100)
     ap.add_argument("--login", default="", help="account number, if the terminal has several")

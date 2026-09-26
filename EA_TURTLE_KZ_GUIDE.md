@@ -216,7 +216,9 @@ Do not set it to 2 to be safe; here it is the less safe choice.
 for days. Confirm in the backtest that this configuration trades often enough to clear
 that rule — passing on profit and failing on activity is a real way to lose a
 challenge. `turtle-grid/TU_fn25k` runs exactly this configuration so you can count the
-trading days rather than hope.
+trading days rather than hope — at a **$25,000 tester deposit**, which it has to be:
+the risk % is a fraction of the balance while the cash guards are fixed, so running it
+at any other deposit tests a different configuration than the one you would trade.
 
 ### Before it goes on a live chart
 
