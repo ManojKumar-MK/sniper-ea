@@ -1,0 +1,89 @@
+
+======================================================================
+2026-09-26 21:41:20  run_backtests.py --sets sets_turtle --out results_tu_M3 --period M3 --skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+
+======================================================================
+2026-09-26 22:25:50  run_backtests.py --sets sets_turtle --out results_tu_M3 --period M3 --skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M3 2026.01.01 - 2026.09.18, model real, deposit 25000
+Sets     : 33
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/33]   running TU_cap250 ... done in 1.5 min, 1 log file(s)
+[2/33]   running TU_cap80 ... done in 1.3 min, 1 log file(s)
+[3/33]   running TU_closeatend ... done in 1.8 min, 1 log file(s)
+[4/33]   running TU_days10 ... done in 1.2 min, 1 log file(s)
+[5/33]   running TU_days3 ... done in 1.3 min, 1 log file(s)
+[6/33]   running TU_fn25k ... done in 1.3 min, 1 log file(s)
+[7/33]   running TU_lead120 ... done in 1.6 min, 1 log file(s)
+[8/33]   running TU_lead30 ... done in 1.5 min, 1 log file(s)
+[9/33]   running TU_mode0_sweep12 ... done in 1.2 min, 1 log file(s)
+[10/33]   running TU_mode0_sweep24 ... done in 1.2 min, 1 log file(s)
+[11/33]   running TU_mode0_sweep6 ... done in 1.3 min, 1 log file(s)
+[12/33]   running TU_mode1_near1 ... done in 1.5 min, 1 log file(s)
+[13/33]   running TU_mode1_near2 ... done in 1.5 min, 1 log file(s)
+[14/33]   running TU_nokzwindow ... done in 1.5 min, 1 log file(s)
+[15/33]   running TU_qf_adx20 ... done in 1.3 min, 1 log file(s)
+[16/33]   running TU_qf_adx30 ... done in 1.3 min, 1 log file(s)
+[17/33]   running TU_qf_all ... done in 1.3 min, 1 log file(s)
+[18/33]   running TU_qf_bias ... done in 1.4 min, 1 log file(s)
+[19/33]   running TU_qf_cool10 ... done in 1.2 min, 1 log file(s)
+[20/33]   running TU_qf_cooldown ... done in 1.5 min, 1 log file(s)
+[21/33]   running TU_qf_default ... done in 1.2 min, 1 log file(s)
+[22/33]   running TU_qf_ema50 ... done in 1.4 min, 1 log file(s)
+[23/33]   running TU_qf_struct ... done in 1.3 min, 1 log file(s)
+[24/33]   running TU_qf_trend ... done in 1.3 min, 1 log file(s)
+[25/33]   running TU_qf_volume ... done in 1.4 min, 1 log file(s)
+[26/33]   running TU_qf_vwap ... done in 1.4 min, 1 log file(s)
+[27/33]   running TU_ref_kz60 ... done in 1.5 min, 1 log file(s)
+[28/33]   running TU_tgt100 ... done in 1.5 min, 1 log file(s)
+[29/33]   running TU_tgt100_cap80 ... done in 1.3 min, 1 log file(s)
+[30/33]   running TU_tgt100_close ... done in 1.4 min, 1 log file(s)
+[31/33]   running TU_tgt200 ... done in 1.4 min, 1 log file(s)
+[32/33]   running TU_tgt50 ... done in 1.4 min, 1 log file(s)
+[33/33]   running TU_tgt500 ... done in 1.5 min, 1 log file(s)
+
+33 of 33 runs produced a report in 46 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+TU_qf_vwap                Vwap                      600   3269.64  1.10  12.80  23.8  263.37  -74.42
+TU_qf_adx30               Trend,Struct,Ema50,Vwa     22   2545.36  4.21   1.68  45.5  333.93  -64.99
+TU_qf_ema50               Ema50                     887   2530.18  1.05  19.15  24.5  238.59  -72.68
+TU_tgt500                 none                     1200   1862.47  1.03  20.93  23.7  238.90  -71.21
+TU_qf_cool10              Trend,Struct,Ema50,Vwa     63   1675.38  1.50   4.94  25.4  314.33  -70.54
+TU_qf_default             Trend,Struct,Ema50,Vwa     63   1675.38  1.50   4.94  25.4  314.33  -70.54
+TU_qf_adx20               Trend,Struct,Ema50,Vwa    105   1528.25  1.26   5.20  25.7  271.07  -73.45
+TU_tgt100_cap80           none                      270   1526.31  1.10  10.94  22.6  263.71  -68.74
+TU_tgt200                 none                     1096   1491.19  1.03  18.76  23.9  230.65  -69.85
+TU_cap80                  none                      471   1041.63  1.04  12.48  22.7  232.13  -64.58
+TU_mode0_sweep24          none                       16    776.94  1.90   2.47  37.5  272.86  -85.23
+TU_tgt50                  none                      942    471.57  1.01  15.43  23.9  227.93  -70.05
+TU_qf_all                 Trend,Struct,Ema50,Vwa     45    432.11  1.16   6.81  24.4  281.89  -77.66
+TU_tgt100                 none                      958    371.67  1.01  14.90  23.8  226.78  -69.51
+TU_qf_volume              Volume                    557    123.45  1.00  22.54  23.2  243.51  -72.31
+TU_mode0_sweep12          none                        6     89.93  1.24   0.98  33.3  231.97  -92.70
+TU_ref_kz60               none                     1286     31.73  1.00  26.38  23.6  229.02  -69.75
+TU_mode0_sweep6           none                        1   -120.76  0.00   0.48   0.0    0.00 -120.51
+TU_days10                 none                        2   -124.47  0.00   0.50   0.0    0.00  -61.57
+TU_days3                  none                        7   -148.42  0.70   1.00  28.6  173.46  -98.37
+TU_closeatend             none                     1353   -235.50  1.00  21.84  26.9  194.46  -70.96
+TU_tgt100_close           none                      958   -261.10  0.99  15.56  23.9  219.81  -68.60
+TU_mode1_near1            none                     1280   -438.22  0.99  28.04  23.6  226.46  -69.57
+TU_qf_cooldown            Cooldown                  962   -438.73  0.99  18.47  24.9  229.73  -76.15
+TU_mode1_near2            none                     1274   -779.29  0.99  28.59  23.6  224.70  -69.51
+TU_fn25k                  none                      440  -1214.65  0.92  10.04  22.3  144.75  -44.54
+TU_cap250                 none                      966  -1267.59  0.97  27.42  22.8  210.42  -63.00
+TU_lead30                 none                     1098  -1790.65  0.97  26.76  22.8  216.69  -65.27
+TU_qf_struct              Struct                    493  -2008.17  0.93  12.05  20.7  243.90  -68.02
+TU_qf_bias                Bias                      728  -2029.55  0.95  24.68  23.9  217.99  -71.38
+TU_qf_trend               Trend                     398  -2896.40  0.88  20.16  23.4  220.76  -76.03
+TU_lead120                none                     1541  -2916.68  0.96  29.37  23.9  202.28  -65.41
+TU_nokzwindow             none                     1541  -2916.68  0.96  29.37  23.9  202.28  -65.41
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_tu_M3\comparison.csv

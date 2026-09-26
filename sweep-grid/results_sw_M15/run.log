@@ -1,0 +1,13 @@
+
+======================================================================
+2026-09-26 20:23:10  run_backtests.py --sets sets_sweep --out results_sw_M15 --period M15 --skip-done --allow-running --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 --expert SniperSweep_PDHPDL_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperSweep_PDHPDL_v1.00.ex5   (as given: SniperSweep_PDHPDL_v1.00.ex5)
+Run      : XAUUSD M15 2026.01.01 - 2026.09.18, model real, deposit 5000
+Sets     : 14
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/14]   running SW_base_day ...

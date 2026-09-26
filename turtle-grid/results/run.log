@@ -1,0 +1,55 @@
+
+======================================================================
+2026-09-26 21:41:21  run_backtests.py --merge-all
+======================================================================
+No reports found in any results* folder
+
+======================================================================
+2026-09-26 23:11:55  run_backtests.py --merge-all
+======================================================================
+
+folder                run                        trades       net    PF    DD%
+------------------------------------------------------------------------------
+results_tu_M3         TU_qf_vwap                    600   3269.64  1.10  12.80
+results_tu_M3         TU_qf_adx30                    22   2545.36  4.21   1.68
+results_tu_M3         TU_qf_ema50                   887   2530.18  1.05  19.15
+results_tu_M5         TU_qf_vwap                    437   2219.59  1.09  13.23
+results_tu_M5         TU_qf_adx30                    23   1939.58  2.85   1.00
+results_tu_M3         TU_tgt500                    1200   1862.47  1.03  20.93
+results_tu_M3         TU_qf_cool10                   63   1675.38  1.50   4.94
+results_tu_M3         TU_qf_default                  63   1675.38  1.50   4.94
+results_tu_M3         TU_qf_adx20                   105   1528.25  1.26   5.20
+results_tu_M3         TU_tgt100_cap80               270   1526.31  1.10  10.94
+results_tu_M3         TU_tgt200                    1096   1491.19  1.03  18.76
+results_tu_M5         TU_tgt100_cap80               271   1469.55  1.11   5.62
+results_tu_M3         TU_cap80                      471   1041.63  1.04  12.48
+results_tu_M3         TU_mode0_sweep24               16    776.94  1.90   2.47
+results_tu_M5         TU_qf_default                  58    667.67  1.19   3.49
+results_tu_M5         TU_qf_cool10                   56    625.79  1.18   3.70
+results_tu_M3         TU_tgt50                      942    471.57  1.01  15.43
+results_tu_M3         TU_qf_all                      45    432.11  1.16   6.81
+results_tu_M3         TU_tgt100                     958    371.67  1.01  14.90
+results_tu_M5         TU_qf_all                      40    313.98  1.13   2.39
+results_tu_M3         TU_qf_volume                  557    123.45  1.00  22.54
+results_tu_M5         TU_lead30                     622    100.94  1.00  19.36
+results_tu_M3         TU_mode0_sweep12                6     89.93  1.24   0.98
+results_tu_M3         TU_ref_kz60                  1286     31.73  1.00  26.38
+results_tu_M3         TU_mode0_sweep6                 1   -120.76  0.00   0.48
+results_tu_M3         TU_days10                       2   -124.47  0.00   0.50
+results_tu_M5         TU_days10                       5   -130.48  0.65   1.00
+results_tu_M3         TU_days3                        7   -148.42  0.70   1.00
+results_tu_M5         TU_mode0_sweep12                8   -167.62  0.66   1.64
+results_tu_M3         TU_closeatend                1353   -235.50  1.00  21.84
+results_tu_M5         TU_mode0_sweep6                 2   -244.51  0.00   0.98
+results_tu_M3         TU_tgt100_close               958   -261.10  0.99  15.56
+results_tu_M5         TU_closeatend                 807   -284.20  0.99  15.75
+results_tu_M5         TU_qf_cooldown                589   -341.14  0.99  19.30
+results_tu_M5         TU_days3                       13   -373.81  0.61   2.47
+results_tu_M5         TU_qf_adx20                    92   -374.18  0.93   6.75
+results_tu_M3         TU_mode1_near1               1280   -438.22  0.99  28.04
+results_tu_M3         TU_qf_cooldown                962   -438.73  0.99  18.47
+results_tu_M5         TU_tgt200                     682   -486.79  0.99  18.72
+results_tu_M5         TU_mode0_sweep24               16   -556.08  0.49   3.13
+... 26 more, all of them in all_results.csv
+
+Wrote .\all_results.csv  (66 runs)
