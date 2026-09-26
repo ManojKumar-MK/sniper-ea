@@ -119,3 +119,41 @@ inputs an older `.ex5` lacks, so you would get nine identical runs and no error.
 
 See [turtle-grid/README.md](turtle-grid/README.md) for the 9-set backtest grid, whose
 whole purpose is to answer whether the filter earns its place.
+
+---
+
+## The trade preset
+
+[`SniperTurtle_Trade.example.set`](SniperTurtle_Trade.example.set) — **derived from
+`SniperEA_990555.set`**, not rebuilt from the template. All 139 shared keys are carried
+verbatim, so the trading behaviour is the one you already run; only what would make
+this EA collide with SniperEA is overridden:
+
+| Key | 990555 | here | why |
+|---|---|---|---|
+| `InpMagic` | 990555 | **994000** | otherwise it manages SniperEA's open trades |
+| `InpCsvPrefix` | `SniperEA_990555` | `SniperTurtle_Log` | otherwise both EAs interleave rows in one file |
+| `InpTgPrefix` | `SniperEntry EA 1.30v =>` | `SniperTurtle` | otherwise you cannot tell which EA sent a message |
+
+Plus the new module at its defaults: ranges **recording**, filter off. It prints and
+alerts and blocks nothing, while every entry still carries `KZR=` in the CSV — which is
+how you get the evidence before deciding whether to switch the filter on.
+
+### Lot size: it is a flat 0.05, not 0.5%
+
+`InpUseSessionLots=true` is carried from the base, and it **wins over
+`InpRiskPercent`**. So this preset trades a flat 0.05 lot and the `0.5` sitting in
+`InpRiskPercent` does nothing at all.
+
+That is what 990555 actually does, so it is carried on purpose. But it is also exactly
+the trap that made an earlier backtest look risk-sized when it was flat-lot, so it is
+stated in the `.set` header too. To size by risk, set **both** `InpUseSessionLots` and
+`InpUseFixedLot` to false — only then does the percentage apply.
+
+### Before it goes on a live chart
+
+- Fill `InpTgToken` / `InpTgChatId` on the machine; they are blank in the repo.
+- Check `InpServerGmtOffset` against your broker — the killzone ranges are cut on the
+  NY clock derived from it, so a wrong offset puts Asia/London/NY boundaries in the
+  wrong place and every level with them.
+- The EA is **not compiled**. Nothing above has been run.
