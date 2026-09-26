@@ -43,6 +43,44 @@ Requires Python 3.8+. Nothing to install.
 | [REPORT_AND_DEPLOY.md](REPORT_AND_DEPLOY.md) | the dashboard, and backtest analysis |
 | [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md) | reaching it from a phone, behind a sign-in |
 | [RESTART_RECOVERY.md](RESTART_RECOVERY.md) | what survives a crash, and what does not |
+| [EA_SWEEP_GUIDE.md](EA_SWEEP_GUIDE.md) | the PDH/PDL sweep EA |
+| [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
+| [backtest-results/](backtest-results/) | what was tested, and when |
+
+## Backtesting — one click
+
+```
+RUN_ALL.bat          double-click on Windows
+python run_all.py    the same thing, from a terminal
+```
+
+Runs all three grids across M15 / M5 / M3, merges each, and copies the summaries
+into `backtest-results/<timestamp>/` ready to commit.
+
+| Grid | EA | Sets |
+|---|---|---|
+| [kz-grid/](kz-grid/) | SniperEntry_Strict v1.30 | 10 — killzone entry window |
+| [sweep-grid/](sweep-grid/) | SniperSweep_PDHPDL v1.00 | 14 — PDH/PDL raid model |
+| [turtle-grid/](turtle-grid/) | SniperTurtle_KZ v1.00 | 21 — killzone ranges, daily targets |
+
+135 backtests in all. Narrow it with `--grids turtle` or `--periods M5`; see what
+would run first with `--list`; pass anything else straight through after `--`:
+
+```
+python run_all.py --grids turtle --periods M15 -- --from 2026.01.01 --to 2026.09.18
+```
+
+Each grid's own `.bat` still works if you only want that one.
+
+**Compile first (F7).** MT5 ignores inputs an older `.ex5` does not have *without
+an error*, so a stale build gives you a grid of identical runs and nothing to
+explain them. `run_all.py` checks each `.ex5` is in place and asks before running
+without one.
+
+[`backtest-results/`](backtest-results/) is committed on purpose — a `.set` means
+little without the run that justified it. Only the small, diffable part is kept
+(`all_results.csv`, `comparison.csv`, `run.log`); MT5's raw `report_*.htm` is
+gitignored, being tens of MB per grid that hold nothing the CSVs do not.
 
 ## Status
 

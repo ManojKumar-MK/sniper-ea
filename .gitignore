@@ -9,6 +9,18 @@ __pycache__/
 *.html
 ea_trades.csv
 
+# Backtest results ARE kept - they are the record of what was tested and when,
+# and a set file means little without the run that justified it. run_all.py
+# collects only the small, diffable part: all_results.csv, comparison.csv and
+# run.log. MT5's raw report_*.htm is tens of MB per grid, does not diff, and
+# holds nothing the CSVs do not - so it stays out unless you pass
+# --with-reports, and even then think before committing it.
+!backtest-results/
+backtest-results/**/report_*.htm
+backtest-results/**/report_*.html
+backtest-results/**/logs/
+backtest-results/**/*.ini
+
 # EA output. These are account data, not source: balances, equity and every
 # trade. Never commit them, and never to a repo that might turn public.
 SniperEA_Log_*.csv
