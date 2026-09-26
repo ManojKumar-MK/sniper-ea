@@ -148,6 +148,29 @@ more", it is:
 - On a $25k challenge the target is not about profit at all. It is about not being in
   the market after you have already done the day's work.
 
+## "finished in 0.0 min but NO REPORT was written"
+
+Every run ends in seconds, no report, and MT5's log shows the terminal connecting
+normally rather than a tester pass.
+
+**The tester terminal is already open.** A second launch of the *same* terminal hands
+the `/config:` off to the running instance and exits — so the pass never happens. The
+usual cause is an interrupted run leaving MT5 open in the background.
+
+Close the tester window and rerun. If it is not visible:
+
+```
+taskkill /IM terminal64.exe /F     (closes ALL terminals, your live one too)
+```
+
+The runner now refuses to start in this state and names the path. Your **live**
+terminal does not trigger it — the check compares executable paths, not image names,
+so the two terminals are told apart.
+
+If you genuinely need to override it, `--allow-running` still exists — but it was
+being passed on every run by default, which is what let this failure through in the
+first place.
+
 ## Reading the output
 
 `all_results.csv` holds every run.

@@ -155,18 +155,64 @@ def find_terminal(given):
              r'"C:\Program Files\MetaTrader 5\terminal64.exe"')
 
 
-def terminal_already_running():
+def running_terminal_paths():
     """
-    A second terminal64.exe usually hands off to the running instance and exits
-    immediately, so every run would 'finish' in seconds with no report. Catch
-    that before burning a night on it.
+    Full paths of every running terminal64.exe.
+
+    The PATH is what matters, not the image name. The setup deliberately has
+    TWO terminals: your live one, which stays open, and the portable tester,
+    which must be closed. Matching on the name alone flags the live one and
+    makes the check useless - which is how it came to be bypassed with
+    --allow-running everywhere, taking the real check down with it.
     """
-    try:
-        out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq terminal64.exe"],
-                             capture_output=True, text=True, timeout=30).stdout
-        return "terminal64.exe" in out
-    except Exception:
-        return False                            # not Windows, or tasklist missing
+    ps = ("Get-CimInstance Win32_Process -Filter \"Name='terminal64.exe'\" "
+          "| ForEach-Object { $_.ExecutablePath }")
+    for cmd in (["powershell", "-NoProfile", "-Command", ps],
+                ["wmic", "process", "where", "name='terminal64.exe'",
+                 "get", "ExecutablePath"]):
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=30).stdout
+        except Exception:
+            continue
+        paths = [l.strip() for l in out.splitlines()
+                 if l.strip().lower().endswith("terminal64.exe")]
+        if paths:
+            return paths
+    return []
+
+
+def tester_already_running(terminal_exe):
+    """
+    Is a terminal running FROM THE TESTER PATH? That one hands the /config: off
+    to the open instance and exits in seconds, leaving no report - which looks
+    exactly like a missing EA or a bad expert name, and is neither.
+
+    Returns (blocked, note).
+    """
+    #  These are always Windows paths, and this script may be reasoned about on
+    #  another OS, where os.path.normcase is a no-op and would silently stop
+    #  matching on case. Normalise explicitly instead of relying on it.
+    def norm(p):
+        return p.strip().strip('"').replace("/", "\\").lower()
+    want = norm(terminal_exe)
+    paths = running_terminal_paths()
+    if not paths:
+        #  Could not read process paths (not Windows, or both tools missing).
+        #  Fall back to the image-name check, and SAY it is a guess.
+        try:
+            out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq terminal64.exe"],
+                                 capture_output=True, text=True, timeout=30).stdout
+            if "terminal64.exe" in out:
+                return True, ("could not read process paths, so this may be your LIVE "
+                              "terminal rather than the tester - pass --allow-running "
+                              "if you know the tester itself is closed")
+        except Exception:
+            pass
+        return False, ""
+    for p in paths:
+        if norm(p) == want:
+            return True, "that is the tester terminal itself"
+    return False, ""
 
 
 def find_data_dir(given):
@@ -615,7 +661,10 @@ def main():
                     help="build one table from EVERY results* folder here, and write "
                          "all_results.csv. Run this at the end.")
     ap.add_argument("--allow-running", action="store_true",
-                    help="start even if MetaTrader is already open (normally refused)")
+                    help="start even if the TESTER terminal is already open. Normally "
+                         "refused, because that launch hands off to the open instance "
+                         "and produces no report. Your live terminal never triggers "
+                         "the check - it compares executable paths, not image names.")
     ap.add_argument("--no-logs", action="store_true",
                     help="do not collect the EA's own CSV/JSONL logs from the tester agents")
     ap.add_argument("--skip-done", action="store_true",
@@ -662,13 +711,23 @@ def main():
                  "open, find nothing and quit, writing .ini files but no reports.\n"
                  "Move the whole folder somewhere plain, for example C:\\ema, and rerun.")
 
-    if terminal_already_running() and not args.allow_running:
-        sys.exit("MetaTrader is already running.\n"
-                 "Close it first - a second terminal usually just hands off to the\n"
-                 "open one and exits, so every run would produce no report.\n"
-                 "Use --allow-running only if you are sure that is not happening.")
-
     terminal = find_terminal(args.terminal)
+
+    #  After find_terminal, because the check needs the resolved PATH - the
+    #  point is to tell the tester terminal apart from your live one.
+    blocked, note = tester_already_running(terminal)
+    if blocked and not args.allow_running:
+        sys.exit(f"The tester terminal is already running:\n"
+                 f"    {terminal}\n"
+                 f"    ({note})\n\n"
+                 "Close it and rerun. A second launch of the SAME terminal hands the\n"
+                 "/config: off to the open instance and exits in seconds, so every run\n"
+                 "'finishes' with no report - which reads like a missing EA or a wrong\n"
+                 "expert name, and is neither.\n\n"
+                 "If a run was interrupted, MT5 can be left open in the background:\n"
+                 "    taskkill /IM terminal64.exe /F      (closes ALL terminals, live too)\n"
+                 "or close just the tester window.\n\n"
+                 "Your LIVE terminal does not trigger this - the check compares paths.")
     data_dir = find_data_dir(args.data_dir)
     tester_dir = os.path.join(data_dir, "MQL5", "Profiles", "Tester")
     os.makedirs(tester_dir, exist_ok=True)

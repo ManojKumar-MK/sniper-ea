@@ -61,7 +61,7 @@ def run_grid(key, g, periods, passthrough, mt5dir):
     for p in periods:
         cmd = [sys.executable, "run_backtests.py",
                "--sets", g["sets"], "--out", f"{g['out']}_{p}", "--period", p,
-               "--expert", g["expert"], "--skip-done", "--allow-running", "--portable"]
+               "--expert", g["expert"], "--skip-done", "--portable"]
         if mt5dir:
             cmd += ["--terminal", os.path.join(mt5dir, "terminal64.exe"),
                     "--data-dir", mt5dir]

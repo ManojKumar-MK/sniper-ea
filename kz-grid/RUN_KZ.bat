@@ -15,7 +15,12 @@ REM       where MQL5\Profiles\Tester actually is.
 REM    3. Launch it, log in, copy the .ex5 into C:\MT5-Tester\MQL5\Experts\
 REM    4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it
 REM       downloads the history
-REM    5. Close that terminal. Leave your LIVE one running.
+REM    5. CLOSE that terminal. Leave your LIVE one running.
+REM       This matters on every run, not just the first: a second launch of
+REM       the SAME terminal hands the /config: off to the open instance and
+REM       exits in seconds, so every pass "finishes" with no report. The
+REM       script now refuses to start in that state and says so. Your LIVE
+REM       terminal does not trigger it - the check compares paths.
 REM
 REM  COMPILE FIRST. The killzone inputs do not exist in an .ex5 built
 REM  before this change, and MT5 will silently ignore every InpKz* key.
@@ -23,7 +28,7 @@ REM ===================================================================
 
 set MT5DIR=C:\MT5-Tester
 set EXPERT=SniperEntry_Strict_SessionFilter_Telegram_v1.30.ex5
-set OPTS=--skip-done --allow-running --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
+set OPTS=--skip-done --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable
 
 if not exist "%MT5DIR%\terminal64.exe" (
