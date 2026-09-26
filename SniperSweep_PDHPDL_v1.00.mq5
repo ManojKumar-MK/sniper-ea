@@ -1,46 +1,50 @@
 //+------------------------------------------------------------------+
-//|                                          EmaStrategy_EA.mq5       |
-//|   EMA Based Strategy module.                                      |
+//|                                       SniperSweep_PDHPDL_EA.mq5   |
+//|   ICT PDH/PDL sweep model.                                        |
 //|                                                                   |
 //|   Copyright 2026, Manojkumar K                                    |
 //|   mailtomktech@gmail.com                                          |
-//|   Free to use as of now.                                          |
 //|                                                                   |
-//|   Signal:                                                         |
-//|     buy  = EMA9 crosses ABOVE EMA21 ; sell = crosses BELOW        |
-//|     one-position state machine (flip on opposite signal)          |
-//|     SL = ATR(14)*mult ; targets = 1R..5R                          |
-//|     optional Signal Quality Filter (ADX/EMA50/VWAP/vol/bias/CD)   |
+//|   DERIVED FROM SniperEntry_Strict v1.30, deliberately. Everything  |
+//|   around the trade - the 5-level ladder, the stop stepping, the    |
+//|   runner, session stop widths, the killzone window, prop guards,   |
+//|   daily caps, weekend and news filters, CSV/JSON logging, the skip |
+//|   audit, MFE/MAE, state persistence, Telegram, the dashboard, the  |
+//|   order-comment reason code and signals-only mode - is that EA's   |
+//|   code, unchanged and already proven.                             |
 //|                                                                   |
-//|   v1.10 - 5-level target ladder                                   |
+//|   ONE thing differs: what fires a trade.                          |
 //|                                                                   |
-//|   v1.20 (this build) adds:                                        |
-//|     1) NO PARTIAL IS EVER BOOKED. Full size is carried to TP5 and |
-//|        the stop moves up one level at a time:                     |
-//|        TP1->breakeven, TP2->TP1, TP3->TP2, TP4->TP3, TP5->close.  |
-//|        Same in both sessions.                                     |
-//|     2) The IST clock sets the stop width, and the evening session |
-//|        can be switched off or thinned out by the hour:            |
-//|          12 AM - 4 PM IST -> usual stop, ATR * InpSlAtrMult       |
-//|          4 PM - 12 AM IST -> that stop cut to HALF (x0.5)         |
-//|     3) Order comments tagged with the exit level:                 |
-//|        "TP1 exit", "TP2 exit", ... "SL exit", "BE exit".          |
-//|     4) Every entry logs its full reason set (EMA/ADX/MACD/RSI/    |
-//|        VWAP/ATR/volume/bias + quality-filter flags) on its own    |
-//|        [LOGIC] and [FILTER] lines.                                |
-//|     5) ONE fixed format for every event (entry, TP, SL move,      |
-//|        exit, day summary): CSV for reports, JSON for parsing.     |
-//|     6) Weekend guard - flat before the Friday close by default.   |
-//|     7) FLIP logged explicitly, and an end-of-day consolidated     |
-//|        gross / net result.                                        |
+//|     SniperEntry : EMA 9 crosses EMA 21.                            |
+//|     this EA     : 1 RAID    price wicks through the previous day's |
+//|                             (or week's) high or low and CLOSES     |
+//|                             back inside it. A close BEYOND is a    |
+//|                             breakout - the opposite read - and     |
+//|                             arms nothing.                          |
+//|                   2 MSS     within N bars a candle CLOSES through  |
+//|                             the most recent opposing swing. That   |
+//|                             is the structure shift; one strong     |
+//|                             candle is not.                         |
+//|                   3 ENTRY   at that close, or on a retrace into    |
+//|                             the fair value gap the displacement    |
+//|                             left behind.                           |
+//|                   4 STOP    beyond the raid extreme + a buffer.    |
+//|                             NOT ATR x multiplier - the stop is     |
+//|                             where the idea is wrong, which is a    |
+//|                             place on the chart, not a volatility   |
+//|                             number.                                |
 //|                                                                   |
-//|   NOTE: validate in the Strategy Tester / on demo before running  |
+//|   Because the stop is structural, 1R varies per trade. The ladder  |
+//|   is laid out from THAT distance, so TP1..TP5 stay honest multiples |
+//|   of what is actually risked.                                      |
+//|                                                                   |
+//|   NOTE: validate in the Strategy Tester / on demo before running   |
 //|   this live - real spread and slippage change the results.        |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026, Manojkumar K - mailtomktech@gmail.com"
 #property link      "mailto:mailtomktech@gmail.com"
-#property description "EMA Based Strategy module - free to use as of now."
-#property version   "1.30"
+#property description "ICT PDH/PDL sweep model - raid, market structure shift, FVG entry."
+#property version   "1.00"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -48,11 +52,60 @@
 //====================================================================
 //  INPUTS
 //====================================================================
-input group "-- Signal (Sniper core) --"
+input group "-- Signal: the raid --"
+input bool     InpSwLongs        = true;    // buys from a raid of the previous LOW
+input bool     InpSwShorts       = true;    // sells from a raid of the previous HIGH
+input bool     InpSwUseDay       = true;    // raid the previous DAY high/low  (PDH / PDL)
+input bool     InpSwUseWeek      = false;   // raid the previous WEEK high/low (PWH / PWL).
+                                            // Heavier pools, so the reversals run further - but they
+                                            // set up a few times a month, not daily.
+input int      InpSwConfirmBars  = 6;       // how long a raid stays armed waiting for its MSS.
+                                            // Too short and slow reversals are missed; too long and
+                                            // you are entering on something unrelated to the raid.
+
+input group "-- Signal: the structure shift --"
+input int      InpSwMssPivot     = 2;       // bars either side of a swing. 1-2 is the short-term
+                                            // structure ICT breaks for an entry.
+                                            // A swing needs this many bars AFTER it to confirm, so the
+                                            // level being broken was always visible in real time.
+input bool     InpSwMssStrict    = true;    // TRUE  = require a CLOSE through the last opposing swing.
+                                            // FALSE = accept a close beyond the raid candle instead,
+                                            //         which is cruder: it fires inside a continuing
+                                            //         trend with no turn at all.
+
+input group "-- Signal: the entry --"
+input int      InpSwEntryMode    = 0;       // 0 = FVG of the MSS leg (wait for the retrace)
+                                            // 1 = market at the MSS close
+                                            // 2 = 50% of the raid leg
+input int      InpSwFvgSide      = 1;       // 0 = near edge (fills most, worst price)
+                                            // 1 = CE, the 50% of the gap (the ICT standard)
+                                            // 2 = far edge (best price, most often missed)
+input int      InpSwFvgLook      = 5;       // bars back from the MSS bar to find the imbalance
+input bool     InpSwSkipNoFvg    = true;    // TRUE = no gap, no trade. Displacement without an
+                                            // imbalance is weaker displacement.
+                                            // FALSE = take it at market and tag it, so you can check
+                                            // afterwards whether those were worth having.
+input int      InpSwLimitBars    = 8;       // an unfilled retrace entry is abandoned after this many bars
+
+input group "-- Signal: the stop --"
+input double   InpSwStopBufAtr   = 0.25;    // buffer beyond the raid extreme, in ATR.
+                                            // 0 puts the stop exactly on the wick, where a one-tick
+                                            // overshoot takes you out.
+input bool     InpSwStopFromFvg  = false;   // TRUE = stop just beyond the FVG instead of the raid
+                                            // extreme. Much tighter, so the same target is a far
+                                            // larger R - and a normal retrace through the gap takes
+                                            // you out of a trade that was still right.
+
+input group "-- Signal (shared) --"
+input int      InpAtrPeriod      = 14;
+//  The EMAs no longer TRIGGER anything here, but they are still read: the bias
+//  score, the quality filter's EMA50 side, the [LOGIC] line, the order-comment
+//  reason code and the dashboard all use them. Keeping them costs one indicator
+//  handle and keeps every one of those outputs identical to the EMA EA, which
+//  is what makes the two comparable.
 input int      InpEmaFast        = 9;
 input int      InpEmaMid         = 21;
 input int      InpEmaTrend       = 50;
-input int      InpAtrPeriod      = 14;
 input bool     InpTradeOnClose   = true;    // act only on closed bars
 
 input group "-- Risk & stop --"
@@ -305,7 +358,7 @@ input int      InpNewsAlertMins   = 15;     // post the heads-up this many minut
 
 input group "-- Other guards --"
 input int      InpMaxSpreadPts    = 50;     // skip entries above this spread (points, 0=off)
-input long     InpMagic           = 990021;
+input long     InpMagic           = 993000;
 
 input group "-- Run mode --"
 input bool     InpSignalsOnly    = false;     // TRUE = broadcast Telegram signals only, place NO orders
@@ -356,7 +409,7 @@ input group "-- Telegram alerts  (live/demo only - NOT in Strategy Tester) --"
 input bool     InpUseTelegram    = false;      // master switch for Telegram push
 input string   InpTgToken        = "";         // bot token from @BotFather
 input string   InpTgChatId       = "";         // your chat id (@userinfobot; groups/channels are negative)
-input string   InpTgPrefix       = "SniperEA"; // label prefixed to every message
+input string   InpTgPrefix       = "SniperSweep"; // label prefixed to every message
 input bool     InpTgNotifyStart  = true;       // ping on EA start (use once to test the pipe)
 input bool     InpTgNotifyEntry  = true;       // BUY / SELL opened
 input bool     InpTgNotifyTP     = true;       // each TP hit
@@ -373,7 +426,7 @@ input double   InpPipSize        = 0.0;        // price value of 1 pip (0 = auto
 
 input group "-- CSV event log (for reports) --"
 input bool     InpUseCsvLog      = true;       // write every event to MQL5/Files/<name>.csv
-input string   InpCsvPrefix      = "SniperEA_Log";  // file becomes <prefix>_<symbol>_<tf>.csv
+input string   InpCsvPrefix      = "SniperSweep_Log";  // file becomes <prefix>_<symbol>_<tf>.csv
 input bool     InpCommentLogic  = true;      // put a compressed reason-code in the ORDER COMMENT, so the
                                                // indicator state shows up in MetaTrader's OWN report - the
                                                // one place the .csv cannot reach.
@@ -758,15 +811,12 @@ string TgVirtualClose(double exitPx)
 //  filter is judged on survivors. One row per closed bar, and only when an
 //  EMA cross actually happened - an idle EA writes nothing.
 //====================================================================
-int CrossDirection()
-{
-   double e9_1,e9_2,e21_1,e21_2;
-   if(!Val(hEma9,1,e9_1)  || !Val(hEma9,2,e9_2))   return 0;
-   if(!Val(hEma21,1,e21_1)|| !Val(hEma21,2,e21_2)) return 0;
-   if((e9_2<=e21_2) && (e9_1> e21_1)) return  1;
-   if((e9_2>=e21_2) && (e9_1< e21_1)) return -1;
-   return 0;
-}
+//  What the skip audit reports on. In the EMA EA this was the cross; here it is
+//  whatever setup is currently being worked - an armed raid or a resting
+//  retrace entry. Without this every SKIP row would be discarded, because
+//  there is no cross to point at.
+int SwPendingDir();
+int CrossDirection(){ return SwPendingDir(); }
 
 void LogSkip(const string reason)
 {
@@ -908,76 +958,330 @@ void OnTick()
 //====================================================================
 //  SIGNAL EVALUATION - EMA9 / EMA21 cross
 //====================================================================
-void EvaluateSignal()
+//====================================================================
+//  THE SWEEP MODEL
+//
+//  Four steps, each mechanical, so the MQL5 and the Pine version take the
+//  same trade:
+//
+//    1 RAID    a wick through the previous day's (or week's) high or low that
+//              CLOSES back inside. A close beyond is a breakout - the same
+//              candle read the other way - and arms nothing.
+//    2 MSS     a close through the most recent opposing swing. That is the
+//              structure shift. One strong candle is not.
+//    3 ENTRY   the FVG the displacement left, or the MSS close, or 50% of the
+//              raid leg.
+//    4 STOP    beyond the raid extreme. Structural, so 1R varies per trade.
+//
+//  Levels come from the last CLOSED daily/weekly bar, so nothing repaints.
+//====================================================================
+double g_pdh=0, g_pdl=0, g_pwh=0, g_pwl=0;
+
+void SwRefreshLevels()
 {
-   double e9_1,e9_2,e21_1,e21_2,e50_1,atr_1;
-   if(!Val(hEma9,1,e9_1)||!Val(hEma9,2,e9_2))   return;
-   if(!Val(hEma21,1,e21_1)||!Val(hEma21,2,e21_2))return;
-   if(!Val(hEma50,1,e50_1)) return;
-   if(!Val(hAtr,1,atr_1))   return;
-   if(atr_1 <= 0) return;
+   // [1] on the daily series is YESTERDAY's completed bar: information you
+   // genuinely had at the open. [0] would be today's high-so-far and every
+   // backtest built on it would be fiction.
+   double h[],l[];
+   if(CopyHigh(_Symbol,PERIOD_D1,1,1,h)==1) g_pdh=h[0];
+   if(CopyLow (_Symbol,PERIOD_D1,1,1,l)==1) g_pdl=l[0];
+   if(CopyHigh(_Symbol,PERIOD_W1,1,1,h)==1) g_pwh=h[0];
+   if(CopyLow (_Symbol,PERIOD_W1,1,1,l)==1) g_pwl=l[0];
+}
 
-   double closePx = iClose(_Symbol,_Period,1);
-   double vwap    = SessionVWAP();
+// most recent CONFIRMED swing high / low on the chart timeframe.
+// A pivot needs InpSwMssPivot bars after it, so shift starts there - the level
+// returned was always visible in real time.
+bool SwLastSwing(bool wantHigh,double &out)
+{
+   int n=InpSwMssPivot;
+   for(int sh=n+1; sh<300; sh++)
+   {
+      bool ok=true;
+      double c = wantHigh ? iHigh(_Symbol,_Period,sh) : iLow(_Symbol,_Period,sh);
+      if(c<=0) return false;
+      for(int k=1;k<=n && ok;k++)
+      {
+         double a = wantHigh ? iHigh(_Symbol,_Period,sh-k) : iLow(_Symbol,_Period,sh-k);
+         double b = wantHigh ? iHigh(_Symbol,_Period,sh+k) : iLow(_Symbol,_Period,sh+k);
+         if(wantHigh){ if(a>=c || b>=c) ok=false; }
+         else        { if(a<=c || b<=c) ok=false; }
+      }
+      if(ok){ out=c; return true; }
+   }
+   return false;
+}
 
-   bool buyCond  = (e9_2 <= e21_2) && (e9_1 > e21_1);
-   bool sellCond = (e9_2 >= e21_2) && (e9_1 < e21_1);
-   if(!buyCond && !sellCond) return;
+// the 3-candle imbalance on the displacement leg, searched back from the MSS bar
+bool SwFindFvg(int dir,double &top,double &bot)
+{
+   for(int i=1;i<=InpSwFvgLook;i++)
+   {
+      if(dir==1)
+      {
+         double lo=iLow(_Symbol,_Period,i), hi2=iHigh(_Symbol,_Period,i+2);
+         if(lo>hi2){ top=lo; bot=hi2; return true; }
+      }
+      else
+      {
+         double hi=iHigh(_Symbol,_Period,i), lo2=iLow(_Symbol,_Period,i+2);
+         if(hi<lo2){ bot=hi; top=lo2; return true; }
+      }
+   }
+   return false;
+}
 
-   double adx=0; Val(hAdx,1,adx);
-   double volNow = (double)iVolume(_Symbol,_Period,1);
-   double volAvg = VolumeSMA(InpVolAvgPeriod);
+// ---- armed raid, awaiting its structure shift ----
+int      g_swDir=0;          // +1 long setup (a LOW was raided), -1 short setup
+double   g_swExt=0;          // running extreme of the raid - where the stop goes
+double   g_swOpp=0;          // raid candle's opposite end (the loose confirmation)
+double   g_swMid=0;          // 50% of the raid leg
+double   g_swMss=0;          // the swing whose break IS the structure shift
+datetime g_swBar=0;
+string   g_swLvl="";         // PDH / PDL / PWH / PWL
 
-   bool qTrend  = (!InpQfTrend)   || (adx >= InpAdxMin);
-   bool qStruct = (!InpQfStruct)  || (MathAbs(e21_1-e50_1) >= InpStructMult*atr_1);
-   bool qVolume = (!InpQfVolume)  || (volNow > volAvg);
-   bool qCool   = (!InpQfCooldown)|| (g_lastSigTime==0) ||
-                  (BarsBetween(g_lastSigTime, iTime(_Symbol,_Period,1)) >= InpCooldownBars);
-   bool qCommon = qTrend && qStruct && qVolume && qCool;
+// ---- a retrace entry waiting to be touched ----
+int      g_swOrdDir=0;
+double   g_swOrdPx=0, g_swOrdStop=0;
+datetime g_swOrdBar=0;
+string   g_swOrdLvl="", g_swOrdVia="";
 
+string g_swTag="";           // how the live trade was entered, for the log
+
+void SwReset(){ g_swDir=0; g_swExt=0; g_swOpp=0; g_swMid=0; g_swMss=0; g_swBar=0; g_swLvl=""; }
+void SwOrdReset(){ g_swOrdDir=0; g_swOrdPx=0; g_swOrdStop=0; g_swOrdBar=0; g_swOrdLvl=""; g_swOrdVia=""; }
+
+bool SwRaidHigh(double lvl,double hi,double cl){ return (lvl>0 && hi>lvl && cl<lvl); }
+bool SwRaidLow (double lvl,double lo,double cl){ return (lvl>0 && lo<lvl && cl>lvl); }
+
+// the direction currently being worked, so the skip audit has something to report
+int SwPendingDir(){ return (g_swOrdDir!=0) ? g_swOrdDir : g_swDir; }
+
+bool SwSpreadOk()
+{
+   if(InpMaxSpreadPts<=0) return true;
+   long spr=SymbolInfoInteger(_Symbol,SYMBOL_SPREAD);
+   if(spr<=InpMaxSpreadPts) return true;
+   LogSkip(StringFormat("spread %d > max %d",(int)spr,InpMaxSpreadPts));
+   return false;
+}
+
+//  The quality filter, unchanged in meaning from the EMA EA. It used to live
+//  inside EvaluateSignal; the sweep model has its own entry logic, so it is
+//  lifted out here and still sets g_qfFlags for the log, the [FILTER] line and
+//  the order comment. A disabled check passes automatically.
+bool SwQualityOk(int dir)
+{
+   double e9,e21,e50,atr_1,adx=0;
+   if(!Val(hEma9,1,e9)||!Val(hEma21,1,e21)||!Val(hEma50,1,e50)) return true;
+   if(!Val(hAtr,1,atr_1)) return true;
+   Val(hAdx,1,adx);
+   double closePx=iClose(_Symbol,_Period,1);
+   double vwap=SessionVWAP();
+   double volNow=(double)iVolume(_Symbol,_Period,1);
+   double volAvg=VolumeSMA(InpVolAvgPeriod);
    double bullPct,bearPct; BiasScores(closePx,vwap,bullPct,bearPct);
 
-   bool qEma50L = (!InpQfEma50)||closePx>e50_1;
-   bool qEma50S = (!InpQfEma50)||closePx<e50_1;
-   bool qVwapL  = (!InpQfVwap) ||closePx>vwap;
-   bool qVwapS  = (!InpQfVwap) ||closePx<vwap;
-   bool qBiasL  = (!InpQfBias) ||bullPct>=InpBiasMin;
-   bool qBiasS  = (!InpQfBias) ||bearPct>=InpBiasMin;
+   bool qTrend  = (!InpQfTrend)   || (adx>=InpAdxMin);
+   bool qStruct = (!InpQfStruct)  || (MathAbs(e21-e50) >= InpStructMult*atr_1);
+   bool qVolume = (!InpQfVolume)  || (volNow>volAvg);
+   bool qCool   = (!InpQfCooldown)|| (g_lastSigTime==0) ||
+                  (BarsBetween(g_lastSigTime, iTime(_Symbol,_Period,1)) >= InpCooldownBars);
+   bool qEma50  = (!InpQfEma50)|| (dir==1 ? closePx>e50  : closePx<e50);
+   bool qVwap   = (!InpQfVwap) || (dir==1 ? closePx>vwap : closePx<vwap);
+   bool qBias   = (!InpQfBias) || (dir==1 ? bullPct>=InpBiasMin : bearPct>=InpBiasMin);
 
-   bool qLong  = qCommon && qEma50L && qVwapL && qBiasL;
-   bool qShort = qCommon && qEma50S && qVwapS && qBiasS;
-
-   bool qualityLong  = (!InpEnableQFilter)||qLong;
-   bool qualityShort = (!InpEnableQFilter)||qShort;
-
-   // The cross direction is known now, so freeze the reason set here rather
-   // than after the decision - a refused signal has to record which filter
-   // refused it, or the SKIP rows say nothing useful.
-   int dir = buyCond ? 1 : -1;
-   g_qfFlags = StringFormat("CROSS=%s;TREND=%d;STRUCT=%d;VOL=%d;COOL=%d;EMA50=%d;VWAP=%d;BIAS=%d",
-                            (dir==1?"EMA9>EMA21":"EMA9<EMA21"),
+   g_qfFlags = StringFormat("RAID=%s;TREND=%d;STRUCT=%d;VOL=%d;COOL=%d;EMA50=%d;VWAP=%d;BIAS=%d",
+                            (dir==1?"LOW_SWEPT":"HIGH_SWEPT"),
                             (int)qTrend,(int)qStruct,(int)qVolume,(int)qCool,
-                            (int)(dir==1?qEma50L:qEma50S),
-                            (int)(dir==1?qVwapL :qVwapS ),
-                            (int)(dir==1?qBiasL :qBiasS ));
+                            (int)qEma50,(int)qVwap,(int)qBias);
 
-   bool triggerBuy  = buyCond  && g_lastSignal<=0 && qualityLong;
-   bool triggerSell = sellCond && g_lastSignal>=0 && qualityShort;
-   if(!triggerBuy && !triggerSell)
+   if(!InpEnableQFilter) return true;
+   bool ok = qTrend && qStruct && qVolume && qCool && qEma50 && qVwap && qBias;
+   if(!ok) LogSkip("quality filter");
+   return ok;
+}
+
+//  One way in. The stop is STRUCTURAL - beyond the raid extreme - so it is
+//  passed down rather than derived from ATR, and the whole 1R..5R ladder is
+//  laid out from that distance.
+void SwOpen(int dir,double atr,double rawStop,const string tag)
+{
+   if(!SwQualityOk(dir)) return;
+   double buf  = InpSwStopBufAtr*atr;
+   double stop = (dir==1) ? rawStop-buf : rawStop+buf;
+   double px   = (dir==1) ? SymbolInfoDouble(_Symbol,SYMBOL_ASK)
+                          : SymbolInfoDouble(_Symbol,SYMBOL_BID);
+   // A stop on the wrong side of the entry, or a rounding error away from it,
+   // makes every R figure meaningless. Drop the trade rather than log a 40R
+   // win that was never available.
+   bool ok = (dir==1) ? (stop < px-_Point*2) : (stop > px+_Point*2);
+   if(!ok)
    {
-      bool sameWay = (buyCond && g_lastSignal>0) || (sellCond && g_lastSignal<0);
-      LogSkip(sameWay ? "already positioned that way" : "quality filter");
+      LogSkip(StringFormat("stop %s is not a usable distance from %s",
+              DoubleToString(stop,_Digits),DoubleToString(px,_Digits)));
       return;
    }
+   g_swTag = tag;
+   Say("SIGNAL",StringFormat("%s | entry %s | structural stop %s (%.2f ATR buffer) | risk %s",
+       tag, DoubleToString(px,_Digits), DoubleToString(stop,_Digits), InpSwStopBufAtr,
+       DoubleToString(MathAbs(px-stop),_Digits)));
+   OpenTrade(dir, atr, stop);
+}
 
-   if(InpMaxSpreadPts > 0)
+//====================================================================
+//  SIGNAL EVALUATION - raid, MSS, entry
+//====================================================================
+void EvaluateSignal()
+{
+   double atr_1; if(!Val(hAtr,1,atr_1)) return;
+   if(atr_1<=0) return;
+
+   SwRefreshLevels();
+
+   double hi1=iHigh(_Symbol,_Period,1), lo1=iLow(_Symbol,_Period,1), cl1=iClose(_Symbol,_Period,1);
+   if(hi1<=0||lo1<=0||cl1<=0) return;
+
+   //---------------- 1. the raid ----------------
+   if(g_swDir==0 && g_swOrdDir==0 && !PositionOnSymbol())
    {
-      long spr = SymbolInfoInteger(_Symbol,SYMBOL_SPREAD);
-      if(spr > InpMaxSpreadPts)
-      { LogSkip(StringFormat("spread %d > max %d",(int)spr,InpMaxSpreadPts)); return; }
+      string lv=""; int d=0;
+      if(InpSwLongs)
+      {
+         if(InpSwUseDay  && SwRaidLow(g_pdl,lo1,cl1)){ d= 1; lv="PDL"; }
+         if(d==0 && InpSwUseWeek && SwRaidLow(g_pwl,lo1,cl1)){ d= 1; lv="PWL"; }
+      }
+      if(d==0 && InpSwShorts)
+      {
+         if(InpSwUseDay  && SwRaidHigh(g_pdh,hi1,cl1)){ d=-1; lv="PDH"; }
+         if(d==0 && InpSwUseWeek && SwRaidHigh(g_pwh,hi1,cl1)){ d=-1; lv="PWH"; }
+      }
+      if(d!=0)
+      {
+         g_swDir=d; g_swLvl=lv; g_swBar=iTime(_Symbol,_Period,1);
+         g_swExt=(d==1)?lo1:hi1;
+         g_swOpp=(d==1)?hi1:lo1;
+         g_swMid=(hi1+lo1)/2.0;
+         double sw=0;
+         g_swMss = SwLastSwing(d==1, sw) ? sw : 0.0;
+         Say("SIGNAL",StringFormat("%s RAID of %s @ %s | armed %d bars | MSS level %s",
+             (d==1?"BULL":"BEAR"), lv, DoubleToString((d==1?g_pdl:g_pdh),_Digits),
+             InpSwConfirmBars, (g_swMss>0?DoubleToString(g_swMss,_Digits):"none yet")));
+      }
    }
 
-   OpenTrade(dir, atr_1);
+   //---------------- the armed raid ages, and can extend ----------------
+   if(g_swDir!=0)
+   {
+      if(g_swDir==1  && lo1<g_swExt) g_swExt=lo1;
+      if(g_swDir==-1 && hi1>g_swExt) g_swExt=hi1;
+      // a NEARER swing may confirm while we wait - breaking the closest one is
+      // what short-term structure means
+      double sw=0;
+      if(SwLastSwing(g_swDir==1, sw))
+      {
+         if(g_swMss<=0) g_swMss=sw;
+         else if(g_swDir==1  && sw<g_swMss) g_swMss=sw;
+         else if(g_swDir==-1 && sw>g_swMss) g_swMss=sw;
+      }
+      if(BarsBetween(g_swBar, iTime(_Symbol,_Period,1)) > InpSwConfirmBars)
+      {
+         LogSkip(StringFormat("raid of %s expired without a structure shift",g_swLvl));
+         SwReset();
+      }
+   }
+
+   //---------------- 2. the structure shift ----------------
+   //  Never on the raid bar itself. The raid candle closed back INSIDE the
+   //  level; if a nearby swing let it also count as the structure shift, the
+   //  model would enter on the raid with nothing having confirmed it.
+   if(g_swDir!=0 && iTime(_Symbol,_Period,1)!=g_swBar)
+   {
+      bool mss = InpSwMssStrict
+               ? (g_swMss>0 && (g_swDir==1 ? cl1>g_swMss : cl1<g_swMss))
+               : (g_swDir==1 ? cl1>g_swOpp : cl1<g_swOpp);
+      if(mss)
+      {
+         int    d    = g_swDir;
+         double stop = g_swExt;
+         string lvl  = g_swLvl;
+
+         //---------------- 3. the entry ----------------
+         if(InpSwEntryMode==1)                     // market at the MSS close
+         {
+            SwReset();
+            if(!SwSpreadOk()) return;
+            g_swTag = lvl + "|MSS";
+            SwOpen(d, atr_1, stop, lvl+"|MSS");
+            return;
+         }
+         if(InpSwEntryMode==2)                     // 50% of the raid leg
+         {
+            g_swOrdDir=d; g_swOrdPx=g_swMid; g_swOrdStop=stop;
+            g_swOrdBar=iTime(_Symbol,_Period,1); g_swOrdLvl=lvl; g_swOrdVia="50%";
+            Say("SIGNAL",StringFormat("MSS confirmed | waiting for 50%% of the raid leg @ %s",
+                DoubleToString(g_swMid,_Digits)));
+            SwReset();
+            return;
+         }
+         // FVG
+         double ft=0,fb=0;
+         bool found = SwFindFvg(d,ft,fb);
+         double near = (d==1)?ft:fb;
+         double far  = (d==1)?fb:ft;
+         double cand = (InpSwFvgSide==0)?near:((InpSwFvgSide==2)?far:(ft+fb)/2.0);
+         double px   = (d==1)?SymbolInfoDouble(_Symbol,SYMBOL_ASK):SymbolInfoDouble(_Symbol,SYMBOL_BID);
+         // a gap price has already passed would fill the instant it is placed,
+         // which is a market order wearing a limit order's name
+         bool usable = found && ((d==1) ? cand<px : cand>px);
+         // entering at the far edge AND stopping just beyond it leaves a risk of
+         // one ATR buffer and an R figure that is arithmetic rather than a trade
+         bool degen  = (InpSwStopFromFvg && InpSwFvgSide==2);
+
+         if(usable)
+         {
+            g_swOrdDir=d; g_swOrdPx=cand;
+            g_swOrdStop=(InpSwStopFromFvg && !degen) ? far : stop;
+            g_swOrdBar=iTime(_Symbol,_Period,1); g_swOrdLvl=lvl;
+            g_swOrdVia=(InpSwFvgSide==0)?"FVG":((InpSwFvgSide==2)?"FVG.far":"FVG.CE");
+            Say("SIGNAL",StringFormat("MSS confirmed | FVG %s-%s | waiting for %s (%s)",
+                DoubleToString(fb,_Digits),DoubleToString(ft,_Digits),
+                DoubleToString(cand,_Digits),g_swOrdVia));
+            SwReset();
+            return;
+         }
+         SwReset();
+         if(InpSwSkipNoFvg)
+         {
+            LogSkip(found ? "FVG already passed - no pullback entry left"
+                          : "the displacement leg left no FVG");
+            return;
+         }
+         if(!SwSpreadOk()) return;
+         SwOpen(d, atr_1, stop, lvl+"|MSS.nogap");
+         return;
+      }
+   }
+
+   //---------------- a resting retrace entry ----------------
+   if(g_swOrdDir!=0 && !PositionOnSymbol())
+   {
+      bool fill = (g_swOrdDir==1) ? (iLow(_Symbol,_Period,1)  <= g_swOrdPx)
+                                  : (iHigh(_Symbol,_Period,1) >= g_swOrdPx);
+      if(fill)
+      {
+         int d=g_swOrdDir; double stop=g_swOrdStop; string tag=g_swOrdLvl+"|"+g_swOrdVia;
+         SwOrdReset();
+         if(!SwSpreadOk()) return;
+         SwOpen(d, atr_1, stop, tag);
+         return;
+      }
+      if(BarsBetween(g_swOrdBar, iTime(_Symbol,_Period,1)) > InpSwLimitBars)
+      {
+         LogSkip("retrace entry not filled inside the window");
+         SwOrdReset();
+      }
+   }
 }
 
 //====================================================================
@@ -1000,6 +1304,19 @@ void EvaluateSignal()
 //          │ └ mode
 //          └ side
 //====================================================================
+//  In the EMA EA this slot held the mode. Here the RAID LEVEL is the more
+//  useful thing to carry into MetaTrader's own report, because it is the one
+//  field that tells you which setup the trade was - and the 31-character cap
+//  leaves room for little else.
+string SwCode()
+{
+   if(StringFind(g_swTag,"PDH")>=0) return "DH";
+   if(StringFind(g_swTag,"PDL")>=0) return "DL";
+   if(StringFind(g_swTag,"PWH")>=0) return "WH";
+   if(StringFind(g_swTag,"PWL")>=0) return "WL";
+   return "NA";
+}
+
 string ModeCode(const string tag)
 {
    if(tag=="FULLTGT")        return "FT";
@@ -1018,7 +1335,7 @@ int ClampI(double v,int lo,int hi)
 
 string EntryComment(int dir,const string modeTag)
 {
-   string head = "SNP " + ((dir==1) ? "B " : "S ") + ModeCode(modeTag);
+   string head = "SWP " + ((dir==1) ? "B " : "S ") + SwCode();
    if(!InpCommentLogic) return head;
 
    SnapVals s; TakeSnapshot(s);
@@ -1037,7 +1354,7 @@ string EntryComment(int dir,const string modeTag)
 //====================================================================
 //  ORDER PLACEMENT
 //====================================================================
-void OpenTrade(int dir, double atr)
+void OpenTrade(int dir, double atr, double structStop=0.0)
 {
    // --- FLIP: an opposite signal arrived before SL or target was reached ---
    g_flipFrom = 0;
@@ -1078,10 +1395,26 @@ void OpenTrade(int dir, double atr)
    double slFactor = (!dayTime && InpUseHalfSlOutside) ? InpOutsideSlFactor : 1.0;
    if(slFactor<=0.0) slFactor=1.0;
 
-   double fullR = atr*InpSlAtrMult;          // the usual ATR stop distance
-   double risk  = fullR*slFactor;            // what is ACTUALLY risked on this trade
-   double tpUnit= InpTpFromHalvedRisk ? risk : fullR;   // the distance one R step of TP uses
-   double sl    =(dir==1)?entry-risk:entry+risk;
+   //  ATR sizing is the fallback. When the caller supplies a STRUCTURAL stop -
+   //  which the sweep model always does - that distance IS the risk, and the
+   //  session halving does not apply: the stop is a place on the chart, not a
+   //  volatility number to be scaled.
+   double fullR, risk, sl;
+   if(structStop>0.0)
+   {
+      sl       = structStop;
+      risk     = MathAbs(entry-sl);
+      fullR    = risk;
+      slFactor = 1.0;
+   }
+   else
+   {
+      fullR = atr*InpSlAtrMult;              // the usual ATR stop distance
+      risk  = fullR*slFactor;                // what is ACTUALLY risked on this trade
+      sl    = (dir==1)?entry-risk:entry+risk;
+   }
+   double tpUnit= (structStop>0.0) ? risk
+                : (InpTpFromHalvedRisk ? risk : fullR);   // the distance one R step of TP uses
 
    // --- SIGNALS-ONLY: set up a virtual trade, broadcast, and DO NOT place an order ---
    if(InpSignalsOnly)
@@ -1195,7 +1528,8 @@ void OpenTrade(int dir, double atr)
       SaveState();
 
       LogEvent("ENTRY",g_entry,g_origVol,g_origVol,0.0,0.0,0.0,
-               StringFormat("%s%s session: stop x%.2f of usual; %s%s",
+               StringFormat("%s%s%s session: stop x%.2f of usual; %s%s",
+                            (g_swTag!="" ? "SETUP="+g_swTag+"; " : ""),
                             (g_kzTag!="" ? "KZ="+g_kzTag+"; " : ""),
                             (dayTime?"DAY 12AM-4PM IST":"EVENING 4PM-12AM IST"), slFactor,
                             (fullTgt ? "no partials, full size to TP5, SL steps BE->TP1->TP2->TP3"
@@ -2408,6 +2742,7 @@ void SaveState()
    FileWriteString(h,StringFormat("entryBar=%d\r\n",(int)g_entryBar));
    FileWriteString(h,StringFormat("entryTag=%s\r\n",g_entryTag));
    FileWriteString(h,StringFormat("kzTag=%s\r\n",g_kzTag));
+   FileWriteString(h,StringFormat("swTag=%s\r\n",g_swTag));
    FileWriteString(h,StringFormat("entryTimeSrv=%d\r\n",(int)g_entryTimeSrv));
    FileWriteString(h,StringFormat("entryIst=%s\r\n",g_entryIst));
    FileWriteString(h,StringFormat("entryIstFull=%s\r\n",g_entryIstFull));
@@ -2479,6 +2814,7 @@ void StateApply(const string key,const string val)
    else if(key=="fullTgt")     g_fullTgt    =(StringToInteger(val)!=0);
    else if(key=="entryTag")    g_entryTag   =val;
    else if(key=="kzTag")       g_kzTag      =val;
+   else if(key=="swTag")       g_swTag      =val;
    else if(key=="entryIst")    g_entryIst   =val;
    else if(key=="entryTimeSrv")g_entryTimeSrv=(datetime)StringToInteger(val);
    else if(key=="entryIstFull")g_entryIstFull=val;
@@ -2778,9 +3114,18 @@ void PanelUpdate()
    else
    {
       PanelRow(r++,"FLAT", cTxt);
-      PanelRow(r++,StringFormat("Last signal  %s",
-               (g_lastSignal==1?"BUY":(g_lastSignal==-1?"SELL":"none"))), cTxt);
-      PanelRow(r++,"", cTxt);
+      if(g_swOrdDir!=0)
+         PanelRow(r++,StringFormat("WAITING  %s %s @ %s",
+                  (g_swOrdDir==1?"BUY":"SELL"), g_swOrdVia,
+                  DoubleToString(g_swOrdPx,_Digits)), cWarn);
+      else if(g_swDir!=0)
+         PanelRow(r++,StringFormat("ARMED    %s raid of %s | MSS %s",
+                  (g_swDir==1?"BULL":"BEAR"), g_swLvl,
+                  (g_swMss>0?DoubleToString(g_swMss,_Digits):"-")), cWarn);
+      else
+         PanelRow(r++,"No raid armed", cTxt);
+      PanelRow(r++,StringFormat("PDH %s  PDL %s",
+               DoubleToString(g_pdh,_Digits),DoubleToString(g_pdl,_Digits)), cTxt);
    }
 
    PanelRow(r++,"------------------------------------------", cTxt);
@@ -2986,7 +3331,7 @@ string SessionExitText()
 
 void SayStartupBanner(const string why)
 {
-   Say("CONFIG",StringFormat("===== EMA Strategy v1.20 | %s %s | %s | magic %d | %s =====",
+   Say("CONFIG",StringFormat("===== Sniper SWEEP (PDH/PDL) v1.00 | %s %s | %s | magic %d | %s =====",
        _Symbol, StringSubstr(EnumToString((ENUM_TIMEFRAMES)_Period),7),
        TimeToString(TimeCurrent(),TIME_DATE), InpMagic, why));
 
@@ -3012,6 +3357,22 @@ void SayStartupBanner(const string why)
    ent += InpTradeOnClose ? " | closed-bar entries" : " | every-tick entries";
    ent += InpEnableQFilter ? " | quality filter ON" : " | quality filter OFF";
    Say("CONFIG","entries | " + ent);
+
+   SwRefreshLevels();
+   Say("CONFIG",StringFormat("model | RAID %s%s | MSS %s pivot %d | entry %s | stop = raid extreme %+.2f ATR%s",
+       (InpSwUseDay?"PDH/PDL":""), (InpSwUseWeek?" + PWH/PWL":""),
+       (InpSwMssStrict?"close through the last swing":"close beyond the raid candle"), InpSwMssPivot,
+       (InpSwEntryMode==1?"market at MSS":(InpSwEntryMode==2?"50% of the raid leg":
+         StringFormat("FVG %s",(InpSwFvgSide==0?"near edge":(InpSwFvgSide==2?"far edge":"CE"))))),
+       InpSwStopBufAtr, (InpSwStopFromFvg?" (or beyond the FVG)":"")));
+   Say("CONFIG",StringFormat("levels | PDH %s  PDL %s  PWH %s  PWL %s",
+       DoubleToString(g_pdh,_Digits),DoubleToString(g_pdl,_Digits),
+       DoubleToString(g_pwh,_Digits),DoubleToString(g_pwl,_Digits)));
+   if(!InpSwLongs && !InpSwShorts)
+      Say("CONFIG","model | WARNING: both sides are off - nothing can ever enter");
+   if(!InpSwUseDay && !InpSwUseWeek)
+      Say("CONFIG","model | WARNING: no raid level ticked - nothing can ever enter");
+
    Say("CONFIG","killzone | " + KzWindowText());
 
    // the failure that is otherwise invisible: two windows that cannot overlap,
@@ -4409,7 +4770,8 @@ bool PositionOnSymbol()
 }
 void ResetPosState()
 {
-   g_kzTag="";
+   g_kzTag=""; g_swTag="";
+   SwReset(); SwOrdReset();
    g_posId=0; g_dir=0; g_entry=0; g_risk=0; g_tpUnit=0; g_slFactor=1.0; g_origVol=0;
    g_initSL=0; g_curSL=0; g_fullTgt=false; g_entryTag=""; g_runLevel=0;
    g_mfe=0; g_mae=0; g_entryBar=0; g_excBar=0;

@@ -250,6 +250,61 @@ Target +12.00/50.00   Loss cap 31.40 left of 80.00
 > stop trading a bad day at a number you chose in advance rather than one you
 > talk yourself into at the time.
 
+### Killzone entry window — `InpUseKzWindow` **false**
+
+Entries allowed **only** from `InpKzLeadMin` before a killzone opens, through to
+its close. Nothing else about the engine changes: same EMA 9/21 cross, same ATR
+stop, same 1–5R ladder. A run with it against a run without it isolates the
+window and nothing else.
+
+```
+InpUseKzWindow    false
+InpKzLeadMin      30          minutes BEFORE each killzone that entries open
+InpKzAsia         true        1900-2400   NY
+InpKzLondon       true        0200-0500   NY
+InpKzNY           true        0700-1000   NY
+InpKzCloseAtEnd   false       flatten when the killzone ends
+```
+
+With the defaults, entries are possible for **12.5 of 24 hours**:
+
+| Killzone | NY | IST summer | IST winter |
+|---|---|---|---|
+| Asia | 18:30–24:00 | 04:00–09:30 | 05:00–10:30 |
+| London | 01:30–05:00 | 11:00–14:30 | 12:00–15:30 |
+| New York | 06:30–10:00 | 16:00–19:30 | 17:00–20:30 |
+
+### Daylight saving is computed, not configured
+
+MQL5 has no timezone database. US DST is a rule about the calendar — second
+Sunday of March 02:00 to first Sunday of November 02:00 — so `UsDstActive()`
+derives it from the date and `NyGmtOffsetHours()` returns −4 or −5.
+
+**Verified against 43,848 hourly samples across 2024–2028: zero mismatches**
+with the real transition dates. It has to be exact — a killzone an hour out for
+four months of the year reads as the strategy degrading rather than as a bug.
+
+Your `InpServerGmtOffset` still has to be right, because server→NY goes through
+GMT. Check the banner's `clock |` line once.
+
+> **The trap.** `InpUseSessionFilter` is **ANDed** with this. The usual
+> `00–11` server window overlaps the killzones only partly, so leaving it on
+> measures the two filters together and the killzone module looks broken when
+> it is simply being outvoted. The startup banner warns when both are on.
+> `SniperEA_KZ_test.set` ships with the server filter **off** for this reason.
+
+### What it does and does not touch
+
+`InpKzCloseAtEnd` defaults **off**: the window governs **entries**. Closing a
+winner because the clock struck is a different decision from not opening one,
+and conflating the two would mean a backtest of this window is really a
+backtest of a time-based exit as well. Turn it on deliberately if that is what
+you want to measure.
+
+Each entry records which killzone it was taken in — `KZ=LONDON` in the CSV/JSON
+note, and `kzTag` in the state file — so the report can split results by
+killzone rather than reporting one blended number.
+
 ### Clock formatting
 
 **Telegram messages only** are 12-hour: `02:29 PM`. Five places — the startup

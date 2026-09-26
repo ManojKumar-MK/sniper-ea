@@ -1,4 +1,26 @@
-; TEMPLATE - copy to SniperEA_Trade.set and fill in InpTgToken / InpTgChatId.
+; ============================================================================
+;  FundedNext 25k        magic 992500
+;
+;  READ THIS BEFORE LOADING IT.
+;
+;  The guard numbers below are MINE, not FundedNext's. I have set them tighter
+;  than any limit I am aware of, because I cannot verify your programme's rules
+;  and a cap that is too loose is worth nothing:
+;
+;      daily loss      3%   =  $750     halts for the day
+;      inner day cap        =  $400     halts sooner, independent of prop mode
+;      overall loss    6%   = $1500     halts at 80% of it = $1200
+;      losing trades        =  3/day
+;      daily target    1.5% =  $375     stops taking new entries
+;
+;  Open your FundedNext dashboard, read YOUR daily and overall limits, and set
+;  InpMaxDailyLossPct / InpMaxTotalLossPct below them - not equal to them. The
+;  EA halts at InpTotalLossStopPct of the figure you give it, which is the
+;  headroom that keeps a breach from being one bad tick away.
+;
+;  Sizing is risk-%: 0.4% of the 25,000 baseline = $100 per trade. Session
+;  lots are OFF, so this scales with the account rather than ignoring it.
+; ============================================================================
 ; The real file is gitignored: it holds a live bot token.
 ; -- Signal (Sniper core) --
 InpEmaFast=9
@@ -7,20 +29,20 @@ InpEmaTrend=50
 InpAtrPeriod=14
 InpTradeOnClose=true
 ; -- Risk & stop --
-InpRiskPercent=0.5
-InpUseFixedLot=true
+InpRiskPercent=0.4
+InpUseFixedLot=false
 InpFixedLot=0.05
-InpUseSessionLots=true
+InpUseSessionLots=false
 InpDayLot=0.05
 InpEveningLot=0.05
-InpSlAtrMult=2.0
+InpSlAtrMult=2.5
 ; -- Take-profit: 5-level target ladder --
 InpUseScaleOut=true
 InpTP1_R=1.0
 InpTP2_R=2.0
-InpTP3_R=3.0
-InpTP4_R=4.0
-InpTP5_R=5.0
+InpTP3_R=4.0
+InpTP4_R=6.0
+InpTP5_R=8.0
 InpPartialPct=20.0
 InpTrailBehindTP=true
 InpTpRMultiple=3.0
@@ -69,7 +91,7 @@ InpFridayCloseHour=-1
 InpFridayCloseMinute=0
 InpBlockFridayEntries=true
 ; -- FUNDED / PROP ACCOUNT MODE --
-InpPropMode=false
+InpPropMode=true
 ; -- On-chart dashboard --
 InpShowPanel=true
 InpPanelCorner=0
@@ -82,33 +104,33 @@ InpPanelText=14474460
 ; -- Restart recovery --
 InpPersistState=true
 ; -- Account baseline (all loss limits measure against this) --
-InpBaselineBalance=0.0
+InpBaselineBalance=25000.0
 ; -- Daily loss guard --
 InpDayResetHour=0
 InpDayResetMinute=0
 InpDayResetUseIST=true
-InpMaxDailyLossPct=4.0
+InpMaxDailyLossPct=3.0
 InpMaxDailyLossMoney=0.0
-InpDailyWarnPct=75.0
+InpDailyWarnPct=60.0
 InpMaxLossesPerDay=3
 InpCloseOnDailyCap=true
 ; -- Daily PROFIT target: stop while ahead --
-InpDailyProfitTarget=50.0
+InpDailyProfitTarget=375.0
 InpDayTargetClose=false
 InpDayTargetTgAlert=true
 ; -- Daily LOSS cap: stop while it is still small --
-InpUseDayLossCap=false
-InpDayLossCapMoney=80.0
+InpUseDayLossCap=true
+InpDayLossCapMoney=400.0
 InpDayLossCapClose=true
 InpDayLossTgAlert=true
 ; -- Overall loss guard (account-level) --
 InpDrawdownMode=2
-InpMaxTotalLossPct=10.0
+InpMaxTotalLossPct=6.0
 InpMaxTotalLossMoney=0.0
-InpTotalLossStopPct=90.0
-InpTotalWarnPct=70.0
+InpTotalLossStopPct=80.0
+InpTotalWarnPct=60.0
 ; -- News filter --
-InpUseNewsFilter=false
+InpUseNewsFilter=true
 InpNewsMinsBefore=15
 InpNewsMinsAfter=15
 InpNewsImportance=2
@@ -120,11 +142,11 @@ InpNewsTgAlerts=true
 InpNewsAlertMins=15
 ; -- Other guards --
 InpMaxSpreadPts=70
-InpMagic=990550
+InpMagic=992500
 ; -- Run mode --
 InpSignalsOnly=false
 ; -- KILLZONE entry window (ICT) --
-InpUseKzWindow=false
+InpUseKzWindow=true
 InpKzLeadMin=30
 InpKzAsia=true
 InpKzAsiaSess=1900-2400
@@ -134,7 +156,7 @@ InpKzNY=true
 InpKzNYSess=0700-1000
 InpKzCloseAtEnd=false
 ; -- Session / time filter  (EDIT THESE TO TEST) --
-InpUseSessionFilter=true
+InpUseSessionFilter=false
 InpSessionStartHour=0
 InpSessionEndHour=11
 ; -- Telegram alerts  (live/demo only - NOT in Strategy Tester) -
@@ -151,25 +173,25 @@ InpTgNotifyEOD=true
 InpTgNotifyPeriod=true
 InpTgHtmlStyle=true
 InpTgDayTable=true
-InpPipSize=0.0
+InpPipSize=0.10
 ; -- CSV event log (for reports) --
 InpUseCsvLog=true
-InpCsvPrefix=SniperEA_Log
+InpCsvPrefix=SniperEA_FN25k
 InpCommentLogic=true
 InpUseJsonLog=true
 InpEchoLogToTerminal=true
 ; -- Signal Quality Filter (optional) --
-InpEnableQFilter=false
-InpQfTrend=true
+InpEnableQFilter=true
+InpQfTrend=false
 InpAdxMin=25.0
-InpQfStruct=true
+InpQfStruct=false
 InpStructMult=0.5
-InpQfEma50=true
+InpQfEma50=false
 InpQfVwap=true
 InpQfBias=false
 InpBiasMin=70.0
 InpQfVolume=false
-InpQfCooldown=true
+InpQfCooldown=false
 InpCooldownBars=5
 ; -- Bias score inputs --
 InpRsiPeriod=14
@@ -178,3 +200,4 @@ InpMacdSlow=26
 InpMacdSignal=9
 InpAdxPeriod=14
 InpVolAvgPeriod=20
+

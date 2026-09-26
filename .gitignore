@@ -20,3 +20,13 @@ SniperEA_Log_*.jsonl
 # a token committed once lives in the history until the history is rewritten.
 *.set
 !*.example.set
+
+# ...with one narrow exception: the BACKTEST GRID sets. These are parameter
+# sweeps, not live presets - every one has InpUseTelegram=false and an EMPTY
+# InpTgToken, and the runner globs the folder, so the grid is useless if they
+# are not in the repo. The rule above still covers every set outside these two
+# folders. Verify a set is token-free before adding anything else here.
+!kz-grid/sets_kz/*.set
+!kz-grid/*.set
+!sweep-grid/sets_sweep/*.set
+!sweep-grid/*.set

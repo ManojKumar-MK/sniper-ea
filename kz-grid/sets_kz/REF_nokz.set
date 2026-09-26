@@ -1,4 +1,7 @@
-; TEMPLATE - copy to SniperEA_Trade.set and fill in InpTgToken / InpTgChatId.
+; REF_nokz
+; CONTROL. Killzone window OFF. Everything else identical to every run below, so any difference IS the window.
+; engine fixed across the grid: SL ATR x2.5, ladder 1/2/4/6/8, QF off,
+; session filter off, 0.05 lots, no prop guards. Only the killzone inputs vary.
 ; The real file is gitignored: it holds a live bot token.
 ; -- Signal (Sniper core) --
 InpEmaFast=9
@@ -13,14 +16,14 @@ InpFixedLot=0.05
 InpUseSessionLots=true
 InpDayLot=0.05
 InpEveningLot=0.05
-InpSlAtrMult=2.0
+InpSlAtrMult=2.5
 ; -- Take-profit: 5-level target ladder --
 InpUseScaleOut=true
 InpTP1_R=1.0
 InpTP2_R=2.0
-InpTP3_R=3.0
-InpTP4_R=4.0
-InpTP5_R=5.0
+InpTP3_R=4.0
+InpTP4_R=6.0
+InpTP5_R=8.0
 InpPartialPct=20.0
 InpTrailBehindTP=true
 InpTpRMultiple=3.0
@@ -93,7 +96,7 @@ InpDailyWarnPct=75.0
 InpMaxLossesPerDay=3
 InpCloseOnDailyCap=true
 ; -- Daily PROFIT target: stop while ahead --
-InpDailyProfitTarget=50.0
+InpDailyProfitTarget=0.0
 InpDayTargetClose=false
 InpDayTargetTgAlert=true
 ; -- Daily LOSS cap: stop while it is still small --
@@ -116,11 +119,11 @@ InpNewsCurrencies=USD
 InpNewsCloseOpen=false
 InpNewsManualTimes=
 InpNewsManualIsIST=false
-InpNewsTgAlerts=true
+InpNewsTgAlerts=false
 InpNewsAlertMins=15
 ; -- Other guards --
 InpMaxSpreadPts=70
-InpMagic=990550
+InpMagic=991100
 ; -- Run mode --
 InpSignalsOnly=false
 ; -- KILLZONE entry window (ICT) --
@@ -134,7 +137,7 @@ InpKzNY=true
 InpKzNYSess=0700-1000
 InpKzCloseAtEnd=false
 ; -- Session / time filter  (EDIT THESE TO TEST) --
-InpUseSessionFilter=true
+InpUseSessionFilter=false
 InpSessionStartHour=0
 InpSessionEndHour=11
 ; -- Telegram alerts  (live/demo only - NOT in Strategy Tester) -
@@ -151,10 +154,10 @@ InpTgNotifyEOD=true
 InpTgNotifyPeriod=true
 InpTgHtmlStyle=true
 InpTgDayTable=true
-InpPipSize=0.0
+InpPipSize=0.10
 ; -- CSV event log (for reports) --
 InpUseCsvLog=true
-InpCsvPrefix=SniperEA_Log
+InpCsvPrefix=SniperEA_REF_nokz
 InpCommentLogic=true
 InpUseJsonLog=true
 InpEchoLogToTerminal=true
@@ -178,3 +181,4 @@ InpMacdSlow=26
 InpMacdSignal=9
 InpAdxPeriod=14
 InpVolAvgPeriod=20
+

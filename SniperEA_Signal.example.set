@@ -123,6 +123,16 @@ InpMaxSpreadPts=70
 InpMagic=990551
 ; -- Run mode --
 InpSignalsOnly=true
+; -- KILLZONE entry window (ICT) --
+InpUseKzWindow=false
+InpKzLeadMin=30
+InpKzAsia=true
+InpKzAsiaSess=1900-2400
+InpKzLondon=true
+InpKzLondonSess=0200-0500
+InpKzNY=true
+InpKzNYSess=0700-1000
+InpKzCloseAtEnd=false
 ; -- Session / time filter  (EDIT THESE TO TEST) --
 InpUseSessionFilter=false
 InpSessionStartHour=0
