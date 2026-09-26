@@ -1,6 +1,6 @@
 # turtle-grid — does the killzone-range filter earn its place?
 
-33 sets × 3 timeframes (M3, M5, M15) = **99 backtests**, then one merged table.
+33 sets × 2 timeframes (M5, M3) = **66 backtests**, then one merged table.
 
 ```
 RUN_TURTLE.bat          double-click this
@@ -155,8 +155,8 @@ more", it is:
 - **`TU_ref_nofilter` first.** A filter only means something against the trade it
   removed. The number that matters is not whether a filtered run is profitable — it is
   whether it beats the control after giving up trades to get there.
-- **Rank by the WORST timeframe, not the best.** A set that prints beautifully on M15
-  and loses on M5 has found an M15 artifact.
+- **Rank by the WORST timeframe, not the best.** A set that prints beautifully on M5
+  and loses on M3 has found an M5 artifact.
 - A filter that cuts trade count hard can look better on win rate while earning less.
   Compare net and expectancy per trade, not percentages alone.
 - Under ~30 trades a set has not said anything yet.

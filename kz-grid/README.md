@@ -1,6 +1,6 @@
 # Killzone grid
 
-10 sets × M3 / M5 / M15 = **30 backtests**, one click.
+10 sets × M5 / M3 = **20 backtests**, one click.
 
 ```
 RUN_KZ.bat

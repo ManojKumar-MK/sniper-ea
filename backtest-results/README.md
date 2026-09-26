@@ -15,7 +15,7 @@ lived on one machine.
   README.md              what ran, and how to read it
   turtle/
     all_results.csv      every set, every timeframe, one table
-    results_tu_M15/
+    results_tu_M5/
       comparison.csv     that timeframe alone
       run.log            what the tester actually did
 ```
@@ -29,7 +29,7 @@ you need one for a specific question — but think before committing them.
 ## Reading them
 
 - **Rank by the worst timeframe, not the best.** A set that prints beautifully on
-  M15 and loses on M5 has found an M15 artifact, not an edge.
+  M5 and loses on M3 has found an M5 artifact, not an edge.
 - **Read the control first.** `REF_nokz`, `SW_base_day`, `TU_ref_kz60` — a variant
   only means something against the run it was varied from.
 - **Under ~30 trades a set has said nothing yet**, whatever its win rate.

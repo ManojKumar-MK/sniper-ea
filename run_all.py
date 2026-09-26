@@ -2,7 +2,7 @@
 """
 One click, every grid.
 
-Runs kz-grid, sweep-grid and turtle-grid across M3 / M5 / M15, merges each
+Runs kz-grid, sweep-grid and turtle-grid across M5 and M3, merges each
 grid's runs, then copies the SUMMARIES into backtest-results/<stamp>/ so they
 can be committed and compared later.
 
@@ -42,7 +42,11 @@ GRIDS = {
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_tu"),
 }
-PERIODS = ["M15", "M5", "M3"]
+#  M15 is deliberately not here. On a killzone model the signal lives on the
+#  lower frames; an M15 bar can span a third of a killzone, so the window
+#  lead and the range edges land inside a bar rather than on one.
+#  Add it back with --periods M15,M5,M3 if you ever want it.
+PERIODS = ["M5", "M3"]
 SUMMARIES = ("all_results.csv", "comparison.csv", "run.log")
 
 
@@ -121,7 +125,7 @@ def collect(keys, stamp, with_reports):
                  "timeframe.\n`comparison.csv` inside each `results_*` folder is "
                  "that one timeframe.\n\n")
         fh.write("Rank by the **worst** timeframe, not the best: a set that "
-                 "prints well on M15 and loses on M5 has found an M15 artifact, "
+                 "prints well on M5 and loses on M3 has found an M5 artifact, "
                  "not an edge.\n")
         if not with_reports:
             fh.write("\nMT5's raw `report_*.htm` files were not collected "
@@ -136,7 +140,7 @@ def main():
     ap.add_argument("--grids", default="all",
                     help="comma list: kz,sweep,turtle  (default: all)")
     ap.add_argument("--periods", default=",".join(PERIODS),
-                    help="comma list of timeframes (default: M15,M5,M3)")
+                    help="comma list of timeframes (default: M5,M3)")
     ap.add_argument("--mt5dir", default=r"C:\MT5-Tester",
                     help=r"portable MT5 folder (default: C:\MT5-Tester)")
     ap.add_argument("--with-reports", action="store_true",

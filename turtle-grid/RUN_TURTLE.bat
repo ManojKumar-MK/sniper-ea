@@ -1,7 +1,7 @@
 @echo off
 setlocal
 REM ===================================================================
-REM  KILLZONE RANGE grid - one click, M3 + M5 + M15, then one merged table.
+REM  KILLZONE RANGE grid - one click, M5 + M3, then one merged table.
 REM
 REM  Runs against a SEPARATE PORTABLE MT5 so your live terminal keeps
 REM  running untouched. Set up once:
@@ -57,9 +57,7 @@ REM  not start a tester pass while the same portable instance is open.
 REM      start "" "%MT5DIR%\terminal64.exe" /portable
 
 
-echo ===== turtle grid, M15 =====
-python run_backtests.py --sets sets_turtle --out results_tu_M15 --period M15 %OPTS%
-echo. & echo ===== turtle grid, M5 =====
+echo ===== turtle grid, M5 =====
 python run_backtests.py --sets sets_turtle --out results_tu_M5  --period M5  %OPTS%
 echo. & echo ===== turtle grid, M3 =====
 python run_backtests.py --sets sets_turtle --out results_tu_M3  --period M3  %OPTS%

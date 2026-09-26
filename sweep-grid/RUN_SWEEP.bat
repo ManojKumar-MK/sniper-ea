@@ -1,7 +1,7 @@
 @echo off
 setlocal
 REM ===================================================================
-REM  PDH/PDL SWEEP grid - one click, M3 + M5 + M15, then one merged table.
+REM  PDH/PDL SWEEP grid - one click, M5 + M3, then one merged table.
 REM
 REM  Runs against a SEPARATE PORTABLE MT5 so your live terminal keeps
 REM  running untouched. Set up once:
@@ -57,9 +57,7 @@ REM  not start a tester pass while the same portable instance is open.
 REM      start "" "%MT5DIR%\terminal64.exe" /portable
 
 
-echo ===== sweep grid, M15 =====
-python run_backtests.py --sets sets_sweep --out results_sw_M15 --period M15 %OPTS%
-echo. & echo ===== sweep grid, M5 =====
+echo ===== sweep grid, M5 =====
 python run_backtests.py --sets sets_sweep --out results_sw_M5  --period M5  %OPTS%
 echo. & echo ===== sweep grid, M3 =====
 python run_backtests.py --sets sets_sweep --out results_sw_M3  --period M3  %OPTS%

@@ -54,7 +54,7 @@ RUN_ALL.bat          double-click on Windows
 python run_all.py    the same thing, from a terminal
 ```
 
-Runs all three grids across M15 / M5 / M3, merges each, and copies the summaries
+Runs all three grids across M5 and M3, merges each, and copies the summaries
 into `backtest-results/<timestamp>/` ready to commit.
 
 | Grid | EA | Sets |
@@ -63,11 +63,11 @@ into `backtest-results/<timestamp>/` ready to commit.
 | [sweep-grid/](sweep-grid/) | SniperSweep_PDHPDL v1.00 | 14 — PDH/PDL raid model |
 | [turtle-grid/](turtle-grid/) | SniperTurtle_KZ v1.00 | 33 — killzone ranges, daily targets, quality filter |
 
-171 backtests in all. Narrow it with `--grids turtle` or `--periods M5`; see what
+114 backtests in all. Narrow it with `--grids turtle` or `--periods M5`; see what
 would run first with `--list`; pass anything else straight through after `--`:
 
 ```
-python run_all.py --grids turtle --periods M15 -- --from 2026.01.01 --to 2026.09.18
+python run_all.py --grids turtle --periods M5 -- --from 2026.01.01 --to 2026.09.18
 ```
 
 Each grid's own `.bat` still works if you only want that one.

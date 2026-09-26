@@ -1,6 +1,6 @@
 # sweep-grid — one-click backtest grid for SniperSweep_PDHPDL
 
-14 sets × 3 timeframes (M3, M5, M15) = **42 backtests**, then one merged table.
+14 sets × 2 timeframes (M5, M3) = **28 backtests**, then one merged table.
 
 ```
 RUN_SWEEP.bat          double-click this
@@ -71,8 +71,8 @@ results is the model.
 `all_results.csv` holds every run.
 
 - **Read `SW_base_day` first.** A variant only means something against the control.
-- **Rank by the WORST timeframe, not the best.** A set that prints beautifully on M15
-  and loses on M5 has found an M15 artifact, not an edge. This is the mistake that cost
+- **Rank by the WORST timeframe, not the best.** A set that prints beautifully on M5
+  and loses on M3 has found an M5 artifact, not an edge. This is the mistake that cost
   us the last grid.
 - Under ~30 trades a set has not said anything yet, whatever its win rate.
 - Breakeven win rate for a 1:N model is `1/(1+N)`. At 1:3 that is 25% — a 40% win rate

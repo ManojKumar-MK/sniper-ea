@@ -3,7 +3,7 @@ setlocal
 REM ===================================================================
 REM  ONE CLICK - every grid, every timeframe, then collect the results.
 REM
-REM  kz-grid + sweep-grid + turtle-grid, each across M15 / M5 / M3,
+REM  kz-grid + sweep-grid + turtle-grid, each across M5 and M3,
 REM  merged per grid and copied into backtest-results\<timestamp>\
 REM  ready to commit.
 REM
