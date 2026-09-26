@@ -38,6 +38,12 @@ GRIDS = {
     "turtle": dict(folder="turtle-grid", sets="sets_turtle",
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_tu"),
+    #  v2 lives beside v1 rather than replacing it: v1's numbers stay on disk
+    #  and stay comparable, and the two differ in the spine (v1 had the server
+    #  session filter on), so merging them into one table would mislead.
+    "v2":     dict(folder="turtle-grid", sets="sets_v2",
+                   expert="SniperTurtle_KZ_v1.00.ex5",
+                   out="results_v2"),
 }
 #  M15 is deliberately not here. On a killzone model the signal lives on the
 #  lower frames; an M15 bar can span a third of a killzone, so the window
