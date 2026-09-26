@@ -30,6 +30,35 @@ the script that had no MQL5 equivalent.
 
 ---
 
+## How it runs by default
+
+The killzone entry window is **ON**, with a **60-minute lead**:
+
+| | NY clock | |
+|---|---|---|
+| Asia | 18:00 – 24:00 | opens an hour before the 19:00 session |
+| London | 01:00 – 05:00 | opens an hour before 02:00 |
+| New York | 06:00 – 10:00 | opens an hour before 07:00 |
+
+**840 minutes a day, 58% of the clock**, with no overlap between the three. The EA is
+awake for the run-up into each session and rests in between — the raid that sets a
+killzone up often happens in the hour before it, which is why the lead is 60 and not 0.
+
+**A trade opened inside a killzone carries on to its target after that killzone
+closes.** The window governs *entries*; an open position is managed on every tick
+regardless of the clock — ladder, stop stepping, runner all keep working. In `OnTick`
+the management runs before the window check, so this is structural rather than a
+setting that could drift.
+
+`InpKzCloseAtEnd` would flatten at the session end instead. It is **off**, and should
+stay off unless you specifically want that: closing a winner because the clock struck
+is a different decision from not opening one.
+
+To trade all day instead, set `InpUseKzWindow=false`. `turtle-grid/TU_nokzwindow` is
+that run, so you can see what the window is worth before deciding.
+
+---
+
 ## What is new: killzone ranges
 
 The killzone **window** (already in SniperEA) governs *when* you may enter. This
@@ -69,6 +98,9 @@ it at the moment it starts being watched.
 
 | Input | Default | |
 |---|---|---|
+| `InpUseKzWindow` | **true** | entries only inside a killzone |
+| `InpKzLeadMin` | **60** | minutes before each killzone that entries open |
+| `InpKzCloseAtEnd` | false | leave off — lets a trade run past the session end |
 | `InpKzrOn` | true | track the three session ranges |
 | `InpKzrDays` | 5 | completed sessions to remember (1–10). 5 is a trading week |
 | `InpKzrAlertSweep` | true | Telegram + log when a weekly level is taken |

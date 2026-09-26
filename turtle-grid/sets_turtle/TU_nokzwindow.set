@@ -1,5 +1,5 @@
 ; SniperTurtle_KZ_v1.00  -  generated from the EA source defaults
-; TU_ref_nofilter.set
+; TU_nokzwindow.set
 InpEmaFast=9
 InpEmaMid=21
 InpEmaTrend=50
@@ -100,7 +100,7 @@ InpMaxSpreadPts=50
 InpMagic=994000
 InpSignalsOnly=false
 InpUseKzWindow=false
-InpKzLeadMin=30
+InpKzLeadMin=60
 InpKzAsia=true
 InpKzAsiaSess=1900-2400
 InpKzLondon=true

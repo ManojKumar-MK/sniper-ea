@@ -37,6 +37,13 @@
 //|   The ranges are RECORDING by default. InpKzrFilter turns them   |
 //|   into an entry filter; until you do, they block nothing.        |
 //|                                                                  |
+//|   HOW IT RUNS, by default: the killzone entry window is ON with   |
+//|   a 60-minute lead. The EA is awake from an hour before Asia,     |
+//|   London and New York open until each one closes, and rests in    |
+//|   between. A trade opened inside a killzone CARRIES ON to its     |
+//|   target after that killzone has closed - the window governs      |
+//|   entries, never the management of a position already on.         |
+//|                                                                  |
 //|   Magic 994000 and its own log prefix, so it runs beside         |
 //|   SniperEA and SniperSweep without touching either.              |
 //+------------------------------------------------------------------+
@@ -317,16 +324,31 @@ input bool     InpSignalsOnly    = false;     // TRUE = broadcast Telegram signa
 //    * one with InpSignalsOnly=FALSE -> trades your account with your own lots & booking
 
 input group "-- KILLZONE entry window (ICT) --"
-input bool     InpUseKzWindow  = false;   // OFF = nothing changes. ON = entries are allowed ONLY
+//  ON BY DEFAULT in this EA, which is the point of it: the trades worth having
+//  are the ones the killzones set up, so the EA is awake for those and resting
+//  the rest of the day.
+//
+//  The window governs ENTRIES ONLY. An open trade is managed - ladder, stop
+//  stepping, runner - on every tick regardless of the clock, so a position
+//  opened inside a killzone CARRIES ON to its target after that killzone has
+//  closed. Only InpKzCloseAtEnd changes that, and it is off.
+input bool     InpUseKzWindow  = true;    // OFF = trade all day. ON = entries are allowed ONLY
                                           // inside a killzone, starting InpKzLeadMin before it opens.
-input int      InpKzLeadMin    = 30;      // minutes BEFORE each killzone that entries open
+input int      InpKzLeadMin    = 60;      // minutes BEFORE each killzone that entries open.
+                                          // 60 puts the EA in place for the run-up into the session
+                                          // rather than only the session itself - the raid that sets
+                                          // a killzone up often happens in the hour before it.
 input bool     InpKzAsia       = true;    // Asian range
 input string   InpKzAsiaSess   = "1900-2400";
 input bool     InpKzLondon     = true;    // London killzone
 input string   InpKzLondonSess = "0200-0500";
 input bool     InpKzNY         = true;    // New York killzone
 input string   InpKzNYSess     = "0700-1000";
-input bool     InpKzCloseAtEnd = false;   // flatten an open trade when its killzone ends.
+input bool     InpKzCloseAtEnd = false;   // LEAVE THIS OFF. Flattens an open trade when its
+                                          // killzone ends, which is the opposite of letting a
+                                          // trade run to target - the window is about when to
+                                          // ENTER, and closing a winner because the clock struck
+                                          // is a different decision from not opening one.
                                           // OFF = it runs to its own SL/TP, which is the usual choice -
                                           // the window governs ENTRIES, and closing a winner because the
                                           // clock struck is a different decision from not opening one.

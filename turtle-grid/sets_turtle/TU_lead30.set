@@ -1,56 +1,38 @@
-; SniperTurtle_KZ_v1.00  -  TRADE (sample)
-; Derived from SniperEA_990555.set: all 139 shared keys carried VERBATIM,
-; so the trading behaviour is the one you already run. Overridden:
-;   InpMagic      990555 -> 994000            (or it manages SniperEA trades)
-;   InpCsvPrefix  SniperEA_Log -> SniperTurtle_Log
-;   InpTgPrefix   SniperEA -> SniperTurtle
-; KILLZONE WINDOW ON, 60-minute lead. The EA is awake from an hour before
-; Asia / London / NY open until each closes (840 min a day, 58%) and rests
-; in between. A trade opened inside a killzone CARRIES ON to its target
-; after that killzone closes - InpKzCloseAtEnd=false keeps it that way.
-; New module: killzone ranges RECORDING (InpKzrFilter=false) - it prints and
-; alerts, blocks nothing. Entries still carry KZR= in the CSV either way.
-; Telegram is left OFF here - fill InpTgToken / InpTgChatId on the machine.
-;
-; LOT SIZE, read this before assuming: InpUseSessionLots=true is carried from
-; the base and WINS over InpRiskPercent. So this trades a flat 0.05 lot, and
-; InpRiskPercent=0.5 does nothing at all. That is what 990555 actually does -
-; carried on purpose, not an oversight. To size by risk instead, set
-;   InpUseSessionLots=false  AND  InpUseFixedLot=false
-; and only then does the 0.5% apply.
+; SniperTurtle_KZ_v1.00  -  generated from the EA source defaults
+; TU_lead30.set
 InpEmaFast=9
 InpEmaMid=21
 InpEmaTrend=50
 InpAtrPeriod=14
 InpTradeOnClose=true
-InpRiskPercent=0.5
+InpRiskPercent=0.50000000
 InpUseFixedLot=false
-InpFixedLot=0.05
-InpUseSessionLots=true
-InpDayLot=0.05
-InpEveningLot=0.05
-InpSlAtrMult=2.0
+InpFixedLot=0.10000000
+InpUseSessionLots=false
+InpDayLot=0.05000000
+InpEveningLot=0.05000000
+InpSlAtrMult=2.00000000
 InpUseScaleOut=true
-InpTP1_R=1.0
-InpTP2_R=2.0
-InpTP3_R=3.0
-InpTP4_R=4.0
-InpTP5_R=5.0
-InpPartialPct=20.0
+InpTP1_R=1.00000000
+InpTP2_R=2.00000000
+InpTP3_R=3.00000000
+InpTP4_R=4.00000000
+InpTP5_R=5.00000000
+InpPartialPct=20.00000000
 InpTrailBehindTP=true
-InpTpRMultiple=3.0
+InpTpRMultiple=3.00000000
 InpMoveToBE_Single=true
 InpUseFullTarget=true
 InpTesterFreshLog=true
 InpLogSkips=true
 InpHeartbeatMin=5
 InpBookAtTP5=true
-InpRunnerStepR=1.0
+InpRunnerStepR=1.00000000
 InpFlipExitAnyTime=true
 InpDaySessionStartIST=0
 InpDaySessionEndIST=16
 InpUseHalfSlOutside=true
-InpOutsideSlFactor=0.5
+InpOutsideSlFactor=0.50000000
 InpTpFromHalvedRisk=true
 InpTradeEvening=true
 InpEveEntryStartIST=16
@@ -64,10 +46,10 @@ InpEveH21=true
 InpEveH22=true
 InpEveH23=true
 InpUseSessionRisk=false
-InpDayRiskPct=0.5
-InpEveningRiskPct=0.25
+InpDayRiskPct=0.50000000
+InpEveningRiskPct=0.25000000
 InpAutoGmtOffset=false
-InpServerGmtOffset=3.0
+InpServerGmtOffset=3.00000000
 InpHoldOverWeekend=false
 InpFridayCloseBufferMin=15
 InpFridayCloseHour=-1
@@ -80,45 +62,45 @@ InpPanelX=12
 InpPanelY=22
 InpPanelFont=9
 InpPanelFontName=Consolas
-InpPanelBg=1971730
-InpPanelText=14474460
+InpPanelBg=C'18,22,30'
+InpPanelText=clrGainsboro
 InpPersistState=true
-InpBaselineBalance=0.0
+InpBaselineBalance=0.00000000
 InpDayResetHour=0
 InpDayResetMinute=0
-InpDayResetUseIST=true
-InpMaxDailyLossPct=4.0
-InpMaxDailyLossMoney=0.0
-InpDailyWarnPct=75.0
+InpDayResetUseIST=false
+InpMaxDailyLossPct=4.00000000
+InpMaxDailyLossMoney=0.00000000
+InpDailyWarnPct=75.00000000
 InpMaxLossesPerDay=3
 InpCloseOnDailyCap=true
-InpDailyProfitTarget=0.0
+InpDailyProfitTarget=0.00000000
 InpDayTargetClose=false
 InpDayTargetTgAlert=true
 InpUseDayLossCap=false
-InpDayLossCapMoney=80.0
+InpDayLossCapMoney=80.00000000
 InpDayLossCapClose=true
 InpDayLossTgAlert=true
 InpDrawdownMode=2
-InpMaxTotalLossPct=10.0
-InpMaxTotalLossMoney=0.0
-InpTotalLossStopPct=90.0
-InpTotalWarnPct=70.0
+InpMaxTotalLossPct=10.00000000
+InpMaxTotalLossMoney=0.00000000
+InpTotalLossStopPct=90.00000000
+InpTotalWarnPct=70.00000000
 InpUseNewsFilter=false
 InpNewsMinsBefore=15
 InpNewsMinsAfter=15
 InpNewsImportance=2
-InpNewsCurrencies=USD
+InpNewsCurrencies=
 InpNewsCloseOpen=false
 InpNewsManualTimes=
 InpNewsManualIsIST=false
 InpNewsTgAlerts=true
 InpNewsAlertMins=15
-InpMaxSpreadPts=70
+InpMaxSpreadPts=50
 InpMagic=994000
 InpSignalsOnly=false
 InpUseKzWindow=true
-InpKzLeadMin=60
+InpKzLeadMin=30
 InpKzAsia=true
 InpKzAsiaSess=1900-2400
 InpKzLondon=true
@@ -135,8 +117,8 @@ InpKzrSweepBars=12
 InpKzrNearAtr=1.00000000
 InpUseSessionFilter=true
 InpSessionStartHour=0
-InpSessionEndHour=0
-InpUseTelegram=true
+InpSessionEndHour=11
+InpUseTelegram=false
 InpTgToken=
 InpTgChatId=
 InpTgPrefix=SniperTurtle
@@ -149,21 +131,21 @@ InpTgNotifyEOD=true
 InpTgNotifyPeriod=true
 InpTgHtmlStyle=true
 InpTgDayTable=true
-InpPipSize=0.10
+InpPipSize=0.00000000
 InpUseCsvLog=true
 InpCsvPrefix=SniperTurtle_Log
 InpCommentLogic=true
-InpUseJsonLog=true
+InpUseJsonLog=false
 InpEchoLogToTerminal=true
 InpEnableQFilter=false
 InpQfTrend=true
-InpAdxMin=25.0
+InpAdxMin=25.00000000
 InpQfStruct=true
-InpStructMult=0.5
+InpStructMult=0.50000000
 InpQfEma50=true
 InpQfVwap=true
 InpQfBias=false
-InpBiasMin=70.0
+InpBiasMin=70.00000000
 InpQfVolume=false
 InpQfCooldown=true
 InpCooldownBars=5
