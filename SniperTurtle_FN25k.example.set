@@ -1,5 +1,5 @@
 ; SniperTurtle_KZ_v1.00  -  FundedNext Stellar 1-Step $25K
-; ATTACH TO XAUUSD  M15  -  NOT M5, NOT M3.
+; ATTACH TO XAUUSD  M5  -  NOT M15, NOT M3.
 ;
 ; KILLZONES: ASIA + NEW YORK.  LONDON IS OFF.
 ;   InpKzAsia=true  InpKzLondon=FALSE  InpKzNY=true
@@ -18,15 +18,30 @@
 ; All three killzones beats asia+NY on M5 and then goes NEGATIVE on M3,
 ; because it is carrying London's losses.
 ;
-; ================= THE CHALLENGE, YEAR BY YEAR =================
-; M15, these guards, target +2500 / daily -750 / max -1500 static:
+; ================= WHY M5, NOT M15 =================
+; This exact config, these guards, per timeframe over four years:
 ;
-;              2023     2024     2025     2026
-;   asia+NY   +1671    + 477     PASS     PASS     2 of 4
-;   all three + 721    + 890     PASS     PASS     2 of 4
+;            passes   which years          breaches
+;   M15       2/4     2025, 2026              0
+;   M5        3/4     2023, 2024, 2026        0
+;   M3        1/4     2026                    0
 ;
-; Same pass rate, and closer to target in both years it did not pass.
-; NO BREACH in any year, in any combination - the guards held throughout.
+; 2025 and 2026 are the years every config in this project was SELECTED on.
+; M15 passes in exactly those two and nowhere else, which is what a fitted
+; result looks like. M5 passes in 2023 and 2024 - both unseen - plus 2026,
+; and misses only 2025. It is the first thing here that did BETTER on data it
+; was not chosen from.
+;
+; M5 was ruled out earlier, correctly at the time: with London ON it drew down
+; 20.1%, far past the 6% limit. Removing London is what fixed it -
+;            2023      2024      2025      2026
+;   all 3    no tgt    no tgt    PASS      PASS
+;   asia+NY  PASS      PASS      no tgt    PASS
+; Worst trough on M5 asia+NY is -882 of the -1500, worst day -356 of the -750.
+; NO BREACH in any year, on any timeframe, in any combination.
+;
+; Expect roughly 150-190 trades a year on M5 - about 3 a week. On M15 it would
+; be ~37 a year, about 3 a month.
 ;
 ; ================= WHAT IT IS =================
 ;   EMA 50/100/200, TRAIL OFF. Neither works without the other: 50/100 with
