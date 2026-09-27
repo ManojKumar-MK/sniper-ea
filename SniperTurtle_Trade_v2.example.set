@@ -1,0 +1,190 @@
+; SniperTurtle_KZ_v1.00  -  TRADE, from V4_notrail
+;
+; THE CONFIG, and only what differs from the EA's own defaults:
+;   InpEmaFast   9 -> 50      InpEmaMid  21 -> 100     InpEmaTrend 50 -> 200
+;   InpTrailBehindTP   true -> FALSE      <- the one that matters
+;   InpUseHalfSlOutside true -> false
+;   InpUseSessionFilter true -> false     (killzone window is the only gate)
+;   InpUseSessionLots   true -> false     (so InpRiskPercent 0.5% actually applies)
+;   InpEnableQFilter   false -> true, with VWAP as the ONLY condition on
+;
+; WHY THE PAIR: 50/100 with the trail ON made -323 across 2025. With it off,
+; +4889. Neither change works alone. A slow signal produces a payoff near 22,
+; so letting winners run is worth a great deal; on the stock 9/21 signal the
+; payoff is ~2 and there is nothing to let run. That is why the same trail
+; change failed when it was tried on 9/21 in the v2 grid.
+;
+; EVIDENCE, 6 backtests, 25k deposit, XAUUSD:
+;             M15              M5               M3
+;   2026   +4983 PF2.44   +11255 PF1.61    +1639 PF1.06
+;   2025   +3519 PF1.51    -1909 PF0.93    +3280 PF1.07
+;   Best of 138 runs, and the only config clearly profitable in BOTH years.
+;
+; WHAT IT HAS NOT PASSED:
+;   * M5 2025 LOSES (PF 0.93). It is not positive on all three timeframes in
+;     both years, which was the bar set before the run.
+;   * 2026 and 2025 are the years it was SELECTED on. 2024 and 2023 have not
+;     been run - that is turtle-grid/RUN_V5.bat, and it should be run before
+;     this file goes anywhere near real money.
+;   * M15 is the strongest frame in both years (PF 2.44 and 1.51, DD 4.8%).
+;     If you trade one frame, that is the evidence-backed one - NOT M3, whose
+;     PF is 1.06 and which was barely above water.
+;
+; Telegram is OFF here - fill InpTgToken / InpTgChatId on the machine.
+; Check InpServerGmtOffset against the broker: the killzone window is cut from
+; a NY clock derived from it, and this config has no other time gate.
+InpEmaFast=50
+InpEmaMid=100
+InpEmaTrend=200
+InpAtrPeriod=14
+InpTradeOnClose=true
+InpRiskPercent=0.50000000
+InpUseFixedLot=false
+InpFixedLot=0.10000000
+InpUseSessionLots=false
+InpDayLot=0.05000000
+InpEveningLot=0.05000000
+InpSlAtrMult=2.00000000
+InpUseScaleOut=true
+InpTP1_R=1.00000000
+InpTP2_R=2.00000000
+InpTP3_R=3.00000000
+InpTP4_R=4.00000000
+InpTP5_R=5.00000000
+InpPartialPct=20.00000000
+InpTrailBehindTP=false
+InpTpRMultiple=3.00000000
+InpMoveToBE_Single=true
+InpUseFullTarget=true
+InpTesterFreshLog=true
+InpLogSkips=true
+InpHeartbeatMin=5
+InpBookAtTP5=true
+InpRunnerStepR=1.00000000
+InpFlipExitAnyTime=true
+InpDaySessionStartIST=0
+InpDaySessionEndIST=16
+InpUseHalfSlOutside=false
+InpOutsideSlFactor=0.50000000
+InpTpFromHalvedRisk=true
+InpTradeEvening=true
+InpEveEntryStartIST=16
+InpEveEntryEndIST=0
+InpEveH16=true
+InpEveH17=true
+InpEveH18=true
+InpEveH19=true
+InpEveH20=true
+InpEveH21=true
+InpEveH22=true
+InpEveH23=true
+InpUseSessionRisk=false
+InpDayRiskPct=0.50000000
+InpEveningRiskPct=0.25000000
+InpAutoGmtOffset=false
+InpServerGmtOffset=3.00000000
+InpHoldOverWeekend=false
+InpFridayCloseBufferMin=15
+InpFridayCloseHour=-1
+InpFridayCloseMinute=0
+InpBlockFridayEntries=true
+InpPropMode=false
+InpShowPanel=true
+InpPanelCorner=0
+InpPanelX=12
+InpPanelY=22
+InpPanelFont=9
+InpPanelFontName=Consolas
+InpPanelBg=C'18,22,30'
+InpPanelText=clrGainsboro
+InpPersistState=true
+InpBaselineBalance=0.00000000
+InpDayResetHour=0
+InpDayResetMinute=0
+InpDayResetUseIST=false
+InpMaxDailyLossPct=4.00000000
+InpMaxDailyLossMoney=0.00000000
+InpDailyWarnPct=75.00000000
+InpMaxLossesPerDay=3
+InpCloseOnDailyCap=true
+InpDailyProfitTarget=0.00000000
+InpDayTargetClose=false
+InpDayTargetTgAlert=true
+InpUseDayLossCap=false
+InpDayLossCapMoney=80.00000000
+InpDayLossCapClose=true
+InpDayLossTgAlert=true
+InpDrawdownMode=2
+InpMaxTotalLossPct=10.00000000
+InpMaxTotalLossMoney=0.00000000
+InpTotalLossStopPct=90.00000000
+InpTotalWarnPct=70.00000000
+InpUseNewsFilter=false
+InpNewsMinsBefore=15
+InpNewsMinsAfter=15
+InpNewsImportance=2
+InpNewsCurrencies=
+InpNewsCloseOpen=false
+InpNewsManualTimes=
+InpNewsManualIsIST=false
+InpNewsTgAlerts=true
+InpNewsAlertMins=15
+InpMaxSpreadPts=50
+InpMagic=994000
+InpSignalsOnly=false
+InpUseKzWindow=true
+InpKzLeadMin=60
+InpKzAsia=true
+InpKzAsiaSess=1900-2400
+InpKzLondon=true
+InpKzLondonSess=0200-0500
+InpKzNY=true
+InpKzNYSess=0700-1000
+InpKzCloseAtEnd=false
+InpKzrOn=true
+InpKzrDays=5
+InpKzrAlertSweep=true
+InpKzrFilter=false
+InpKzrFilterMode=0
+InpKzrSweepBars=12
+InpKzrNearAtr=1.00000000
+InpUseSessionFilter=false
+InpSessionStartHour=0
+InpSessionEndHour=11
+InpUseTelegram=true
+InpTgToken=
+InpTgChatId=
+InpTgPrefix=SniperTurtle
+InpTgNotifyStart=true
+InpTgNotifyEntry=true
+InpTgNotifyTP=true
+InpTgNotifyClose=true
+InpTgNotifyHalt=true
+InpTgNotifyEOD=true
+InpTgNotifyPeriod=true
+InpTgHtmlStyle=true
+InpTgDayTable=true
+InpPipSize=0.00000000
+InpUseCsvLog=true
+InpCsvPrefix=SniperTurtle_Log
+InpCommentLogic=true
+InpUseJsonLog=false
+InpEchoLogToTerminal=true
+InpEnableQFilter=true
+InpQfTrend=false
+InpAdxMin=25.00000000
+InpQfStruct=false
+InpStructMult=0.50000000
+InpQfEma50=false
+InpQfVwap=true
+InpQfBias=false
+InpBiasMin=70.00000000
+InpQfVolume=false
+InpQfCooldown=false
+InpCooldownBars=5
+InpRsiPeriod=14
+InpMacdFast=12
+InpMacdSlow=26
+InpMacdSignal=9
+InpAdxPeriod=14
+InpVolAvgPeriod=20

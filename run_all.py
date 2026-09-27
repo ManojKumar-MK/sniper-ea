@@ -50,6 +50,9 @@ GRIDS = {
     "v4":     dict(folder="turtle-grid", sets="sets_v4",
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_v4"),
+    "v5":     dict(folder="turtle-grid", sets="sets_v5",
+                   expert="SniperTurtle_KZ_v1.00.ex5",
+                   out="results_v5"),
 }
 #  M15 is deliberately not here. On a killzone model the signal lives on the
 #  lower frames; an M15 bar can span a third of a killzone, so the window
