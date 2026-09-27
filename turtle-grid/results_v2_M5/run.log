@@ -1,0 +1,75 @@
+
+======================================================================
+2026-09-26 23:56:53  run_backtests.py --sets sets_v2 --out results_v2_M5 --period M5 --skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M5 2026.01.01 - 2026.09.18, model real, deposit 25000
+Sets     : 28
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/28]   running V2_cap80 ... done in 1.4 min, 1 log file(s)
+[2/28]   running V2_ctrl ... done in 1.4 min, 1 log file(s)
+[3/28]   running V2_exit_noboth ... done in 1.5 min, 1 log file(s)
+[4/28]   running V2_exit_nohalf ... done in 1.4 min, 1 log file(s)
+[5/28]   running V2_exit_notrail ... done in 1.6 min, 1 log file(s)
+[6/28]   running V2_exit_partials ... done in 1.4 min, 1 log file(s)
+[7/28]   running V2_exit_runner ... done in 1.4 min, 1 log file(s)
+[8/28]   running V2_exit_single2R ... done in 1.3 min, 1 log file(s)
+[9/28]   running V2_exit_single3R ... done in 1.3 min, 1 log file(s)
+[10/28]   running V2_exit_tp2 ... done in 1.3 min, 1 log file(s)
+[11/28]   running V2_exit_tp3 ... done in 1.3 min, 1 log file(s)
+[12/28]   running V2_fn25k ... done in 1.3 min, 1 log file(s)
+[13/28]   running V2_kz_lead0 ... done in 1.3 min, 1 log file(s)
+[14/28]   running V2_kz_lead120 ... done in 1.4 min, 1 log file(s)
+[15/28]   running V2_kz_lead30 ... done in 1.3 min, 1 log file(s)
+[16/28]   running V2_kz_off ... done in 1.5 min, 1 log file(s)
+[17/28]   running V2_qf_default ... done in 1.3 min, 1 log file(s)
+[18/28]   running V2_qf_default_novwap ... done in 1.3 min, 1 log file(s)
+[19/28]   running V2_qf_vwap_adx30 ... done in 1.3 min, 1 log file(s)
+[20/28]   running V2_qf_vwap_cool ... done in 1.4 min, 1 log file(s)
+[21/28]   running V2_qf_vwap_cool_ema50 ... done in 1.4 min, 1 log file(s)
+[22/28]   running V2_qf_vwap_ema50 ... done in 1.4 min, 1 log file(s)
+[23/28]   running V2_qf_vwap_trend ... done in 1.3 min, 1 log file(s)
+[24/28]   running V2_sl15 ... done in 1.4 min, 1 log file(s)
+[25/28]   running V2_sl25 ... done in 1.4 min, 1 log file(s)
+[26/28]   running V2_sl30 ... done in 1.4 min, 1 log file(s)
+[27/28]   running V2_tgt100 ... done in 1.3 min, 1 log file(s)
+[28/28]   running V2_tgt100_cap80 ... done in 1.3 min, 1 log file(s)
+
+28 of 28 runs produced a report in 38 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+V2_sl15                   Vwap                      552   6347.43  1.18  10.89  26.8  284.17  -87.26
+V2_exit_notrail           Vwap                      557   5953.21  1.12  20.93  20.3  499.23 -112.91
+V2_exit_single3R          Vwap                      553   5262.00  1.15   7.98  19.4  370.75  -76.45
+V2_sl25                   Vwap                      553   5204.29  1.18  16.16  23.9  256.39  -67.46
+V2_exit_tp2               Vwap                      552   5039.21  1.24   6.61  33.0  144.56  -56.62
+V2_exit_tp3               Vwap                      552   3519.05  1.13   7.04  29.0  193.28  -69.11
+V2_sl30                   Vwap                      551   3114.32  1.12  11.41  23.2  231.68  -62.27
+V2_exit_noboth            Vwap                     1182   2546.22  1.06  19.38  62.8   59.46  -93.81
+V2_exit_nohalf            Vwap                      553   1193.73  1.04  14.91  23.9  242.48  -72.59
+V2_exit_runner            Vwap                      551   1062.65  1.03  18.29  22.5  259.05  -72.06
+V2_qf_vwap_cool           Vwap,Cooldown             471   1020.75  1.04  14.33  23.6  258.60  -76.19
+V2_kz_off                 Vwap                      700    920.00  1.02  26.40  23.6  234.52  -69.93
+V2_kz_lead120             Vwap                      607    794.54  1.02  17.63  23.1  242.85  -70.42
+V2_qf_vwap_adx30          Trend,Vwap                 85    611.56  1.12   4.57  23.5  280.35  -76.22
+V2_tgt100_cap80           Vwap                      237    548.03  1.05   6.94  22.4  230.16  -62.66
+V2_ctrl                   Vwap                      551    432.18  1.01  18.56  22.5  251.74  -71.42
+V2_qf_default             Trend,Struct,Ema50,Vwa     62    223.53  1.05   3.55  22.6  307.17  -84.31
+V2_kz_lead30              Vwap                      488    -56.77  1.00  21.23  22.1  246.82  -69.66
+V2_qf_default_novwap      Trend,Struct,Ema50,Coo    116   -298.77  0.96   6.24  23.3  244.48  -76.89
+V2_exit_partials          Vwap                     1032   -476.46  0.98  17.65  58.4   49.43  -69.93
+V2_qf_vwap_trend          Trend,Vwap                231   -606.65  0.96  11.46  23.4  255.40  -80.71
+V2_tgt100                 Vwap                      483   -619.23  0.98  16.34  22.6  243.46  -71.94
+V2_qf_vwap_cool_ema50     Ema50,Vwap,Cooldown       423   -784.30  0.97  14.82  22.0  248.25  -71.68
+V2_exit_single2R          Vwap                      551   -804.77  0.97  16.65  24.3  226.42  -74.02
+V2_kz_lead0               Vwap                      423  -1194.20  0.95  21.84  22.0  234.02  -68.97
+V2_fn25k                  Vwap                      178  -1200.92  0.83   8.23  18.5  173.57  -47.45
+V2_cap80                  Vwap                      296  -1352.78  0.91   8.70  20.6  221.11  -62.53
+V2_qf_vwap_ema50          Ema50,Vwap                482  -1739.40  0.93  19.68  21.4  235.04  -67.84
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v2_M5\comparison.csv
