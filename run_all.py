@@ -2,11 +2,12 @@
 """
 One click, every grid.
 
-Runs kz-grid and turtle-grid across M5 and M3, merges each
+Runs the registered grids across M15/M5/M3, merges each
 grid's runs, then copies the SUMMARIES into backtest-results/<stamp>/ so they
 can be committed and compared later.
 
     python run_all.py                  every grid, every timeframe
+    python run_all.py --years 2023,2024,2025,2026    one window per year
     python run_all.py --grids turtle   just that one
     python run_all.py --periods M5     just that timeframe
     python run_all.py --collect-only   re-collect results already on disk
@@ -57,11 +58,11 @@ GRIDS = {
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_v6"),
 }
-#  M15 is deliberately not here. On a killzone model the signal lives on the
-#  lower frames; an M15 bar can span a third of a killzone, so the window
-#  lead and the range edges land inside a bar rather than on one.
-#  Add it back with --periods M15,M5,M3 if you ever want it.
-PERIODS = ["M5", "M3"]
+#  M15 first, because it is where the evidence landed: it is the only frame
+#  whose drawdown stays inside the funded 6% limit, and the only one the
+#  chosen config passes on. M5 and M3 are the robustness check - a result on
+#  one frame and not the others is a property of the frame, not the strategy.
+PERIODS = ["M15", "M5", "M3"]
 SUMMARIES = ("all_results.csv", "comparison.csv", "run.log")
 
 
@@ -69,28 +70,40 @@ def count_sets(g):
     return len(glob.glob(os.path.join(HERE, g["folder"], g["sets"], "*.set")))
 
 
-def run_grid(key, g, periods, passthrough, mt5dir):
+def run_grid(key, g, periods, spans, passthrough, mt5dir, deposit):
+    """
+    spans: list of (label, date_from, date_to). One entry = one window.
+
+    The dates are passed EXPLICITLY on every call. They used to be left off
+    entirely, which silently fell through to run_backtests.py's own defaults -
+    a single 3.5-month window - while the .bat files looped over whole years.
+    The deposit came through because its default had been changed to match, so
+    the run looked configured when only half of it was.
+    """
     folder = os.path.join(HERE, g["folder"])
     runner = os.path.join(folder, "run_backtests.py")
     if not os.path.isfile(runner):
         print(f"  ! {g['folder']}/run_backtests.py is missing - skipped")
         return False
     ok = True
-    for p in periods:
-        cmd = [sys.executable, "run_backtests.py",
-               "--sets", g["sets"], "--out", f"{g['out']}_{p}", "--period", p,
-               "--expert", g["expert"], "--skip-done", "--portable",
-               "--deposit", str(args.deposit)]
-        if mt5dir:
-            cmd += ["--terminal", os.path.join(mt5dir, "terminal64.exe"),
-                    "--data-dir", mt5dir]
-        cmd += passthrough
-        print(f"\n===== {key} grid, {p} =====")
-        print("  " + " ".join(cmd))
-        rc = subprocess.call(cmd, cwd=folder)
-        if rc != 0:
-            print(f"  ! {key}/{p} exited {rc}")
-            ok = False
+    for label, d_from, d_to in spans:
+        for p in periods:
+            out = f"{g['out']}_{label}_{p}" if label else f"{g['out']}_{p}"
+            cmd = [sys.executable, "run_backtests.py",
+                   "--sets", g["sets"], "--out", out, "--period", p,
+                   "--expert", g["expert"], "--skip-done", "--portable",
+                   "--deposit", str(deposit),
+                   "--from", d_from, "--to", d_to]
+            if mt5dir:
+                cmd += ["--terminal", os.path.join(mt5dir, "terminal64.exe"),
+                        "--data-dir", mt5dir]
+            cmd += passthrough
+            print(f"\n===== {key} grid, {label or 'default'} {p}  ({d_from} - {d_to}) =====")
+            print("  " + " ".join(cmd))
+            rc = subprocess.call(cmd, cwd=folder)
+            if rc != 0:
+                print(f"  ! {key}/{label}/{p} exited {rc}")
+                ok = False
     print(f"\n----- merging {key} -----")
     subprocess.call([sys.executable, "run_backtests.py", "--merge-all"], cwd=folder)
     return ok
@@ -156,9 +169,17 @@ def main():
     ap.add_argument("--grids", default="all",
                     help="comma list: kz,sweep,turtle  (default: all)")
     ap.add_argument("--periods", default=",".join(PERIODS),
-                    help="comma list of timeframes (default: M5,M3)")
+                    help="comma list of timeframes (default: M15,M5,M3)")
     ap.add_argument("--mt5dir", default=r"C:\MT5-Tester",
                     help=r"portable MT5 folder (default: C:\MT5-Tester)")
+    ap.add_argument("--years", default="",
+                    help="comma list of whole calendar years to run, e.g. "
+                         "2023,2024,2025,2026 - each becomes its own window and its "
+                         "own results folder. Omit to use --from/--to instead.")
+    ap.add_argument("--from", dest="date_from", default="2026.01.01",
+                    help="start date when --years is not used (default 2026.01.01)")
+    ap.add_argument("--to", dest="date_to", default="2026.09.18",
+                    help="end date when --years is not used (default 2026.09.18)")
     ap.add_argument("--deposit", type=int, default=25000,
                     help="tester starting balance (default 25000, the FundedNext 25k "
                          "account). Risk-%% sizing is a fraction of the balance, so this "
@@ -177,10 +198,17 @@ def main():
         sys.exit(f"unknown grid(s): {', '.join(bad)}   known: {', '.join(GRIDS)}")
     periods = [p.strip().upper() for p in args.periods.split(",") if p.strip()]
 
-    total = sum(count_sets(GRIDS[k]) for k in keys) * len(periods)
+    if args.years:
+        spans = [(y.strip(), f"{y.strip()}.01.01", f"{y.strip()}.12.31")
+                 for y in args.years.split(",") if y.strip()]
+    else:
+        spans = [("", args.date_from, args.date_to)]
+
+    total = sum(count_sets(GRIDS[k]) for k in keys) * len(periods) * len(spans)
     print("=" * 62)
     print(f"  grids    : {', '.join(keys)}")
     print(f"  periods  : {', '.join(periods)}")
+    print(f"  windows  : " + " | ".join(f"{d} - {t}" for _, d, t in spans))
     print(f"  backtests: {total}")
     print(f"  deposit  : {args.deposit:,} USD")
     for k in keys:
@@ -206,7 +234,7 @@ def main():
             if input("\nRun anyway? [y/N] ").strip().lower() not in ("y", "yes"):
                 return
         for k in keys:
-            run_grid(k, GRIDS[k], periods, passthrough, args.mt5dir)
+            run_grid(k, GRIDS[k], periods, spans, passthrough, args.mt5dir, args.deposit)
 
     dest = collect(keys, stamp, args.with_reports)
     if dest:
