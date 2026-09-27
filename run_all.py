@@ -60,6 +60,9 @@ GRIDS = {
     "v7":     dict(folder="turtle-grid", sets="sets_v7",
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_v7"),
+    "ote":    dict(folder="ote-grid", sets="sets_ote",
+                   expert="SniperOTE_Fib_v1.00.ex5",
+                   out="results_ote"),
 }
 #  M15 first, because it is where the evidence landed: it is the only frame
 #  whose drawdown stays inside the funded 6% limit, and the only one the
