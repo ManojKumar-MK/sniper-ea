@@ -153,3 +153,53 @@ results_tu_M3         TU_tgt200                    1096   1491.19  1.03  18.76
 ... 151 more, all of them in all_results.csv
 
 Wrote .\all_results.csv  (191 runs)
+
+======================================================================
+2026-09-27 11:31:46  run_backtests.py --merge-all
+======================================================================
+
+folder                run                        trades       net    PF    DD%
+------------------------------------------------------------------------------
+results_v4_M5         V4_notrail                    193  11254.69  1.61   7.42
+results_v4_M3         V4_atr30                      315   9602.85  1.52   5.52
+results_v4oos_M3      V4_ema_40_80                  511   7455.28  1.21   9.61
+results_v4_M3         V4_sl15                       315   7063.76  1.36   5.61
+results_v2_M5         V2_sl15                       552   6347.43  1.18  10.89
+results_v4_M3         V4_spread15                   311   5961.75  1.32   6.47
+results_v2_M5         V2_exit_notrail               557   5953.21  1.12  20.93
+results_v4oos_M3      V4_ema_50_75                  475   5621.52  1.17   8.09
+results_v4_M3         V4_partials                   652   5519.78  1.30   6.50
+results_v3_M3         V3_ema_50_100                 315   5494.55  1.29   7.80
+results_v4_M3         V4_ctrl_50_100                315   5494.55  1.29   7.80
+results_v4_M3         V4_kz_off                     463   5327.28  1.19   6.95
+results_v2_M5         V2_exit_single3R              553   5262.00  1.15   7.98
+results_v4_M3         V4_nofilter                   388   5223.78  1.23   8.45
+results_v4_M5         V4_sl30                       190   5218.23  1.53   4.34
+results_v2_M5         V2_sl25                       553   5204.29  1.18  16.16
+results_v2_M5         V2_exit_tp2                   552   5039.21  1.24   6.61
+results_v4_M15        V4_notrail                     45   4983.20  2.44   4.82
+results_v3_M3         V3_ema_5_13                   872   4842.47  1.10  15.62
+results_v3_M3         V3_ema_12_26                  651   4313.12  1.11  15.82
+results_v3_M5         V3_ema_50_100                 190   4182.07  1.39   6.90
+results_v4_M5         V4_ctrl_50_100                190   4182.07  1.39   6.90
+results_v4_M5         V4_spread15                   190   4182.07  1.39   6.90
+results_v3_M15        V3_ema_15_40                  174   4147.43  1.48   4.78
+results_v4_M5         V4_ema_55_110                 168   4091.25  1.47   5.85
+results_v3_M3         V3_ema_8_21                   739   4002.40  1.09  14.34
+results_v4_M3         V4_ema_45_90                  328   3864.89  1.19   7.09
+results_v4_M5         V4_partials                   390   3805.83  1.36   6.36
+results_v4_M3         V4_ema_50_200                 208   3792.30  1.32   4.63
+results_v4_M5         V4_atr30                      190   3776.44  1.36   6.34
+results_v4_M5         V4_nofilter                   210   3755.29  1.32   6.90
+results_v2_M5         V2_exit_tp3                   552   3519.05  1.13   7.04
+results_v4oos_M15     V4_notrail                     74   3518.83  1.51   4.77
+results_v3_M15        V3_ema_21_55                  138   3306.74  1.44   6.21
+results_v4_M3         V4_sl30                       315   3302.40  1.19   9.67
+results_v4oos_M3      V4_ema_45_90                  488   3285.13  1.11   8.34
+results_v4oos_M3      V4_notrail                    488   3279.64  1.07  20.85
+results_v4_M5         V4_ema_40_80                  246   3275.69  1.22   5.15
+results_tu_M3         TU_qf_vwap                    600   3269.64  1.10  12.80
+results_v4_M3         V4_fn25k                      289   3218.97  1.28   4.72
+... 289 more, all of them in all_results.csv
+
+Wrote .\all_results.csv  (329 runs)

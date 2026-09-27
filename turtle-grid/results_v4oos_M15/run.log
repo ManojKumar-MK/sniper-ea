@@ -1,0 +1,65 @@
+
+======================================================================
+2026-09-27 10:42:14  run_backtests.py --sets sets_v4 --out results_v4oos_M15 --period M15 --skip-done --deposit 25000 --symbol XAUUSD --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable --from 2025.01.01 --to 2025.12.31
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M15 2025.01.01 - 2025.12.31, model real, deposit 25000
+Sets     : 23
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/23]   running V4_atr30 ... done in 0.7 min, 1 log file(s)
+[2/23]   running V4_caps ... done in 0.7 min, 1 log file(s)
+[3/23]   running V4_ctrl_50_100 ... done in 0.7 min, 1 log file(s)
+[4/23]   running V4_ema_100_200 ... done in 0.7 min, 1 log file(s)
+[5/23]   running V4_ema_30_60 ... done in 0.7 min, 1 log file(s)
+[6/23]   running V4_ema_35_70 ... done in 0.7 min, 1 log file(s)
+[7/23]   running V4_ema_40_80 ... done in 0.7 min, 1 log file(s)
+[8/23]   running V4_ema_45_90 ... done in 0.7 min, 1 log file(s)
+[9/23]   running V4_ema_50_150 ... done in 0.7 min, 1 log file(s)
+[10/23]   running V4_ema_50_200 ... done in 0.7 min, 1 log file(s)
+[11/23]   running V4_ema_50_75 ... done in 0.7 min, 1 log file(s)
+[12/23]   running V4_ema_55_110 ... done in 0.7 min, 1 log file(s)
+[13/23]   running V4_ema_60_120 ... done in 0.7 min, 1 log file(s)
+[14/23]   running V4_ema_70_140 ... done in 0.7 min, 1 log file(s)
+[15/23]   running V4_ema_80_160 ... done in 0.6 min, 1 log file(s)
+[16/23]   running V4_fn25k ... done in 0.7 min, 1 log file(s)
+[17/23]   running V4_kz_off ... done in 0.7 min, 1 log file(s)
+[18/23]   running V4_nofilter ... done in 0.7 min, 1 log file(s)
+[19/23]   running V4_notrail ... done in 0.7 min, 1 log file(s)
+[20/23]   running V4_partials ... done in 0.7 min, 1 log file(s)
+[21/23]   running V4_sl15 ... done in 0.7 min, 1 log file(s)
+[22/23]   running V4_sl30 ... done in 0.7 min, 1 log file(s)
+[23/23]   running V4_spread15 ... done in 0.7 min, 1 log file(s)
+
+23 of 23 runs produced a report in 16 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+V4_notrail                Vwap                       74   3518.83  1.51   4.77  27.0  520.68 -126.96
+V4_ema_50_200             Vwap                       49   2556.21  1.98   2.96  32.6  323.25  -78.58
+V4_sl30                   Vwap                       70   2065.89  1.56   3.34  30.0  274.68  -75.08
+V4_ema_70_140             Vwap                       43   1963.67  1.94   2.41  39.5  239.03  -79.99
+V4_ema_80_160             Vwap                       43   1827.84  1.80   2.43  34.9  273.87  -80.67
+V4_atr30                  Vwap                       69   1703.31  1.55   4.54  23.2  301.56  -58.23
+V4_ema_60_120             Vwap                       52   1525.92  1.54   3.91  34.6  242.90  -82.96
+V4_nofilter               none                       71   1438.24  1.45   4.96  23.9  274.67  -59.16
+V4_ema_30_60              Vwap                      139   1351.74  1.17   6.08  23.7  283.18  -74.71
+V4_ema_100_200            Vwap                       29   1349.80  1.92   1.95  37.9  256.71  -80.99
+V4_ctrl_50_100            Vwap                       69   1329.45  1.41   4.96  23.2  284.16  -60.04
+V4_spread15               Vwap                       69   1329.45  1.41   4.96  23.2  284.16  -60.04
+V4_partials               Vwap                      143   1322.21  1.41   4.34  62.9   50.36  -59.91
+V4_fn25k                  Vwap                       67    896.07  1.41   3.43  23.9  192.44  -42.34
+V4_caps                   Vwap                       73    851.66  1.27   3.12  20.6  267.27  -53.81
+V4_kz_off                 Vwap                      169    194.36  1.02   6.34  27.8  201.70  -75.47
+V4_ema_50_150             Vwap                       60     84.51  1.02   4.19  30.0  211.10  -87.78
+V4_ema_50_75              Vwap                       88   -303.55  0.95   4.76  26.1  242.01  -89.61
+V4_ema_55_110             Vwap                       60   -350.18  0.91   6.34  25.0  226.63  -82.67
+V4_ema_45_90              Vwap                       85   -685.74  0.86   4.80  23.5  211.05  -74.79
+V4_sl15                   Vwap                       69   -920.93  0.74   6.53  17.4  215.63  -60.78
+V4_ema_40_80              Vwap                       96  -1917.61  0.70   7.95  18.8  244.42  -80.41
+V4_ema_35_70              Vwap                      127  -2931.86  0.65  12.75  18.1  233.93  -79.32
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v4oos_M15\comparison.csv
