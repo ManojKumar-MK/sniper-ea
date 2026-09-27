@@ -1,0 +1,65 @@
+
+======================================================================
+2026-09-27 07:40:10  run_backtests.py --sets sets_v3 --out results_v3_M5 --period M5 --skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M5 2026.01.01 - 2026.09.18, model real, deposit 25000
+Sets     : 23
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/23]   running V3_atr21 ... done in 1.4 min, 1 log file(s)
+[2/23]   running V3_atr30 ... done in 1.4 min, 1 log file(s)
+[3/23]   running V3_caps_only ... done in 1.2 min, 1 log file(s)
+[4/23]   running V3_cool20 ... done in 1.3 min, 1 log file(s)
+[5/23]   running V3_cool40 ... done in 1.3 min, 1 log file(s)
+[6/23]   running V3_ctrl ... done in 1.3 min, 1 log file(s)
+[7/23]   running V3_ema_10_30 ... done in 1.3 min, 1 log file(s)
+[8/23]   running V3_ema_12_26 ... done in 1.3 min, 1 log file(s)
+[9/23]   running V3_ema_15_40 ... done in 1.3 min, 1 log file(s)
+[10/23]   running V3_ema_20_50 ... done in 1.3 min, 1 log file(s)
+[11/23]   running V3_ema_21_55 ... done in 1.3 min, 1 log file(s)
+[12/23]   running V3_ema_34_89 ... done in 1.3 min, 1 log file(s)
+[13/23]   running V3_ema_50_100 ... done in 1.3 min, 1 log file(s)
+[14/23]   running V3_ema_5_13 ... done in 1.4 min, 1 log file(s)
+[15/23]   running V3_ema_8_21 ... done in 1.4 min, 1 log file(s)
+[16/23]   running V3_kz_off ... done in 1.4 min, 1 log file(s)
+[17/23]   running V3_slow_caps ... done in 1.2 min, 1 log file(s)
+[18/23]   running V3_slow_tight ... done in 1.3 min, 1 log file(s)
+[19/23]   running V3_slow_tight_caps ... done in 1.3 min, 1 log file(s)
+[20/23]   running V3_spread15 ... done in 1.4 min, 1 log file(s)
+[21/23]   running V3_spread20 ... done in 1.4 min, 1 log file(s)
+[22/23]   running V3_spread25 ... done in 1.4 min, 1 log file(s)
+[23/23]   running V3_spread30 ... done in 1.4 min, 1 log file(s)
+
+23 of 23 runs produced a report in 31 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+V3_ema_50_100             Vwap                      190   4182.07  1.39   6.90  30.5  257.38  -80.79
+V3_atr21                  Vwap                      554   2427.96  1.08  11.29  24.0  253.78  -73.77
+V3_kz_off                 Vwap                      697   1861.45  1.05  20.94  24.1  232.28  -69.67
+V3_ema_8_21               Vwap                      571   1751.45  1.06  15.07  24.0  240.14  -71.16
+V3_atr30                  Vwap                      553   1706.69  1.06  11.74  23.5  248.89  -71.83
+V3_ema_5_13               Vwap                      720   1661.48  1.04  10.41  22.9  235.51  -66.42
+V3_spread20               Vwap                      552   1341.26  1.04  14.13  23.9  243.41  -72.70
+V3_spread25               Vwap                      552   1341.26  1.04  14.13  23.9  243.41  -72.70
+V3_spread30               Vwap                      552   1341.26  1.04  14.13  23.9  243.41  -72.70
+V3_spread15               Vwap                      552   1295.68  1.04  13.97  23.9  243.16  -72.73
+V3_ctrl                   Vwap                      553   1193.73  1.04  14.91  23.9  242.48  -72.59
+V3_ema_34_89              Vwap                      251    952.78  1.06   5.51  28.7  221.21  -83.06
+V3_caps_only              Vwap                      237    800.80  1.07   6.57  22.8  234.63  -64.22
+V3_ema_21_55              Vwap                      354     93.74  1.00  15.23  26.0  222.60  -77.26
+V3_slow_caps              Vwap                      190  -1071.59  0.90   9.55  22.1  220.85  -69.36
+V3_slow_tight_caps        Vwap                      190  -1071.59  0.90   9.55  22.1  220.85  -69.36
+V3_slow_tight             Vwap                      358  -1505.86  0.92  16.88  22.6  220.14  -69.30
+V3_ema_20_50              Vwap                      360  -1899.65  0.90  17.70  22.5  216.73  -69.22
+V3_ema_15_40              Vwap                      399  -2046.83  0.91  16.01  23.6  218.55  -73.53
+V3_cool40                 Vwap,Cooldown             291  -2606.18  0.84  14.27  23.4  204.40  -73.45
+V3_ema_10_30              Vwap                      495  -3299.05  0.87  24.52  21.2  210.05  -64.51
+V3_ema_12_26              Vwap                      463  -3475.11  0.86  24.33  21.2  217.88  -67.52
+V3_cool20                 Vwap,Cooldown             341  -4266.59  0.77  18.25  22.0  193.31  -70.02
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v3_M5\comparison.csv
