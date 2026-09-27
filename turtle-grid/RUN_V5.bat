@@ -1,7 +1,7 @@
 @echo off
 setlocal
 REM ===================================================================
-REM  v5 - validation, not search. 7 sets x 3 timeframes x 2 new years.
+REM  v5 - validation, plus the funded question. 11 sets x 3 TF x 4 years.
 REM
 REM  The four configs that were net-positive in BOTH 2026 and 2025, put
 REM  in front of 2024 and 2023 - years none of them were selected on.
@@ -27,7 +27,7 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
   pause & exit /b 1
 )
 
-for %%Y in (2024 2023) do (
+for %%Y in (2026 2025 2024 2023) do (
   for %%P in (M15 M5 M3) do (
     echo.
     echo ===== %%Y  %%P =====
@@ -40,7 +40,12 @@ echo.
 python run_backtests.py --merge-all
 echo.
 echo ===== done =====
-echo   Four years now: 2026 and 2025 chose these, 2024 and 2023 did not.
+echo   Four years: 2026 and 2025 chose these, 2024 and 2023 did not.
 echo   A config positive in all four is worth demo trading. One that only
 echo   works in the two it was picked from was never real.
+echo.
+echo   For the V5_fn_* sets, read M15 only. V4_notrail's own logs show the
+echo   M5 runs blowing the $750 daily limit 9 times in 2026 and 12 times in
+echo   2025 - M5 and M3 are not fundable at any risk that still reaches the
+echo   $2500 target.
 pause
