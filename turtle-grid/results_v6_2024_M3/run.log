@@ -1,0 +1,47 @@
+
+======================================================================
+2026-09-27 16:09:49  run_backtests.py --sets sets_v6 --out results_v6_2024_M3 --period M3 --from 2024.01.01 --to 2024.12.31 --skip-done --deposit 25000 --symbol XAUUSD --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M3 2024.01.01 - 2024.12.31, model real, deposit 25000
+Sets     : 14
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/14]   running KZFN_all ... done in 0.6 min, 1 log file(s)
+[2/14]   running KZFN_asia ... done in 0.6 min, 1 log file(s)
+[3/14]   running KZFN_asia_london ... done in 0.6 min, 1 log file(s)
+[4/14]   running KZFN_asia_ny ... done in 0.6 min, 1 log file(s)
+[5/14]   running KZFN_london ... done in 0.6 min, 1 log file(s)
+[6/14]   running KZFN_london_ny ... done in 0.6 min, 1 log file(s)
+[7/14]   running KZFN_ny ... done in 0.6 min, 1 log file(s)
+[8/14]   running KZ_all ... done in 0.8 min, 1 log file(s)
+[9/14]   running KZ_asia ... done in 0.7 min, 1 log file(s)
+[10/14]   running KZ_asia_london ... done in 0.7 min, 1 log file(s)
+[11/14]   running KZ_asia_ny ... done in 0.7 min, 1 log file(s)
+[12/14]   running KZ_london ... done in 0.6 min, 1 log file(s)
+[13/14]   running KZ_london_ny ... done in 0.7 min, 1 log file(s)
+[14/14]   running KZ_ny ... done in 0.7 min, 1 log file(s)
+
+14 of 14 runs produced a report in 9 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+KZ_ny                     Vwap                      123    397.35  1.03  11.19  21.1  461.31 -117.76
+KZ_london_ny              Vwap                      268   -509.04  0.98  15.12  19.4  484.53 -116.92
+KZFN_all                  Vwap                       50  -1212.21  0.78  11.71  18.0  469.17 -128.83
+KZFN_asia_ny              Vwap                       35  -1227.10  0.68   8.33  14.3  527.83 -125.51
+KZFN_ny                   Vwap                       20  -1236.55  0.40   5.79  15.0  272.87 -118.67
+KZFN_asia                 Vwap                       32  -1237.40  0.67   9.07  12.5  621.25 -128.30
+KZFN_asia_london          Vwap                       34  -1240.09  0.66   7.61  11.8  612.52 -119.26
+KZFN_london_ny            Vwap                       30  -1285.51  0.54   7.76  23.3  215.65 -118.91
+KZFN_london               Vwap                       16  -1320.48  0.31   5.28   6.2  605.88 -125.33
+KZ_london                 Vwap                      118  -2264.41  0.80  12.96  16.1  479.35 -112.62
+KZ_asia_ny                Vwap                      335  -4442.53  0.86  26.29  17.6  447.69 -109.37
+KZ_asia                   Vwap                      207  -5015.59  0.76  23.74  14.5  523.41 -114.08
+KZ_all                    Vwap                      518  -6735.57  0.85  35.79  16.8  446.96 -103.63
+KZ_asia_london            Vwap                      359  -9786.95  0.68  43.80  13.1  435.30  -94.76
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v6_2024_M3\comparison.csv
