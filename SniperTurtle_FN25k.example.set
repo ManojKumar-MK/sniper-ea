@@ -1,52 +1,54 @@
 ; SniperTurtle_KZ_v1.00  -  FundedNext Stellar 1-Step $25K
 ; ATTACH TO XAUUSD  M15  -  NOT M5, NOT M3.
 ;
-; ================= WHY THIS ONE =================
-; Four years on M15, funded guards on, 0.5% risk. Firm limits are
-; daily -750, max -1500 static, target +2500.
+; KILLZONES: ASIA + NEW YORK.  LONDON IS OFF.
+;   InpKzAsia=true  InpKzLondon=FALSE  InpKzNY=true
 ;
-;         peak    trough   worst day   outcome
-;   2023  + 721    -1192     -258      survived, no target
-;   2024  + 890    -1132     -281      survived, no target
-;   2025  +3194     -110     -276      PASSED
-;   2026  +5123     -235     -257      PASSED
+; ================= WHY LONDON IS OFF =================
+; Traded ALONE, London is positive in 1 year of 4 - on all three timeframes:
+;     M15 total -1113      M5 total -3821      M3 total -5367
+; Nothing else in this project has been that consistent across frames, and
+; unlike every "best of N" result here it is a NEGATIVE finding, so it cannot
+; be a lucky draw - it was not what anyone was looking for.
 ;
-; It NEVER lost the account in four years - no daily breach, no max-loss
-; breach - and passed in two. 2025 and 2026 are the years the config was
-; selected on, so treat those two as flattered; 2023 and 2024 are honest,
-; and in both it simply stalled rather than blowing up.
+; Dropping it is the only combination positive in 3 of 4 years on EVERY
+; timeframe (no prop guards, so the guards cannot be flattering it):
+;     asia+NY   M15 +6603   M5 +2996   M3 +6670     3/4 each
+;     all three M15 +6940   M5 +7737   M3 -2522     3/4, 2/4, 2/4
+; All three killzones beats asia+NY on M5 and then goes NEGATIVE on M3,
+; because it is carrying London's losses.
 ;
-; That shape is what makes it usable HERE specifically: this plan has a
-; minimum of 2 trading days and NO maximum. A config that never breaches and
-; reaches target only in good years costs you time, not the account. A faster
-; config that breaches in a bad year costs you the fee.
+; ================= THE CHALLENGE, YEAR BY YEAR =================
+; M15, these guards, target +2500 / daily -750 / max -1500 static:
 ;
-; 0.35% risk was also tested and passed only ONE year of four - lower risk
-; does not buy safety here, it just slows you below the target. Both risk
-; levels survived all four years; only 0.5% reached +2500 more than once.
+;              2023     2024     2025     2026
+;   asia+NY   +1671    + 477     PASS     PASS     2 of 4
+;   all three + 721    + 890     PASS     PASS     2 of 4
+;
+; Same pass rate, and closer to target in both years it did not pass.
+; NO BREACH in any year, in any combination - the guards held throughout.
 ;
 ; ================= WHAT IT IS =================
-;   EMA 50/100/200, and the TRAIL OFF. Neither works without the other:
-;   50/100 with the trail on made -323 across 2025, with it off +4889. The
-;   slow signal produces a payoff near 22, so winners must be allowed to run.
-;   Quality filter ON with VWAP as the only condition.
+;   EMA 50/100/200, TRAIL OFF. Neither works without the other: 50/100 with
+;   the trail on made -323 across 2025, with it off +4889. The slow signal
+;   produces a payoff near 22, so winners have to be allowed to run.
+;   Quality filter ON with VWAP the only condition - ADX and EMA-separation
+;   were the two WORST filters tested and both ship on by default.
 ;   Killzone window on, 60-minute lead. No server session filter.
 ;   Guards: daily -600 (flatten), 3 losing trades, static DD, halt at -1200.
 ;
-; InpUseDayLossCap is OFF: the soft 250 cap NEVER fired in 132 runs, so it
-; only adds a way to stop a day early for no measured benefit.
-;
 ; ================= BEFORE YOU START =================
 ;   * Fill InpTgToken / InpTgChatId on the machine. Never in the repo.
-;   * Verify InpServerGmtOffset against the broker. The killzone window is
-;     cut from a NY clock derived from it and is the only time gate here.
+;   * Verify InpServerGmtOffset against the broker. The killzone window is cut
+;     from a NY clock derived from it, and is the only time gate here.
 ;   * Demo it first. Every number above is a backtest.
 ;
 ; ================= THE HONEST ODDS =================
-; Passed 2 of the last 4 years. In the other 2 it drifted sideways without
-; breaching. With no time limit that is a waiting game rather than a loss -
-; but it is not a 4-in-4 strategy, and the two it passed are the two it was
-; built on. Size your expectations to that, not to the 2026 column.
+; 2 of the last 4 years reached +2500; the other 2 drifted without breaching.
+; With no time limit on this plan that costs patience rather than the account.
+; But 2025 and 2026 - the two it passes - are the two years this whole line of
+; configs was selected on. London's failure is the robust finding here.
+; "Passes 2 of 4" is not yet one.
 InpEmaFast=50
 InpEmaMid=100
 InpEmaTrend=200
@@ -150,7 +152,7 @@ InpUseKzWindow=true
 InpKzLeadMin=60
 InpKzAsia=true
 InpKzAsiaSess=1900-2400
-InpKzLondon=true
+InpKzLondon=false
 InpKzLondonSess=0200-0500
 InpKzNY=true
 InpKzNYSess=0700-1000

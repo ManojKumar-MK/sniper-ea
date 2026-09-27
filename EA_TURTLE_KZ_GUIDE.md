@@ -184,6 +184,27 @@ stated in the `.set` header too. To size by risk, set **both** `InpUseSessionLot
 
 ---
 
+## London is off — the one robust finding
+
+Traded **alone**, the London killzone is positive in **1 year of 4, on all three
+timeframes**: M15 −1113, M5 −3821, M3 −5367 over 2023–2026.
+
+Nothing else measured in this project has been that consistent across frames. It is also
+a *negative* result, which is why it carries more weight than the rest: every positive
+finding here is the best of N runs and can be a lucky draw, but nobody was looking for
+London to fail.
+
+Dropping it leaves Asia + New York, the only combination positive in 3 of 4 years on
+**every** timeframe:
+
+| | M15 | M5 | M3 |
+|---|---|---|---|
+| Asia + NY | +6603 (3/4) | +2996 (3/4) | **+6670** (3/4) |
+| all three | +6940 (3/4) | +7737 (2/4) | **−2522** (2/4) |
+
+All three beats Asia+NY on M5 and then goes negative on M3, because it is carrying
+London's losses.
+
 ## The FundedNext 25k preset
 
 [`SniperTurtle_FundedNext_25k.example.set`](SniperTurtle_FundedNext_25k.example.set) —
