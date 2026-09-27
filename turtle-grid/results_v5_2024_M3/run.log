@@ -1,0 +1,41 @@
+
+======================================================================
+2026-09-27 13:15:40  run_backtests.py --sets sets_v5 --out results_v5_2024_M3 --period M3 --from 2024.01.01 --to 2024.12.31 --skip-done --deposit 25000 --symbol XAUUSD --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M3 2024.01.01 - 2024.12.31, model real, deposit 25000
+Sets     : 11
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/11]   running V5_ctrl_trail_on ... done in 0.7 min, 1 log file(s)
+[2/11]   running V5_ema_30_60 ... done in 0.8 min, 1 log file(s)
+[3/11]   running V5_ema_40_80 ... done in 0.7 min, 1 log file(s)
+[4/11]   running V5_ema_45_90 ... done in 0.7 min, 1 log file(s)
+[5/11]   running V5_fn_r025 ... done in 0.6 min, 1 log file(s)
+[6/11]   running V5_fn_r035 ... done in 0.6 min, 1 log file(s)
+[7/11]   running V5_fn_r035_nosoft ... done in 0.6 min, 1 log file(s)
+[8/11]   running V5_fn_r050 ... done in 0.6 min, 1 log file(s)
+[9/11]   running V5_notrail ... done in 0.8 min, 1 log file(s)
+[10/11]   running V5_notrail_40_80 ... done in 0.7 min, 1 log file(s)
+[11/11]   running V5_notrail_45_90 ... done in 0.7 min, 1 log file(s)
+
+11 of 11 runs produced a report in 8 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+V5_ema_30_60              Vwap                      672   4129.23  1.09  13.86  28.0  265.11  -90.94
+V5_fn_r035_nosoft         Vwap                       62  -1204.20  0.74  10.86  19.4  283.39  -89.43
+V5_fn_r050                Vwap                       50  -1212.21  0.78  11.71  18.0  469.17 -128.83
+V5_fn_r035                Vwap                       63  -1219.05  0.74  10.92  19.1  283.39  -87.91
+V5_fn_r025                Vwap                       67  -1223.74  0.66   9.30  16.4  219.91  -63.10
+V5_ctrl_trail_on          Vwap                      509  -2241.64  0.93  21.10  25.1  245.42  -85.54
+V5_ema_40_80              Vwap                      563  -2359.16  0.94  23.44  25.9  252.54  -90.98
+V5_notrail_40_80          Vwap                      565  -3655.45  0.93  25.30  18.8  486.92 -117.76
+V5_ema_45_90              Vwap                      558  -5192.87  0.86  25.53  23.8  234.26  -82.84
+V5_notrail_45_90          Vwap                      571  -6233.48  0.88  32.58  18.6  416.00 -105.89
+V5_notrail                Vwap                      518  -6735.57  0.85  35.79  16.8  446.96 -103.63
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v5_2024_M3\comparison.csv
