@@ -46,4 +46,5 @@ SniperEA_Log_*.jsonl
 !turtle-grid/sets_v4/*.set
 !turtle-grid/sets_v5/*.set
 !turtle-grid/sets_v6/*.set
+!turtle-grid/sets_v7/*.set
 !turtle-grid/*.set
