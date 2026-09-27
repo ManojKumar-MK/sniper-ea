@@ -1,7 +1,12 @@
 @echo off
 setlocal
 REM ===================================================================
-REM  v6 - every killzone combination. 14 sets x M15/M5 x 4 years.
+REM  v6 - every killzone combination.
+REM       14 sets x M15/M5/M3 x 4 years = 168 backtests.
+REM
+REM  LONG RUN. M3 across four years is a great many ticks - budget hours,
+REM  not minutes. --skip-done makes it resumable: if it is interrupted,
+REM  rerun the same file and it carries on from where it stopped.
 REM
 REM  Seven combinations (all-off would trade nothing), on two bases:
 REM
@@ -29,7 +34,7 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
 )
 
 for %%Y in (2026 2025 2024 2023) do (
-  for %%P in (M15 M5) do (
+  for %%P in (M15 M5 M3) do (
     echo.
     echo ===== %%Y  %%P =====
     python run_backtests.py --sets sets_v6 --out results_v6_%%Y_%%P --period %%P ^
@@ -41,7 +46,9 @@ echo.
 python run_backtests.py --merge-all
 echo.
 echo ===== done =====
-echo   M15 is the decided timeframe; M5 is only there as a robustness check.
+echo   M15 is the decided timeframe. M5 and M3 are the robustness check -
+echo   a killzone that works on one frame and fails on the others is a
+echo   property of that frame, not of the session.
 echo   A killzone that only works in 2025 and 2026 is a killzone that was
 echo   selected on 2025 and 2026 - weight 2023 and 2024 more heavily.
 pause

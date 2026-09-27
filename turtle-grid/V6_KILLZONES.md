@@ -1,6 +1,6 @@
 # v6 — every killzone combination
 
-14 sets × M15/M5 × 4 years = **112 runs**. `RUN_V6.bat`, or `python run_all.py --grids v6`.
+14 sets × M15/M5/M3 × 4 years = **168 runs**. `RUN_V6.bat`, or `python run_all.py --grids v6`.
 
 ## The seven combinations
 
@@ -53,11 +53,12 @@ the two older ones more weight than their row count suggests.
 
 ## The trap in this particular grid
 
-Seven combinations × two bases × four years × two timeframes is **112 chances for
-something to look good**. The best of 112 will always look convincing.
+Seven combinations × two bases × four years × three timeframes is **168 chances for
+something to look good**. The best of 168 will always look convincing.
 
 A finding is only worth acting on here if the **same** combination wins in most of the
-four years, in both bases. One combination winning one year is noise with a name.
+four years, in both bases, on more than one timeframe. One combination winning one year
+on one frame is noise with a name.
 
 ## Expected trade counts
 
