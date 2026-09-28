@@ -1,0 +1,275 @@
+
+======================================================================
+2026-09-27 23:54:45  run_backtests.py --sets sets_v7 --out results_v7_2023_M5 --period M5 --from 2023.01.01 --to 2023.12.31 --skip-done --deposit 25000 --symbol XAUUSD --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M5 2023.01.01 - 2023.12.31, model real, deposit 25000
+Sets     : 128
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/128]   running F_000_none ... done in 0.4 min, 1 log file(s)
+[2/128]   running F_001_T ... done in 0.4 min, 1 log file(s)
+[3/128]   running F_002_S ... done in 0.4 min, 1 log file(s)
+[4/128]   running F_003_TS ... done in 0.4 min, 1 log file(s)
+[5/128]   running F_004_E ... done in 0.4 min, 1 log file(s)
+[6/128]   running F_005_TE ... done in 0.4 min, 1 log file(s)
+[7/128]   running F_006_SE ... done in 0.4 min, 1 log file(s)
+[8/128]   running F_007_TSE ... done in 0.4 min, 1 log file(s)
+[9/128]   running F_008_V ... done in 0.4 min, 1 log file(s)
+[10/128]   running F_009_TV ... done in 0.4 min, 1 log file(s)
+[11/128]   running F_010_SV ... done in 0.4 min, 1 log file(s)
+[12/128]   running F_011_TSV ... done in 0.4 min, 1 log file(s)
+[13/128]   running F_012_EV ... done in 0.4 min, 1 log file(s)
+[14/128]   running F_013_TEV ... done in 0.4 min, 1 log file(s)
+[15/128]   running F_014_SEV ... done in 0.4 min, 1 log file(s)
+[16/128]   running F_015_TSEV ... done in 0.4 min, 1 log file(s)
+[17/128]   running F_016_B ... done in 0.4 min, 1 log file(s)
+[18/128]   running F_017_TB ... done in 0.4 min, 1 log file(s)
+[19/128]   running F_018_SB ... done in 0.4 min, 1 log file(s)
+[20/128]   running F_019_TSB ... done in 0.4 min, 1 log file(s)
+[21/128]   running F_020_EB ... done in 0.4 min, 1 log file(s)
+[22/128]   running F_021_TEB ... done in 0.4 min, 1 log file(s)
+[23/128]   running F_022_SEB ... done in 0.4 min, 1 log file(s)
+[24/128]   running F_023_TSEB ... done in 0.4 min, 1 log file(s)
+[25/128]   running F_024_VB ... done in 0.4 min, 1 log file(s)
+[26/128]   running F_025_TVB ... done in 0.4 min, 1 log file(s)
+[27/128]   running F_026_SVB ... done in 0.4 min, 1 log file(s)
+[28/128]   running F_027_TSVB ... done in 0.4 min, 1 log file(s)
+[29/128]   running F_028_EVB ... done in 0.4 min, 1 log file(s)
+[30/128]   running F_029_TEVB ... done in 0.4 min, 1 log file(s)
+[31/128]   running F_030_SEVB ... done in 0.4 min, 1 log file(s)
+[32/128]   running F_031_TSEVB ... done in 0.4 min, 1 log file(s)
+[33/128]   running F_032_L ... done in 0.4 min, 1 log file(s)
+[34/128]   running F_033_TL ... done in 0.4 min, 1 log file(s)
+[35/128]   running F_034_SL ... done in 0.4 min, 1 log file(s)
+[36/128]   running F_035_TSL ... done in 0.4 min, 1 log file(s)
+[37/128]   running F_036_EL ... done in 0.4 min, 1 log file(s)
+[38/128]   running F_037_TEL ... done in 0.4 min, 1 log file(s)
+[39/128]   running F_038_SEL ... done in 0.4 min, 1 log file(s)
+[40/128]   running F_039_TSEL ... done in 0.4 min, 1 log file(s)
+[41/128]   running F_040_VL ... done in 0.4 min, 1 log file(s)
+[42/128]   running F_041_TVL ... done in 0.4 min, 1 log file(s)
+[43/128]   running F_042_SVL ... done in 0.4 min, 1 log file(s)
+[44/128]   running F_043_TSVL ... done in 0.4 min, 1 log file(s)
+[45/128]   running F_044_EVL ... done in 0.4 min, 1 log file(s)
+[46/128]   running F_045_TEVL ... done in 0.4 min, 1 log file(s)
+[47/128]   running F_046_SEVL ... done in 0.4 min, 1 log file(s)
+[48/128]   running F_047_TSEVL ... done in 0.4 min, 1 log file(s)
+[49/128]   running F_048_BL ... done in 0.4 min, 1 log file(s)
+[50/128]   running F_049_TBL ... done in 0.4 min, 1 log file(s)
+[51/128]   running F_050_SBL ... done in 0.4 min, 1 log file(s)
+[52/128]   running F_051_TSBL ... done in 0.4 min, 1 log file(s)
+[53/128]   running F_052_EBL ... done in 0.5 min, 1 log file(s)
+[54/128]   running F_053_TEBL ... done in 0.4 min, 1 log file(s)
+[55/128]   running F_054_SEBL ... done in 0.4 min, 1 log file(s)
+[56/128]   running F_055_TSEBL ... done in 0.5 min, 1 log file(s)
+[57/128]   running F_056_VBL ... done in 0.5 min, 1 log file(s)
+[58/128]   running F_057_TVBL ... done in 0.4 min, 1 log file(s)
+[59/128]   running F_058_SVBL ... done in 0.4 min, 1 log file(s)
+[60/128]   running F_059_TSVBL ... done in 0.4 min, 1 log file(s)
+[61/128]   running F_060_EVBL ... done in 0.4 min, 1 log file(s)
+[62/128]   running F_061_TEVBL ... done in 0.4 min, 1 log file(s)
+[63/128]   running F_062_SEVBL ... done in 0.4 min, 1 log file(s)
+[64/128]   running F_063_TSEVBL ... done in 0.4 min, 1 log file(s)
+[65/128]   running F_064_C ... done in 0.4 min, 1 log file(s)
+[66/128]   running F_065_TC ... done in 0.4 min, 1 log file(s)
+[67/128]   running F_066_SC ... done in 0.4 min, 1 log file(s)
+[68/128]   running F_067_TSC ... done in 0.4 min, 1 log file(s)
+[69/128]   running F_068_EC ... done in 0.4 min, 1 log file(s)
+[70/128]   running F_069_TEC ... done in 0.4 min, 1 log file(s)
+[71/128]   running F_070_SEC ... done in 0.4 min, 1 log file(s)
+[72/128]   running F_071_TSEC ... done in 0.4 min, 1 log file(s)
+[73/128]   running F_072_VC ... done in 0.4 min, 1 log file(s)
+[74/128]   running F_073_TVC ... done in 0.4 min, 1 log file(s)
+[75/128]   running F_074_SVC ... done in 0.4 min, 1 log file(s)
+[76/128]   running F_075_TSVC ... done in 0.4 min, 1 log file(s)
+[77/128]   running F_076_EVC ... done in 0.4 min, 1 log file(s)
+[78/128]   running F_077_TEVC ... done in 0.4 min, 1 log file(s)
+[79/128]   running F_078_SEVC ... done in 0.4 min, 1 log file(s)
+[80/128]   running F_079_TSEVC ... done in 0.4 min, 1 log file(s)
+[81/128]   running F_080_BC ... done in 0.4 min, 1 log file(s)
+[82/128]   running F_081_TBC ... done in 0.4 min, 1 log file(s)
+[83/128]   running F_082_SBC ... done in 0.4 min, 1 log file(s)
+[84/128]   running F_083_TSBC ... done in 0.4 min, 1 log file(s)
+[85/128]   running F_084_EBC ... done in 0.4 min, 1 log file(s)
+[86/128]   running F_085_TEBC ... done in 0.4 min, 1 log file(s)
+[87/128]   running F_086_SEBC ... done in 0.4 min, 1 log file(s)
+[88/128]   running F_087_TSEBC ... done in 0.4 min, 1 log file(s)
+[89/128]   running F_088_VBC ... done in 0.4 min, 1 log file(s)
+[90/128]   running F_089_TVBC ... done in 0.4 min, 1 log file(s)
+[91/128]   running F_090_SVBC ... done in 0.4 min, 1 log file(s)
+[92/128]   running F_091_TSVBC ... done in 0.4 min, 1 log file(s)
+[93/128]   running F_092_EVBC ... done in 0.4 min, 1 log file(s)
+[94/128]   running F_093_TEVBC ... done in 0.4 min, 1 log file(s)
+[95/128]   running F_094_SEVBC ... done in 0.4 min, 1 log file(s)
+[96/128]   running F_095_TSEVBC ... done in 0.4 min, 1 log file(s)
+[97/128]   running F_096_LC ... done in 0.4 min, 1 log file(s)
+[98/128]   running F_097_TLC ... done in 0.4 min, 1 log file(s)
+[99/128]   running F_098_SLC ... done in 0.4 min, 1 log file(s)
+[100/128]   running F_099_TSLC ... done in 0.4 min, 1 log file(s)
+[101/128]   running F_100_ELC ... done in 0.4 min, 1 log file(s)
+[102/128]   running F_101_TELC ... done in 0.4 min, 1 log file(s)
+[103/128]   running F_102_SELC ... done in 0.4 min, 1 log file(s)
+[104/128]   running F_103_TSELC ... done in 0.4 min, 1 log file(s)
+[105/128]   running F_104_VLC ... done in 0.4 min, 1 log file(s)
+[106/128]   running F_105_TVLC ... done in 0.4 min, 1 log file(s)
+[107/128]   running F_106_SVLC ... done in 0.4 min, 1 log file(s)
+[108/128]   running F_107_TSVLC ... done in 0.4 min, 1 log file(s)
+[109/128]   running F_108_EVLC ... done in 0.4 min, 1 log file(s)
+[110/128]   running F_109_TEVLC ... done in 0.4 min, 1 log file(s)
+[111/128]   running F_110_SEVLC ... done in 0.4 min, 1 log file(s)
+[112/128]   running F_111_TSEVLC ... done in 0.4 min, 1 log file(s)
+[113/128]   running F_112_BLC ... done in 0.4 min, 1 log file(s)
+[114/128]   running F_113_TBLC ... done in 0.4 min, 1 log file(s)
+[115/128]   running F_114_SBLC ... done in 0.4 min, 1 log file(s)
+[116/128]   running F_115_TSBLC ... done in 0.4 min, 1 log file(s)
+[117/128]   running F_116_EBLC ... done in 0.4 min, 1 log file(s)
+[118/128]   running F_117_TEBLC ... done in 0.4 min, 1 log file(s)
+[119/128]   running F_118_SEBLC ... done in 0.4 min, 1 log file(s)
+[120/128]   running F_119_TSEBLC ... done in 0.4 min, 1 log file(s)
+[121/128]   running F_120_VBLC ... done in 0.4 min, 1 log file(s)
+[122/128]   running F_121_TVBLC ... done in 0.4 min, 1 log file(s)
+[123/128]   running F_122_SVBLC ... done in 0.4 min, 1 log file(s)
+[124/128]   running F_123_TSVBLC ... done in 0.4 min, 1 log file(s)
+[125/128]   running F_124_EVBLC ... done in 0.4 min, 1 log file(s)
+[126/128]   running F_125_TEVBLC ... done in 0.4 min, 1 log file(s)
+[127/128]   running F_126_SEVBLC ... done in 0.4 min, 1 log file(s)
+[128/128]   running F_127_TSEVBLC ... done in 0.4 min, 1 log file(s)
+
+128 of 128 runs produced a report in 53 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+F_065_TC                  Trend,Cooldown            150   4528.43  1.28   6.47  26.0  533.95 -143.48
+F_081_TBC                 Trend,Bias,Cooldown       147   4522.90  1.29   6.45  26.5  519.25 -142.32
+F_001_T                   Trend                     151   3986.00  1.24   6.48  23.8  571.66 -141.04
+F_017_TB                  Trend,Bias                148   3979.91  1.25   6.47  25.0  540.92 -141.20
+F_073_TVC                 Trend,Vwap,Cooldown       146   3662.32  1.23   7.62  26.0  512.09 -143.05
+F_085_TEBC                Trend,Ema50,Bias,Coold    126   3601.62  1.26   6.66  26.2  524.02 -143.86
+F_021_TEB                 Trend,Ema50,Bias          129   3430.35  1.25   6.64  25.6  522.04 -140.45
+F_069_TEC                 Trend,Ema50,Cooldown      131   3189.69  1.23   6.56  25.9  504.26 -140.62
+F_009_TV                  Trend,Vwap                149   3141.73  1.20   7.55  24.8  519.02 -140.28
+F_089_TVBC                Trend,Vwap,Bias,Cooldo    144   3077.16  1.20   7.57  25.0  512.78 -139.33
+F_005_TE                  Trend,Ema50               134   3038.95  1.22   6.64  25.4  502.96 -137.45
+F_025_TVB                 Trend,Vwap,Bias           148   2595.22  1.17   7.53  24.3  507.70 -136.99
+F_066_SC                  Struct,Cooldown           113   2394.74  1.20   6.67  23.0  548.83 -133.21
+F_002_S                   Struct                    122   2390.80  1.19   6.02  22.1  554.91 -129.23
+F_077_TEVC                Trend,Ema50,Vwap,Coold    125   2260.00  1.17   8.32  24.8  503.63 -138.95
+F_093_TEVBC               Trend,Ema50,Vwap,Bias,    125   2260.00  1.17   8.32  24.8  503.63 -138.95
+F_013_TEV                 Trend,Ema50,Vwap          128   2073.84  1.15   8.33  24.2  501.28 -135.80
+F_029_TEVB                Trend,Ema50,Vwap,Bias     128   2073.84  1.15   8.33  24.2  501.28 -135.80
+F_019_TSB                 Trend,Struct,Bias          86   1653.50  1.19   5.08  24.4  494.40 -130.96
+F_003_TS                  Trend,Struct               86   1529.94  1.17   5.08  24.4  492.40 -132.21
+F_074_SVC                 Struct,Vwap,Cooldown      101   1465.99  1.14   8.10  22.8  531.33 -134.70
+F_010_SV                  Struct,Vwap               111   1415.20  1.12   7.94  21.6  537.53 -128.89
+F_097_TLC                 Trend,Volume,Cooldown      87   1405.24  1.16   9.48  26.4  452.81 -137.74
+F_018_SB                  Struct,Bias               109   1392.60  1.12   6.97  22.0  536.43 -131.85
+F_083_TSBC                Trend,Struct,Bias,Cool     79   1379.85  1.17   6.54  24.1  506.43 -133.96
+F_067_TSC                 Trend,Struct,Cooldown      81   1292.90  1.16   6.53  24.7  481.40 -133.28
+F_033_TL                  Trend,Volume               88   1133.55  1.12   9.48  25.0  471.99 -137.16
+F_011_TSV                 Trend,Struct,Vwap          82   1131.60  1.13   6.74  23.2  507.97 -132.01
+F_027_TSVB                Trend,Struct,Vwap,Bias     82   1131.60  1.13   6.74  23.2  507.97 -132.01
+F_075_TSVC                Trend,Struct,Vwap,Cool     77    890.09  1.11   6.71  23.4  495.98 -132.98
+F_091_TSVBC               Trend,Struct,Vwap,Bias     77    890.09  1.11   6.71  23.4  495.98 -132.98
+F_064_C                   Cooldown                  203    886.96  1.04  10.06  21.7  502.53 -130.61
+F_113_TBLC                Trend,Bias,Volume,Cool     86    884.37  1.10   9.48  26.7  418.01 -135.62
+F_105_TVLC                Trend,Vwap,Volume,Cool     86    869.29  1.10   9.49  26.7  420.59 -136.73
+F_070_SEC                 Struct,Ema50,Cooldown      98    862.84  1.08   7.02  23.5  480.59 -132.76
+F_006_SE                  Struct,Ema50              100    691.62  1.07   7.33  24.0  458.71 -132.65
+F_037_TEL                 Trend,Ema50,Volume         81    658.82  1.08   9.48  25.9  424.18 -134.56
+F_072_VC                  Vwap,Cooldown             192    656.80  1.03  11.92  21.9  497.31 -132.01
+F_101_TELC                Trend,Ema50,Volume,Coo     81    655.31  1.08   9.48  25.9  424.18 -134.61
+F_053_TEBL                Trend,Ema50,Bias,Volum     81    654.80  1.08   9.49  25.9  424.18 -134.61
+F_117_TEBLC               Trend,Ema50,Bias,Volum     81    651.29  1.08   9.49  25.9  424.18 -134.67
+F_087_TSEBC               Trend,Struct,Ema50,Bia     72    629.25  1.08   6.24  22.2  519.34 -133.81
+F_049_TBL                 Trend,Bias,Volume          87    609.63  1.07   9.49  25.3  435.02 -134.96
+F_041_TVL                 Trend,Vwap,Volume          87    604.43  1.07   9.49  25.3  438.19 -136.04
+F_071_TSEC                Trend,Struct,Ema50,Coo     74    536.36  1.07   6.24  23.0  489.14 -133.19
+F_023_TSEB                Trend,Struct,Ema50,Bia     76    456.19  1.06   6.34  23.7  462.07 -132.27
+F_121_TVBLC               Trend,Vwap,Bias,Volume     83    389.60  1.05   9.46  25.3  423.24 -134.16
+F_084_EBC                 Ema50,Bias,Cooldown       165    387.78  1.02  11.46  21.8  484.45 -129.40
+F_080_BC                  Bias,Cooldown             187    383.94  1.02   8.96  21.9  480.66 -129.58
+F_026_SVB                 Struct,Vwap,Bias          102    383.69  1.03   8.12  19.6  569.85 -131.19
+F_007_TSE                 Trend,Struct,Ema50         77    337.16  1.04   6.34  23.4  460.16 -131.46
+F_086_SEBC                Struct,Ema50,Bias,Cool     92    330.09  1.03   6.54  20.6  536.24 -131.93
+F_082_SBC                 Struct,Bias,Cooldown      102    309.91  1.03   8.43  19.6  564.36 -130.75
+F_016_B                   Bias                      194    272.81  1.01   8.85  21.1  490.03 -126.84
+F_078_SEVC                Struct,Ema50,Vwap,Cool     89    243.04  1.03   8.70  22.5  484.03 -133.75
+F_079_TSEVC               Trend,Struct,Ema50,Vwa     70    144.93  1.02   8.02  21.4  508.32 -132.84
+F_095_TSEVBC              Trend,Struct,Ema50,Vwa     70    144.93  1.02   8.02  21.4  508.32 -132.84
+F_022_SEB                 Struct,Ema50,Bias          94    129.85  1.01   7.32  20.2  533.67 -130.40
+F_057_TVBL                Trend,Vwap,Bias,Volume     85    125.52  1.01   9.48  24.7  421.88 -133.60
+F_020_EB                  Ema50,Bias                168     73.10  1.00  11.13  22.6  453.26 -129.18
+F_000_none                none                      218     54.39  1.00  11.46  21.1  482.37 -125.90
+F_008_V                   Vwap                      207     33.66  1.00  12.65  21.3  478.28 -126.19
+F_015_TSEV                Trend,Struct,Ema50,Vwa     72    -37.19  1.00   7.93  20.8  507.52 -131.12
+F_031_TSEVB               Trend,Struct,Ema50,Vwa     72    -37.19  1.00   7.93  20.8  507.52 -131.12
+F_045_TEVL                Trend,Ema50,Vwap,Volum     82    -73.90  0.99   9.49  24.4  408.40 -130.16
+F_061_TEVBL               Trend,Ema50,Vwap,Bias,     82    -73.90  0.99   9.49  24.4  408.40 -130.16
+F_109_TEVLC               Trend,Ema50,Vwap,Volum     82    -75.64  0.99   9.49  24.4  408.40 -130.18
+F_125_TEVBLC              Trend,Ema50,Vwap,Bias,     82    -75.64  0.99   9.49  24.4  408.40 -130.18
+F_014_SEV                 Struct,Ema50,Vwap          92   -212.08  0.98   8.90  20.6  503.58 -131.03
+F_068_EC                  Ema50,Cooldown            172   -363.49  0.98  12.72  22.7  443.16 -129.90
+F_094_SEVBC               Struct,Ema50,Vwap,Bias     86   -385.04  0.96   9.06  19.8  519.73 -130.67
+F_090_SVBC                Struct,Vwap,Bias,Coold     97   -411.67  0.96   9.94  19.6  522.31 -129.51
+F_088_VBC                 Vwap,Bias,Cooldown        182   -617.94  0.97  11.52  21.4  464.74 -128.39
+F_024_VB                  Vwap,Bias                 189   -682.79  0.96  10.42  20.6  475.15 -125.48
+F_004_E                   Ema50                     175   -741.09  0.96  12.72  21.7  448.73 -127.18
+F_092_EVBC                Ema50,Vwap,Bias,Cooldo    164   -826.29  0.95  13.15  21.3  452.53 -126.55
+F_030_SEVB                Struct,Ema50,Vwap,Bias     91   -827.69  0.91  10.69  18.7  514.29 -126.49
+F_076_EVC                 Ema50,Vwap,Cooldown       168  -1184.67  0.93  14.43  21.4  440.81 -126.55
+F_028_EVB                 Ema50,Vwap,Bias           168  -1266.82  0.92  13.12  21.4  433.59 -125.28
+F_034_SL                  Struct,Volume              67  -1312.07  0.81  10.95  17.9  466.13 -122.90
+F_098_SLC                 Struct,Volume,Cooldown     67  -1312.28  0.81  10.95  17.9  466.13 -122.90
+F_106_SVLC                Struct,Vwap,Volume,Coo     63  -1515.66  0.77  11.70  19.1  414.55 -124.53
+F_012_EV                  Ema50,Vwap                170  -1544.57  0.91  14.14  21.2  433.39 -125.37
+F_116_EBLC                Ema50,Bias,Volume,Cool    102  -1613.04  0.84  13.19  21.6  390.88 -125.23
+F_100_ELC                 Ema50,Volume,Cooldown     102  -1616.55  0.84  13.19  21.6  390.88 -125.27
+F_038_SEL                 Struct,Ema50,Volume        51  -1667.49  0.69  11.54  17.6  409.54 -124.90
+F_102_SELC                Struct,Ema50,Volume,Co     51  -1667.49  0.69  11.54  17.6  409.54 -124.90
+F_054_SEBL                Struct,Ema50,Bias,Volu     51  -1670.41  0.69  11.54  17.6  409.54 -124.95
+F_118_SEBLC               Struct,Ema50,Bias,Volu     51  -1670.41  0.69  11.54  17.6  409.54 -124.95
+F_114_SBLC                Struct,Bias,Volume,Coo     63  -1755.56  0.74  11.86  17.5  444.69 -125.21
+F_050_SBL                 Struct,Bias,Volume         63  -1756.38  0.74  11.86  17.5  444.69 -125.23
+F_042_SVL                 Struct,Vwap,Volume         65  -1759.34  0.74  12.62  18.5  411.73 -123.71
+F_096_LC                  Volume,Cooldown           117  -1875.68  0.84  13.33  22.2  375.85 -125.58
+F_107_TSVLC               Trend,Struct,Vwap,Volu     48  -1959.08  0.61  13.37  16.7  381.60 -122.62
+F_112_BLC                 Bias,Volume,Cooldown      112  -1964.12  0.82  13.31  21.4  382.53 -124.29
+F_052_EBL                 Ema50,Bias,Volume         106  -1978.63  0.81  13.74  20.8  387.27 -122.64
+F_122_SVBLC               Struct,Vwap,Bias,Volum     59  -1978.66  0.68  12.70  16.9  426.60 -124.82
+F_036_EL                  Ema50,Volume              106  -1984.03  0.81  13.74  20.8  387.27 -122.70
+F_110_SEVLC               Struct,Ema50,Vwap,Volu     49  -2144.18  0.59  13.33  16.3  379.61 -123.88
+F_126_SEVBLC              Struct,Ema50,Vwap,Bias     49  -2144.18  0.59  13.33  16.3  379.61 -123.88
+F_047_TSEVL               Trend,Struct,Ema50,Vwa     43  -2147.81  0.53  13.35  16.3  344.49 -124.10
+F_063_TSEVBL              Trend,Struct,Ema50,Vwa     43  -2147.81  0.53  13.35  16.3  344.49 -124.10
+F_111_TSEVLC              Trend,Struct,Ema50,Vwa     43  -2147.81  0.53  13.35  16.3  344.49 -124.10
+F_127_TSEVBLC             Trend,Struct,Ema50,Vwa     43  -2147.81  0.53  13.35  16.3  344.49 -124.10
+F_039_TSEL                Trend,Struct,Ema50,Vol     43  -2148.02  0.53  13.36  16.3  344.49 -124.12
+F_103_TSELC               Trend,Struct,Ema50,Vol     43  -2148.02  0.53  13.36  16.3  344.49 -124.12
+F_055_TSEBL               Trend,Struct,Ema50,Bia     43  -2152.04  0.53  13.36  16.3  344.49 -124.20
+F_119_TSEBLC              Trend,Struct,Ema50,Bia     43  -2152.04  0.53  13.36  16.3  344.49 -124.20
+F_104_VLC                 Vwap,Volume,Cooldown      112  -2174.93  0.81  13.40  20.5  397.33 -124.69
+F_099_TSLC                Trend,Struct,Volume,Co     50  -2185.31  0.58  14.24  16.0  380.85 -122.01
+F_058_SVBL                Struct,Vwap,Bias,Volum     61  -2202.51  0.66  13.55  16.4  425.05 -123.93
+F_043_TSVL                Trend,Struct,Vwap,Volu     50  -2206.73  0.58  14.31  16.0  380.14 -122.29
+F_032_L                   Volume                    121  -2274.29  0.81  14.78  20.7  391.88 -123.37
+F_108_EVLC                Ema50,Vwap,Volume,Cool    102  -2289.74  0.77  13.36  20.6  374.57 -123.04
+F_124_EVBLC               Ema50,Vwap,Bias,Volume    102  -2289.74  0.77  13.36  20.6  374.57 -123.04
+F_046_SEVL                Struct,Ema50,Vwap,Volu     51  -2360.36  0.56  14.15  15.7  378.90 -122.91
+F_062_SEVBL               Struct,Ema50,Vwap,Bias     51  -2360.36  0.56  14.15  15.7  378.90 -122.91
+F_123_TSVBLC              Trend,Struct,Vwap,Bias     45  -2385.38  0.50  14.25  15.6  343.67 -123.53
+F_035_TSL                 Trend,Struct,Volume        52  -2425.81  0.56  15.14  15.4  379.43 -121.57
+F_120_VBLC                Vwap,Bias,Volume,Coold    109  -2431.72  0.78  13.37  20.2  385.35 -123.06
+F_048_BL                  Bias,Volume               117  -2613.90  0.78  14.86  19.7  393.45 -121.80
+F_115_TSBLC               Trend,Struct,Bias,Volu     48  -2616.72  0.48  15.12  16.7  299.51 -122.86
+F_059_TSVBL               Trend,Struct,Vwap,Bias     48  -2621.94  0.48  15.14  16.7  299.51 -122.91
+F_044_EVL                 Ema50,Vwap,Volume         107  -2667.38  0.74  13.91  20.6  353.64 -120.65
+F_060_EVBL                Ema50,Vwap,Bias,Volume    107  -2667.38  0.74  13.91  20.6  353.64 -120.65
+F_040_VL                  Vwap,Volume               119  -2706.21  0.77  14.81  20.2  380.52 -122.27
+F_051_TSBL                Trend,Struct,Bias,Volu     50  -2854.29  0.46  16.02  16.0  298.79 -122.42
+F_056_VBL                 Vwap,Bias,Volume          115  -3042.59  0.73  14.83  19.1  380.69 -120.52
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v7_2023_M5\comparison.csv

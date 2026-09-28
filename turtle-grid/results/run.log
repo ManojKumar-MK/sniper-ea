@@ -303,3 +303,53 @@ results_v5_2026_M15   V5_fn_r050                     47   4704.93  2.25   4.82
 ... 589 more, all of them in all_results.csv
 
 Wrote .\all_results.csv  (629 runs)
+
+======================================================================
+2026-09-28 00:47:37  run_backtests.py --merge-all
+======================================================================
+
+folder                run                        trades       net    PF    DD%
+------------------------------------------------------------------------------
+results_v4_M5         V4_notrail                    193  11254.69  1.61   7.42
+results_v5_2026_M5    V5_notrail                    205  10936.52  1.55   7.42
+results_v6_2026_M5    KZ_all                        205  10936.52  1.55   7.42
+results_v5_2026_M5    V5_notrail_45_90              228  10216.41  1.46   7.46
+results_v4_M3         V4_atr30                      315   9602.85  1.52   5.52
+results_v6_2026_M3    KZFN_asia                     139   9327.90  1.63   5.30
+results_v6_2025_M3    KZ_asia                       191   9014.04  1.42   7.47
+results_v5_2026_M5    V5_fn_r050                    179   8827.21  1.52   7.63
+results_v6_2026_M5    KZFN_all                      179   8827.21  1.52   7.63
+results_v5_2026_M3    V5_notrail_45_90              346   8470.39  1.24   7.52
+results_v5_2026_M3    V5_notrail_40_80              361   8403.45  1.24  17.52
+results_v6_2025_M3    KZ_asia_london                336   7976.68  1.22  15.41
+results_v6_2026_M3    KZFN_asia_ny                  205   7555.81  1.38   6.54
+results_v4oos_M3      V4_ema_40_80                  511   7455.28  1.21   9.61
+results_v5_2025_M3    V5_ema_40_80                  511   7455.28  1.21   9.61
+results_v4_M3         V4_sl15                       315   7063.76  1.36   5.61
+results_v7_2026_M5    F_076_EVC                     111   6850.49  1.64   5.26
+results_v5_2026_M5    V5_fn_r035_nosoft             188   6463.39  1.55   5.05
+results_v5_2026_M5    V5_fn_r035                    189   6453.91  1.55   5.05
+results_v2_M5         V2_sl15                       552   6347.43  1.18  10.89
+results_v6_2025_M3    KZFN_asia                     191   6266.75  1.32   6.22
+results_v7_2026_M5    F_072_VC                      133   6209.73  1.47   5.74
+results_v5_2026_M5    V5_notrail_40_80              260   6118.70  1.25  10.47
+results_v6_2026_M5    KZ_asia_london                147   5987.73  1.44   8.20
+results_v5_2025_M3    V5_notrail_45_90              496   5965.09  1.12  13.62
+results_v4_M3         V4_spread15                   311   5961.75  1.32   6.47
+results_v2_M5         V2_exit_notrail               557   5953.21  1.12  20.93
+results_v7_2026_M5    F_068_EC                      119   5782.42  1.50   7.03
+results_v7_2026_M5    F_078_SEVC                     67   5688.70  1.85   3.72
+results_v7_2026_M5    F_014_SEV                      69   5652.10  1.82   3.72
+results_v4oos_M3      V4_ema_50_75                  475   5621.52  1.17   8.09
+results_v7_2026_M5    F_012_EV                      115   5564.43  1.51   6.02
+results_v4_M3         V4_partials                   652   5519.78  1.30   6.50
+results_v3_M3         V3_ema_50_100                 315   5494.55  1.29   7.80
+results_v4_M3         V4_ctrl_50_100                315   5494.55  1.29   7.80
+results_v4_M3         V4_kz_off                     463   5327.28  1.19   6.95
+results_v2_M5         V2_exit_single3R              553   5262.00  1.15   7.98
+results_v4_M3         V4_nofilter                   388   5223.78  1.23   8.45
+results_v4_M5         V4_sl30                       190   5218.23  1.53   4.34
+results_v2_M5         V2_sl25                       553   5204.29  1.18  16.16
+... 1101 more, all of them in all_results.csv
+
+Wrote .\all_results.csv  (1141 runs)
