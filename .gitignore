@@ -32,6 +32,11 @@ SniperEA_Log_*.jsonl
 # a token committed once lives in the history until the history is rewritten.
 *.set
 !*.example.set
+#  Third-party EA presets. Kept because they are configuration for a funded
+#  account and belong with the rest of it - verified token-free before adding.
+#  Note these are UTF-16: MT5 writes them that way and git will show them as
+#  binary unless told otherwise.
+!GoldReaper_*.set
 
 # ...with one narrow exception: the BACKTEST GRID sets. These are parameter
 # sweeps, not live presets - every one has InpUseTelegram=false and an EMPTY
