@@ -1,0 +1,259 @@
+
+======================================================================
+2026-09-28 09:30:40  run_backtests.py --sets sets_v8 --out results_v8_2026_M5 --period M5 --from 2026.01.01 --to 2026.12.31 --skip-done --deposit 25000 --symbol XAUUSD --expert SniperTurtle_KZ_v1.00.ex5 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester --portable
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : SniperTurtle_KZ_v1.00.ex5   (as given: SniperTurtle_KZ_v1.00.ex5)
+Run      : XAUUSD M5 2026.01.01 - 2026.12.31, model real, deposit 25000
+Sets     : 120
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/120]   running WO0_ALN_C ... done in 1.6 min, 1 log file(s)
+[2/120]   running WO0_ALN_TEBC ... done in 1.6 min, 1 log file(s)
+[3/120]   running WO0_ALN_TEVBC ... done in 1.6 min, 1 log file(s)
+[4/120]   running WO0_ALN_VC ... done in 1.6 min, 1 log file(s)
+[5/120]   running WO0_ALN_none ... done in 1.6 min, 1 log file(s)
+[6/120]   running WO0_AN_C ... done in 1.6 min, 1 log file(s)
+[7/120]   running WO0_AN_TEBC ... done in 1.6 min, 1 log file(s)
+[8/120]   running WO0_AN_TEVBC ... done in 1.5 min, 1 log file(s)
+[9/120]   running WO0_AN_VC ... done in 1.7 min, 1 log file(s)
+[10/120]   running WO0_AN_none ... done in 1.7 min, 1 log file(s)
+[11/120]   running WO0_A_C ... done in 1.6 min, 1 log file(s)
+[12/120]   running WO0_A_TEBC ... done in 1.6 min, 1 log file(s)
+[13/120]   running WO0_A_TEVBC ... done in 1.6 min, 1 log file(s)
+[14/120]   running WO0_A_VC ... done in 1.6 min, 1 log file(s)
+[15/120]   running WO0_A_none ... done in 1.5 min, 1 log file(s)
+[16/120]   running WO0_N_C ... done in 1.5 min, 1 log file(s)
+[17/120]   running WO0_N_TEBC ... done in 1.4 min, 1 log file(s)
+[18/120]   running WO0_N_TEVBC ... done in 1.4 min, 1 log file(s)
+[19/120]   running WO0_N_VC ... done in 1.4 min, 1 log file(s)
+[20/120]   running WO0_N_none ... done in 1.5 min, 1 log file(s)
+[21/120]   running WO60_ALN_C ... done in 1.7 min, 1 log file(s)
+[22/120]   running WO60_ALN_TEBC ... done in 1.6 min, 1 log file(s)
+[23/120]   running WO60_ALN_TEVBC ... done in 1.6 min, 1 log file(s)
+[24/120]   running WO60_ALN_VC ... done in 1.7 min, 1 log file(s)
+[25/120]   running WO60_ALN_none ... done in 1.7 min, 1 log file(s)
+[26/120]   running WO60_AN_C ... done in 1.6 min, 1 log file(s)
+[27/120]   running WO60_AN_TEBC ... done in 1.5 min, 1 log file(s)
+[28/120]   running WO60_AN_TEVBC ... done in 1.6 min, 1 log file(s)
+[29/120]   running WO60_AN_VC ... done in 1.6 min, 1 log file(s)
+[30/120]   running WO60_AN_none ... done in 1.6 min, 1 log file(s)
+[31/120]   running WO60_A_C ... done in 1.5 min, 1 log file(s)
+[32/120]   running WO60_A_TEBC ... done in 1.5 min, 1 log file(s)
+[33/120]   running WO60_A_TEVBC ... done in 1.5 min, 1 log file(s)
+[34/120]   running WO60_A_VC ... done in 1.6 min, 1 log file(s)
+[35/120]   running WO60_A_none ... done in 1.6 min, 1 log file(s)
+[36/120]   running WO60_N_C ... done in 1.5 min, 1 log file(s)
+[37/120]   running WO60_N_TEBC ... done in 1.6 min, 1 log file(s)
+[38/120]   running WO60_N_TEVBC ... done in 1.7 min, 1 log file(s)
+[39/120]   running WO60_N_VC ... done in 1.5 min, 1 log file(s)
+[40/120]   running WO60_N_none ... done in 1.5 min, 1 log file(s)
+[41/120]   running WS0_ALN_C ... done in 1.6 min, 1 log file(s)
+[42/120]   running WS0_ALN_TEBC ... done in 1.5 min, 1 log file(s)
+[43/120]   running WS0_ALN_TEVBC ... done in 1.5 min, 1 log file(s)
+[44/120]   running WS0_ALN_VC ... done in 1.6 min, 1 log file(s)
+[45/120]   running WS0_ALN_none ... done in 1.6 min, 1 log file(s)
+[46/120]   running WS0_AN_C ... done in 1.6 min, 1 log file(s)
+[47/120]   running WS0_AN_TEBC ... done in 1.5 min, 1 log file(s)
+[48/120]   running WS0_AN_TEVBC ... done in 1.5 min, 1 log file(s)
+[49/120]   running WS0_AN_VC ... done in 1.5 min, 1 log file(s)
+[50/120]   running WS0_AN_none ... done in 1.5 min, 1 log file(s)
+[51/120]   running WS0_A_C ... done in 1.5 min, 1 log file(s)
+[52/120]   running WS0_A_TEBC ... done in 1.5 min, 1 log file(s)
+[53/120]   running WS0_A_TEVBC ... done in 1.5 min, 1 log file(s)
+[54/120]   running WS0_A_VC ... done in 1.5 min, 1 log file(s)
+[55/120]   running WS0_A_none ... done in 1.5 min, 1 log file(s)
+[56/120]   running WS0_N_C ... done in 1.5 min, 1 log file(s)
+[57/120]   running WS0_N_TEBC ... done in 1.4 min, 1 log file(s)
+[58/120]   running WS0_N_TEVBC ... done in 1.4 min, 1 log file(s)
+[59/120]   running WS0_N_VC ... done in 1.4 min, 1 log file(s)
+[60/120]   running WS0_N_none ... done in 1.4 min, 1 log file(s)
+[61/120]   running WS60_ALN_C ... done in 1.6 min, 1 log file(s)
+[62/120]   running WS60_ALN_TEBC ... done in 1.5 min, 1 log file(s)
+[63/120]   running WS60_ALN_TEVBC ... done in 1.5 min, 1 log file(s)
+[64/120]   running WS60_ALN_VC ... done in 1.5 min, 1 log file(s)
+[65/120]   running WS60_ALN_none ... done in 1.6 min, 1 log file(s)
+[66/120]   running WS60_AN_C ... done in 1.5 min, 1 log file(s)
+[67/120]   running WS60_AN_TEBC ... done in 1.5 min, 1 log file(s)
+[68/120]   running WS60_AN_TEVBC ... done in 1.5 min, 1 log file(s)
+[69/120]   running WS60_AN_VC ... done in 1.5 min, 1 log file(s)
+[70/120]   running WS60_AN_none ... done in 1.5 min, 1 log file(s)
+[71/120]   running WS60_A_C ... done in 1.5 min, 1 log file(s)
+[72/120]   running WS60_A_TEBC ... done in 1.5 min, 1 log file(s)
+[73/120]   running WS60_A_TEVBC ... done in 1.5 min, 1 log file(s)
+[74/120]   running WS60_A_VC ... done in 1.5 min, 1 log file(s)
+[75/120]   running WS60_A_none ... done in 1.5 min, 1 log file(s)
+[76/120]   running WS60_N_C ... done in 1.5 min, 1 log file(s)
+[77/120]   running WS60_N_TEBC ... done in 1.4 min, 1 log file(s)
+[78/120]   running WS60_N_TEVBC ... done in 1.4 min, 1 log file(s)
+[79/120]   running WS60_N_VC ... done in 1.4 min, 1 log file(s)
+[80/120]   running WS60_N_none ... done in 1.4 min, 1 log file(s)
+[81/120]   running WW0_ALN_C ... done in 1.5 min, 1 log file(s)
+[82/120]   running WW0_ALN_TEBC ... done in 1.5 min, 1 log file(s)
+[83/120]   running WW0_ALN_TEVBC ... done in 1.5 min, 1 log file(s)
+[84/120]   running WW0_ALN_VC ... done in 1.6 min, 1 log file(s)
+[85/120]   running WW0_ALN_none ... done in 1.6 min, 1 log file(s)
+[86/120]   running WW0_AN_C ... done in 1.5 min, 1 log file(s)
+[87/120]   running WW0_AN_TEBC ... done in 1.5 min, 1 log file(s)
+[88/120]   running WW0_AN_TEVBC ... done in 1.4 min, 1 log file(s)
+[89/120]   running WW0_AN_VC ... done in 1.5 min, 1 log file(s)
+[90/120]   running WW0_AN_none ... done in 1.5 min, 1 log file(s)
+[91/120]   running WW0_A_C ... done in 1.5 min, 1 log file(s)
+[92/120]   running WW0_A_TEBC ... done in 1.5 min, 1 log file(s)
+[93/120]   running WW0_A_TEVBC ... done in 1.5 min, 1 log file(s)
+[94/120]   running WW0_A_VC ... done in 1.5 min, 1 log file(s)
+[95/120]   running WW0_A_none ... done in 1.5 min, 1 log file(s)
+[96/120]   running WW0_N_C ... done in 1.5 min, 1 log file(s)
+[97/120]   running WW0_N_TEBC ... done in 1.5 min, 1 log file(s)
+[98/120]   running WW0_N_TEVBC ... done in 1.5 min, 1 log file(s)
+[99/120]   running WW0_N_VC ... done in 1.5 min, 1 log file(s)
+[100/120]   running WW0_N_none ... done in 1.5 min, 1 log file(s)
+[101/120]   running WW60_ALN_C ... done in 1.6 min, 1 log file(s)
+[102/120]   running WW60_ALN_TEBC ... done in 1.6 min, 1 log file(s)
+[103/120]   running WW60_ALN_TEVBC ... done in 1.5 min, 1 log file(s)
+[104/120]   running WW60_ALN_VC ... done in 1.6 min, 1 log file(s)
+[105/120]   running WW60_ALN_none ... done in 1.6 min, 1 log file(s)
+[106/120]   running WW60_AN_C ... done in 1.6 min, 1 log file(s)
+[107/120]   running WW60_AN_TEBC ... done in 1.6 min, 1 log file(s)
+[108/120]   running WW60_AN_TEVBC ... done in 1.6 min, 1 log file(s)
+[109/120]   running WW60_AN_VC ... done in 1.6 min, 1 log file(s)
+[110/120]   running WW60_AN_none ... done in 1.6 min, 1 log file(s)
+[111/120]   running WW60_A_C ... done in 1.5 min, 1 log file(s)
+[112/120]   running WW60_A_TEBC ... done in 1.5 min, 1 log file(s)
+[113/120]   running WW60_A_TEVBC ... done in 1.5 min, 1 log file(s)
+[114/120]   running WW60_A_VC ... done in 1.5 min, 1 log file(s)
+[115/120]   running WW60_A_none ... done in 1.5 min, 1 log file(s)
+[116/120]   running WW60_N_C ... done in 1.5 min, 1 log file(s)
+[117/120]   running WW60_N_TEBC ... done in 1.4 min, 1 log file(s)
+[118/120]   running WW60_N_TEVBC ... done in 1.4 min, 1 log file(s)
+[119/120]   running WW60_N_VC ... done in 1.4 min, 1 log file(s)
+[120/120]   running WW60_N_none ... done in 1.5 min, 1 log file(s)
+
+120 of 120 runs produced a report in 184 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+WO60_ALN_VC               Vwap,Cooldown             191  10907.92  1.57   6.56  26.2  600.76 -135.02
+WO60_ALN_TEVBC            Trend,Ema50,Vwap,Bias,    119   9138.44  1.81   4.33  27.7  618.37 -130.37
+WO60_ALN_C                Cooldown                  211   8167.91  1.39   7.88  24.2  567.27 -129.15
+WO60_ALN_TEBC             Trend,Ema50,Bias,Coold    127   7819.58  1.65   4.74  26.0  601.27 -127.29
+WO60_ALN_none             none                      228   7744.75  1.36   7.51  23.7  545.76 -124.26
+WO60_AN_VC                Vwap,Cooldown             133   6209.73  1.47   5.74  24.8  586.17 -130.73
+WO0_ALN_TEVBC             Trend,Ema50,Vwap,Bias,     98   5898.25  1.66   4.24  26.5  569.05 -123.00
+WS60_ALN_TEVBC            Trend,Ema50,Vwap,Bias,     98   5898.25  1.66   4.24  26.5  569.05 -123.00
+WO0_ALN_TEBC              Trend,Ema50,Bias,Coold    100   5637.59  1.62   4.24  26.0  567.30 -122.56
+WS60_ALN_TEBC             Trend,Ema50,Bias,Coold    100   5637.59  1.62   4.24  26.0  567.30 -122.56
+WO0_ALN_VC                Vwap,Cooldown             150   4958.71  1.36   6.68  24.7  506.45 -121.39
+WS60_ALN_VC               Vwap,Cooldown             150   4958.71  1.36   6.68  24.7  506.45 -121.39
+WO60_AN_TEVBC             Trend,Ema50,Vwap,Bias,     77   4805.09  1.66   5.79  24.7  634.48 -124.41
+WO60_AN_C                 Cooldown                  145   4511.88  1.31   7.48  23.4  555.29 -128.85
+WW60_ALN_TEVBC            Trend,Ema50,Vwap,Bias,     87   4122.83  1.47   5.22  24.1  610.87 -131.28
+WO60_AN_TEBC              Trend,Ema50,Bias,Coold     81   4087.67  1.54   6.67  23.5  616.63 -122.47
+WO60_A_TEVBC              Trend,Ema50,Vwap,Bias,     60   3918.16  1.68   4.34  25.0  647.60 -128.16
+WO60_A_VC                 Vwap,Cooldown              87   3917.70  1.46  10.77  21.8  651.70 -123.89
+WS0_ALN_TEBC              Trend,Ema50,Bias,Coold     64   3765.58  1.69   6.94  28.1  511.42 -117.73
+WS0_ALN_TEVBC             Trend,Ema50,Vwap,Bias,     64   3765.58  1.69   6.94  28.1  511.42 -117.73
+WO0_ALN_C                 Cooldown                  160   3618.99  1.25   7.50  23.8  483.75 -120.47
+WS60_ALN_C                Cooldown                  160   3618.99  1.25   7.50  23.8  483.75 -120.47
+WO60_A_C                  Cooldown                   91   3402.59  1.39  13.17  20.9  644.12 -122.14
+WW60_ALN_TEBC             Trend,Ema50,Bias,Coold     93   3258.49  1.35   6.09  22.6  601.04 -129.45
+WS0_AN_TEBC               Trend,Ema50,Bias,Coold     49   3254.60  1.76   4.45  26.5  578.55 -117.97
+WS0_AN_TEVBC              Trend,Ema50,Vwap,Bias,     49   3254.60  1.76   4.45  26.5  578.55 -117.97
+WO60_A_TEBC               Trend,Ema50,Bias,Coold     60   3128.10  1.54   5.16  23.3  637.77 -125.50
+WO0_ALN_none              none                      174   2844.95  1.18   7.50  23.0  460.20 -115.61
+WS60_ALN_none             none                      174   2844.95  1.18   7.50  23.0  460.20 -115.61
+WS0_ALN_VC                Vwap,Cooldown             104   2640.14  1.28   8.83  24.0  486.99 -120.18
+WO0_AN_VC                 Vwap,Cooldown             108   2236.33  1.22   5.66  23.1  496.57 -122.09
+WS60_AN_VC                Vwap,Cooldown             108   2236.33  1.22   5.66  23.1  496.57 -122.09
+WS0_AN_VC                 Vwap,Cooldown              78   2235.81  1.31   5.05  24.4  503.17 -123.62
+WO0_AN_TEBC               Trend,Ema50,Bias,Coold     64   2228.19  1.38   5.78  21.9  579.90 -117.29
+WO0_AN_TEVBC              Trend,Ema50,Vwap,Bias,     64   2228.19  1.38   5.78  21.9  579.90 -117.29
+WS60_AN_TEBC              Trend,Ema50,Bias,Coold     64   2228.19  1.38   5.78  21.9  579.90 -117.29
+WS60_AN_TEVBC             Trend,Ema50,Vwap,Bias,     64   2228.19  1.38   5.78  21.9  579.90 -117.29
+WO60_AN_none              none                      157   2220.54  1.15   9.60  21.0  511.78 -117.76
+WO0_A_C                   Cooldown                   66   2179.95  1.34   7.03  21.2  619.76 -124.37
+WO0_A_VC                  Vwap,Cooldown              66   2179.95  1.34   7.03  21.2  619.76 -124.37
+WS60_A_C                  Cooldown                   66   2179.95  1.34   7.03  21.2  619.76 -124.37
+WS60_A_VC                 Vwap,Cooldown              66   2179.95  1.34   7.03  21.2  619.76 -124.37
+WW60_A_TEVBC              Trend,Ema50,Vwap,Bias,     54   2077.21  1.38   4.66  22.2  624.52 -128.36
+WW0_ALN_TEVBC             Trend,Ema50,Vwap,Bias,     70   2036.12  1.30   5.87  21.4  590.02 -123.35
+WS0_ALN_C                 Cooldown                  111   1964.29  1.19   9.24  23.4  468.90 -119.81
+WW60_ALN_VC               Vwap,Cooldown             138   1954.21  1.14   7.38  21.7  515.82 -124.61
+WO0_A_TEBC                Trend,Ema50,Bias,Coold     49   1949.74  1.41   5.35  22.4  613.31 -125.65
+WO0_A_TEVBC               Trend,Ema50,Vwap,Bias,     49   1949.74  1.41   5.35  22.4  613.31 -125.65
+WS60_A_TEBC               Trend,Ema50,Bias,Coold     49   1949.74  1.41   5.35  22.4  613.31 -125.65
+WS60_A_TEVBC              Trend,Ema50,Vwap,Bias,     49   1949.74  1.41   5.35  22.4  613.31 -125.65
+WO60_A_none               none                      100   1816.34  1.19  14.60  18.0  633.02 -116.26
+WW0_ALN_TEBC              Trend,Ema50,Bias,Coold     72   1791.32  1.25   5.87  20.8  590.02 -123.30
+WO0_AN_C                  Cooldown                  114   1675.25  1.16   5.66  22.8  479.79 -122.18
+WS60_AN_C                 Cooldown                  114   1675.25  1.16   5.66  22.8  479.79 -122.18
+WS0_AN_C                  Cooldown                   84   1622.32  1.21   4.84  23.8  475.49 -122.72
+WW0_A_TEBC                Trend,Ema50,Bias,Coold     45   1524.54  1.34   4.59  22.2  597.59 -126.59
+WW0_A_TEVBC               Trend,Ema50,Vwap,Bias,     45   1524.54  1.34   4.59  22.2  597.59 -126.59
+WO0_N_TEBC                Trend,Ema50,Bias,Coold     25   1503.44  1.74   2.19  32.0  441.18 -118.70
+WO0_N_TEVBC               Trend,Ema50,Vwap,Bias,     25   1503.44  1.74   2.19  32.0  441.18 -118.70
+WS60_N_TEBC               Trend,Ema50,Bias,Coold     25   1503.44  1.74   2.19  32.0  441.18 -118.70
+WS60_N_TEVBC              Trend,Ema50,Vwap,Bias,     25   1503.44  1.74   2.19  32.0  441.18 -118.70
+WO60_N_TEVBC              Trend,Ema50,Vwap,Bias,     25   1491.30  1.73   2.25  32.0  441.18 -119.37
+WS0_N_TEBC                Trend,Ema50,Bias,Coold     16   1442.50  2.25   2.67  37.5  432.17 -114.59
+WS0_N_TEVBC               Trend,Ema50,Vwap,Bias,     16   1442.50  2.25   2.67  37.5  432.17 -114.59
+WS0_N_C                   Cooldown                   31   1438.71  1.55   3.50  29.0  451.35 -118.81
+WS0_N_none                none                       31   1438.71  1.55   3.50  29.0  451.35 -118.81
+WO60_N_TEBC               Trend,Ema50,Bias,Coold     26   1371.05  1.64   2.72  30.8  441.18 -119.40
+WS0_N_VC                  Vwap,Cooldown              26   1307.50  1.62   3.50  30.8  427.82 -117.08
+WW60_AN_TEVBC             Trend,Ema50,Vwap,Bias,     65   1280.09  1.20   7.40  20.0  591.25 -122.65
+WW60_A_TEBC               Trend,Ema50,Bias,Coold     54   1235.65  1.23   7.57  20.4  604.86 -125.42
+WW60_A_VC                 Vwap,Cooldown              79   1064.71  1.14   9.31  19.0  592.33 -121.62
+WS0_ALN_none              none                      121   1003.60  1.09   9.24  22.3  431.88 -112.88
+WW60_AN_TEBC              Trend,Ema50,Bias,Coold     67    992.08  1.15   8.23  19.4  583.30 -121.52
+WO0_A_none                none                       73    870.95  1.12  10.63  17.8  607.31 -116.53
+WS60_A_none               none                       73    870.95  1.12  10.63  17.8  607.31 -116.53
+WW60_ALN_C                Cooldown                  146    859.19  1.06  10.21  20.6  500.31 -121.43
+WW60_AN_VC                Vwap,Cooldown             106    779.20  1.07   9.46  20.8  511.38 -124.09
+WO0_N_C                   Cooldown                   42    772.15  1.20   4.08  23.8  463.81 -120.38
+WO0_N_none                none                       42    772.15  1.20   4.08  23.8  463.81 -120.38
+WS60_N_C                  Cooldown                   42    772.15  1.20   4.08  23.8  463.81 -120.38
+WS60_N_none               none                       42    772.15  1.20   4.08  23.8  463.81 -120.38
+WO0_N_VC                  Vwap,Cooldown              37    649.83  1.19   4.08  24.3  444.28 -119.17
+WS60_N_VC                 Vwap,Cooldown              37    649.83  1.19   4.08  24.3  444.28 -119.17
+WS0_AN_none               none                       91    629.60  1.08   5.93  22.0  448.47 -116.96
+WW60_ALN_none             none                      162    569.68  1.04  10.69  19.8  488.84 -115.41
+WS0_A_TEBC                Trend,Ema50,Bias,Coold     37    518.39  1.14   5.58  18.9  591.78 -120.29
+WS0_A_TEVBC               Trend,Ema50,Vwap,Bias,     37    518.39  1.14   5.58  18.9  591.78 -120.29
+WW60_N_TEBC               Trend,Ema50,Bias,Coold     16    435.08  1.32   2.86  25.0  453.69 -114.46
+WW60_N_TEVBC              Trend,Ema50,Vwap,Bias,     16    435.08  1.32   2.86  25.0  453.69 -114.46
+WW0_N_TEBC                Trend,Ema50,Bias,Coold     16    432.54  1.31   2.86  25.0  453.69 -114.70
+WW0_N_TEVBC               Trend,Ema50,Vwap,Bias,     16    432.54  1.31   2.86  25.0  453.69 -114.70
+WS0_A_C                   Cooldown                   48    398.17  1.08   6.93  18.8  586.58 -124.64
+WS0_A_VC                  Vwap,Cooldown              48    398.17  1.08   6.93  18.8  586.58 -124.64
+WW0_AN_TEBC               Trend,Ema50,Bias,Coold     54    381.04  1.07   5.43  18.5  559.76 -118.06
+WW0_AN_TEVBC              Trend,Ema50,Vwap,Bias,     54    381.04  1.07   5.43  18.5  559.76 -118.06
+WO60_N_VC                 Vwap,Cooldown              42    300.80  1.08   4.36  23.8  406.04 -117.07
+WW60_A_C                  Cooldown                   81    212.30  1.03  11.71  17.3  590.37 -119.65
+WW0_A_C                   Cooldown                   58    165.83  1.03   7.87  17.2  606.72 -122.42
+WW0_A_VC                  Vwap,Cooldown              58    165.83  1.03   7.87  17.2  606.72 -122.42
+WO60_N_C                  Cooldown                   50     22.38  1.00   5.25  22.0  423.12 -118.34
+WO60_N_none               none                       50     22.38  1.00   5.25  22.0  423.12 -118.34
+WW60_AN_C                 Cooldown                  112     19.64  1.00  12.02  19.6  502.90 -122.17
+WW0_ALN_C                 Cooldown                  105   -260.82  0.97   8.15  19.1  494.95 -119.01
+WW0_ALN_VC                Vwap,Cooldown             105   -269.50  0.97   8.19  19.1  494.95 -119.11
+WO0_AN_none               none                      120   -429.35  0.96   7.92  20.0  430.51 -111.62
+WS60_AN_none              none                      120   -429.35  0.96   7.92  20.0  430.51 -111.62
+WW0_ALN_none              none                      119   -462.78  0.96  10.16  18.5  480.56 -113.25
+WW0_A_none                none                       65   -492.74  0.92   9.50  15.4  584.42 -114.71
+WW60_N_VC                 Vwap,Cooldown              26   -603.96  0.76   5.13  19.2  374.29 -117.42
+WW60_N_C                  Cooldown                   32   -633.94  0.80   5.39  18.8  412.52 -119.12
+WW60_N_none               none                       32   -633.94  0.80   5.39  18.8  412.52 -119.12
+WS0_A_none                none                       55   -849.88  0.84  10.27  14.6  575.47 -115.55
+WW0_AN_VC                 Vwap,Cooldown              85   -904.64  0.89  10.16  18.8  457.25 -118.63
+WW60_A_none               none                       88   -979.24  0.88  13.17  14.8  577.56 -112.66
+WW0_N_VC                  Vwap,Cooldown              22  -1021.90  0.54   5.82  13.6  396.87 -116.04
+WW0_AN_C                  Cooldown                   87  -1128.57  0.87  11.00  18.4  457.25 -118.43
+WW0_N_C                   Cooldown                   26  -1484.37  0.45   7.64  11.5  396.87 -115.90
+WW0_N_none                none                       26  -1484.37  0.45   7.64  11.5  396.87 -115.90
+WW60_AN_none              none                      122  -1732.43  0.85  13.99  16.4  483.09 -111.22
+WW0_AN_none               none                       93  -2580.78  0.70  12.84  15.1  432.38 -108.83
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\turtle-grid\results_v8_2026_M5\comparison.csv
