@@ -8,11 +8,11 @@ REM  merged per grid and copied into backtest-results\<timestamp>\
 REM  ready to commit.
 REM
 REM  SETUP, once:
-REM    1. Install a SECOND MT5 to C:\MT5-Tester (not the default path)
+REM    1. Install a SECOND MT5 to C:\MetaTrade-Live (not the default path)
 REM    2. Shortcut with /portable appended - this exact command line:
-REM         C:\MT5-Tester\terminal64.exe /portable
+REM         C:\MetaTrade-Live\terminal64.exe /portable
 REM    3. Launch it, log in, compile each EA with F7 and copy the .ex5
-REM       files into C:\MT5-Tester\MQL5\Experts\
+REM       files into C:\MetaTrade-Live\MQL5\Experts\
 REM    4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it
 REM       downloads the history
 REM    5. CLOSE that terminal. MT5 will not start a tester pass while the

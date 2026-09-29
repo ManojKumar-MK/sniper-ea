@@ -18,7 +18,7 @@ REM  COMPILE FIRST (F7) and CLOSE the tester terminal before running.
 REM ===================================================================
 
 cd /d "%~dp0"
-set MT5DIR=C:\MT5-Tester
+set MT5DIR=C:\MetaTrade-Live
 set EXPERT=SniperTurtle_KZ_v1.00.ex5
 set OPTS=--skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable

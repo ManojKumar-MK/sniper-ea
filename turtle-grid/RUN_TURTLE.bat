@@ -5,14 +5,14 @@ REM  KILLZONE RANGE grid - one click, M5 + M3, then one merged table.
 REM
 REM  Runs against a SEPARATE PORTABLE MT5 so your live terminal keeps
 REM  running untouched. Set up once:
-REM    1. Install a second MT5 to C:\MT5-Tester (not the default path)
+REM    1. Install a second MT5 to C:\MetaTrade-Live (not the default path)
 REM    2. Shortcut with /portable appended - this exact command line:
-REM         C:\MT5-Tester\terminal64.exe /portable
+REM         C:\MetaTrade-Live\terminal64.exe /portable
 REM       /portable is what makes the terminal keep its data folder
 REM       BESIDE terminal64.exe instead of under %APPDATA%. This script
 REM       passes it to every tester run too, so both halves agree on
 REM       where MQL5\Profiles\Tester actually is.
-REM    3. Launch it, log in, copy the .ex5 into C:\MT5-Tester\MQL5\Experts\
+REM    3. Launch it, log in, copy the .ex5 into C:\MetaTrade-Live\MQL5\Experts\
 REM    4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it
 REM       downloads the history
 REM    5. CLOSE that terminal. Leave your LIVE one running.
@@ -27,7 +27,7 @@ REM  .ex5, and MT5 silently ignores keys it does not recognise - you
 REM  would get 9 identical runs and never know why.
 REM ===================================================================
 
-set MT5DIR=C:\MT5-Tester
+set MT5DIR=C:\MetaTrade-Live
 set EXPERT=SniperTurtle_KZ_v1.00.ex5
 set OPTS=--skip-done --deposit 25000 --symbol XAUUSD --from 2026.01.01 --to 2026.09.18 ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable

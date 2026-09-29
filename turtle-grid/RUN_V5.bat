@@ -17,7 +17,7 @@ REM  or the runs finish thin and it looks like the strategy failed.
 REM ===================================================================
 
 cd /d "%~dp0"
-set MT5DIR=C:\MT5-Tester
+set MT5DIR=C:\MetaTrade-Live
 set EXPERT=SniperTurtle_KZ_v1.00.ex5
 set BASE=--skip-done --deposit 25000 --symbol XAUUSD ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable
