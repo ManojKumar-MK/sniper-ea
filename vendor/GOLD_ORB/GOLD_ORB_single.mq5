@@ -50,8 +50,12 @@ Date Created: 10/26/2022
 
 
 
+#ifndef MAX_RETRIES
 #define MAX_RETRIES 5  // Max retries on error
+#endif
+#ifndef RETRY_DELAY
 #define RETRY_DELAY 3000 // Retry delay in ms
+#endif
 
 
 //====================================================================
@@ -285,7 +289,7 @@ public:
 
 // Open position
 // 110 - 120 Code explanation on "Expert Advisor Programming for MetaTrader5""
-bool CTrade::OpenPosition(string pSymbol, ENUM_ORDER_TYPE pType, double pVolume, double pStop = 0, double pProfit = 0, string pComment = NULL)
+bool CTrade::OpenPosition(string pSymbol, ENUM_ORDER_TYPE pType, double pVolume, double pStop, double pProfit, string pComment)
   {
    ZeroMemory(request);
    ZeroMemory(result);
@@ -379,7 +383,7 @@ bool CTrade::OpenPosition(string pSymbol, ENUM_ORDER_TYPE pType, double pVolume,
 
 
 // Open pending order
-bool CTrade::OpenPending(string pSymbol,ENUM_ORDER_TYPE pType,double pVolume,double pPrice,double pStop=0.000000,double pProfit=0.000000,double pStopLimit = 0,datetime pExpiration=0,string pComment=NULL)
+bool CTrade::OpenPending(string pSymbol, ENUM_ORDER_TYPE pType, double pVolume, double pPrice, double pStop, double pProfit, double pStopLimit, datetime pExpiration, string pComment)
   {
    ZeroMemory(request);
    ZeroMemory(result);
@@ -470,7 +474,7 @@ void CTrade::LogTradeRequest()
 
 
 // Trade opening shortcuts
-bool CTrade::Buy(string pSymbol,double pVolume,double pStop=0.000000,double pProfit=0.000000,string pComment=NULL)
+bool CTrade::Buy(string pSymbol, double pVolume, double pStop, double pProfit, string pComment)
   {
    bool success = OpenPosition(pSymbol,ORDER_TYPE_BUY,pVolume,pStop,pProfit,pComment);
    return(success);
@@ -479,7 +483,7 @@ bool CTrade::Buy(string pSymbol,double pVolume,double pStop=0.000000,double pPro
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CTrade::Sell(string pSymbol,double pVolume,double pStop=0.000000,double pProfit=0.000000,string pComment=NULL)
+bool CTrade::Sell(string pSymbol, double pVolume, double pStop, double pProfit, string pComment)
   {
    bool success = OpenPosition(pSymbol,ORDER_TYPE_SELL,pVolume,pStop,pProfit,pComment);
    return(success);
@@ -639,7 +643,7 @@ class CTrailing
 
 
 // Trailing stop (points)
-bool CTrailing::TrailingStop(string pSymbol,int pTrailPoints,int pMinProfit=0,int pStep=10)
+bool CTrailing::TrailingStop(string pSymbol, int pTrailPoints, int pMinProfit, int pStep)
 {
 	if(PositionSelect(pSymbol) == true && pTrailPoints > 0)
 	{
@@ -732,7 +736,7 @@ bool CTrailing::TrailingStop(string pSymbol,int pTrailPoints,int pMinProfit=0,in
 
 
 // Trailing stop (price)
-bool CTrailing::TrailingStop(string pSymbol,double pTrailPrice,int pMinProfit=0,int pStep=10)
+bool CTrailing::TrailingStop(string pSymbol, double pTrailPrice, int pMinProfit, int pStep)
 {
 	if(PositionSelect(pSymbol) == true && pTrailPrice > 0)
 	{
@@ -820,7 +824,7 @@ bool CTrailing::TrailingStop(string pSymbol,double pTrailPrice,int pMinProfit=0,
 
 
 // Trailing stop (points, hedging orders)
-bool CTrailing::TrailingStop(ulong pTicket,int pTrailPoints,int pMinProfit=0,int pStep=10)
+bool CTrailing::TrailingStop(ulong pTicket, int pTrailPoints, int pMinProfit, int pStep)
 {
 	if(PositionSelectByTicket(pTicket) == true && pTrailPoints > 0)
 	{
@@ -914,7 +918,7 @@ bool CTrailing::TrailingStop(ulong pTicket,int pTrailPoints,int pMinProfit=0,int
 
 
 // Trailing stop (price, hedging orders)
-bool CTrailing::TrailingStop(ulong pTicket,double pTrailPrice,int pMinProfit=0,int pStep=10)
+bool CTrailing::TrailingStop(ulong pTicket, double pTrailPrice, int pMinProfit, int pStep)
 {
 	if(PositionSelectByTicket(pTicket) == true && pTrailPrice > 0)
 	{
@@ -1004,7 +1008,7 @@ bool CTrailing::TrailingStop(ulong pTicket,double pTrailPrice,int pMinProfit=0,i
 
 
 // Break even stop
-bool CTrailing::BreakEven(string pSymbol,int pBreakEven,int pLockProfit=0)
+bool CTrailing::BreakEven(string pSymbol, int pBreakEven, int pLockProfit)
 {
 	if(PositionSelect(pSymbol) == true && pBreakEven > 0)
 	{
@@ -1096,7 +1100,7 @@ bool CTrailing::BreakEven(string pSymbol,int pBreakEven,int pLockProfit=0)
 
 
 // Break even stop (hedging orders)
-bool CTrailing::BreakEven(ulong pTicket,int pBreakEven,int pLockProfit=0)
+bool CTrailing::BreakEven(ulong pTicket, int pBreakEven, int pLockProfit)
 {
 	if(PositionSelectByTicket(pTicket) == true && pBreakEven > 0)
 	{
@@ -1211,8 +1215,12 @@ bool CTrailing::BreakEven(ulong pTicket,int pBreakEven,int pLockProfit=0)
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 
+#ifndef MAX_RETRIES
 #define MAX_RETRIES 5  // Max retries on error
+#endif
+#ifndef RETRY_DELAY
 #define RETRY_DELAY 3000 // Retry delay in ms
+#endif
 
 //  [already inlined above: errordescription.mqh]
 
@@ -1339,7 +1347,7 @@ public:
 
 // Open position
 // 110 - 120 Code explanation on "Expert Advisor Programming for MetaTrader5""
-bool CTradeVirtual::OpenPosition(VirtualTradeInfo &vTrade, string pSymbol, ENUM_ORDER_TYPE pType, double pVolume, double pStop = 0, double pProfit = 0, string pComment = NULL)
+bool CTradeVirtual::OpenPosition(VirtualTradeInfo &vTrade, string pSymbol, ENUM_ORDER_TYPE pType, double pVolume, double pStop, double pProfit, string pComment)
   {
 
    //Position Info
@@ -1569,7 +1577,7 @@ bool CTradeVirtual::OpenPending(VirtualTradeInfo &vTrade,int index, string pType
 
 
 // Trade opening shortcuts
-bool CTradeVirtual::Buy(VirtualTradeInfo &vTrade, string pSymbol,double pVolume,double pStop=0.000000,double pProfit=0.000000,string pComment=NULL)
+bool CTradeVirtual::Buy(VirtualTradeInfo &vTrade, string pSymbol, double pVolume, double pStop, double pProfit, string pComment)
   {
    bool success = OpenPosition(vTrade, pSymbol,ORDER_TYPE_BUY,pVolume,pStop,pProfit,pComment);
    return(success);
@@ -1578,7 +1586,7 @@ bool CTradeVirtual::Buy(VirtualTradeInfo &vTrade, string pSymbol,double pVolume,
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CTradeVirtual::Sell(VirtualTradeInfo &vTrade, string pSymbol,double pVolume,double pStop=0.000000,double pProfit=0.000000,string pComment=NULL)
+bool CTradeVirtual::Sell(VirtualTradeInfo &vTrade, string pSymbol, double pVolume, double pStop, double pProfit, string pComment)
   {
    bool success = OpenPosition(vTrade, pSymbol,ORDER_TYPE_SELL,pVolume,pStop,pProfit,pComment);
    return(success);
@@ -2341,7 +2349,7 @@ CIndicator::CIndicator(void)
 	ArraySetAsSeries(main,true);
 }
 
-double CIndicator::Main(int pShift=0)
+double CIndicator::Main(int pShift)
 {
 	CopyBuffer(handle,0,0,MAX_COUNT,main);
 	double value = NormalizeDouble(main[pShift],_Digits);
@@ -2531,7 +2539,7 @@ int Ci_INDNAME_::Init(string pSymbol,ENUM_TIMEFRAMES pTimeframe,...)
 }
 
 
-double Ci_INDNAME_::Buffer1(int pShift=0)
+double Ci_INDNAME_::Buffer1(int pShift)
 {
 	CopyBuffer(handle,1,0,MAX_COUNT,buffer1);
 	double value = NormalizeDouble(buffer1[pShift],_Digits);
@@ -2539,7 +2547,7 @@ double Ci_INDNAME_::Buffer1(int pShift=0)
 } 
 
 
-double Ci_INDNAME_::Buffer2(int pShift=0)
+double Ci_INDNAME_::Buffer2(int pShift)
 {
 	CopyBuffer(handle,1,0,MAX_COUNT,buffer2);
 	double value = NormalizeDouble(buffer2[pShift],_Digits);
@@ -2595,7 +2603,7 @@ public:
 
 
 // Trailing stop (points, hedging orders)
-bool CTrailingVirtual::TrailingStop(VirtualTradeInfo &vTrade,int index, int pTrailPoints,int pMinProfit=0,int pStep=10)
+bool CTrailingVirtual::TrailingStop(VirtualTradeInfo &vTrade, int index, int pTrailPoints, int pMinProfit, int pStep)
   {
    if(pTrailPoints > 0)
      {
@@ -2673,7 +2681,7 @@ bool CTrailingVirtual::TrailingStop(VirtualTradeInfo &vTrade,int index, int pTra
 
 
 // Trailing stop (price, hedging orders)
-bool CTrailingVirtual::TrailingStop(VirtualTradeInfo &vTrade,int index, double pTrailPrice,int pMinProfit=0,int pStep=10)
+bool CTrailingVirtual::TrailingStop(VirtualTradeInfo &vTrade, int index, double pTrailPrice, int pMinProfit, int pStep)
   {
    if(pTrailPrice > 0)
      {
@@ -3063,7 +3071,7 @@ input double FixedVolume = 0.1;
 
 input group "Advanced Equity Monitoring Module"
 input bool SlopeDetection = false;
-input int LossStreakCounter = 0;
+input int           LossStreakLimit   = 0;
 
 input group "Indicators"
 input int PriceActionORB_CandleComposition = 3;
@@ -3121,7 +3129,7 @@ int OnInit()
    //Extra Variables (test cases)
    execute_trade = true;
    capital = AccountInfoDouble(ACCOUNT_BALANCE);
-   return("Initialization Success");
+   return(INIT_SUCCEEDED);   // was return("Initialization Success") - OnInit returns int
   }
 
 
@@ -3192,7 +3200,7 @@ void RiskManagementModule(void)
 
 
    //This module will detect if Lossing streak ended depending on the input integer and if equity is recovering, upward
-   if(SlopeDetection || LossStreakCounter!=0)
+   if(SlopeDetection || LossStreakLimit!=0)
      {
       bool LossStreak_flag = LossStreakCounter(VTrade,3); //Lossing Streak Detection
       bool Slope_Equity_Flag = CheckSlope(VTrade,12); // Slope Equity Monitoring

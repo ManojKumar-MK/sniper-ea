@@ -57,6 +57,42 @@ The same precedence trap as `InpUseSessionLots` in our own EA and `FixedLot` in 
 The grid sets it to `0.0` in the control so `FixedVolume` applies, and to a real value
 only in the sets that intend risk-based sizing.
 
+## Upstream does not compile
+
+Worth stating plainly: **the upstream source cannot be built as it stands.** Its shipped
+`.ex5` must come from a different version. MetaEditor reports, and all of these are in
+the original files rather than introduced by inlining:
+
+| problem | where | MQL5 |
+|---|---|---|
+| **18 out-of-class definitions repeat their default parameters** | `Trade.mqh`, `TradeVirtual.mqh`, `TrailingStops.mqh`, `TrailingStopsVirtual.mqh`, `Indicators.mqh` | **error 278** |
+| **`input int LossStreakCounter` shadows the function `LossStreakCounter()`** | `GOLD_ORB.mq5:51` vs `RiskManagement.mqh:168` | **error 282** |
+| `MAX_RETRIES` / `RETRY_DELAY` defined twice | `Trade.mqh` **and** `TradeVirtual.mqh` | warning 30 |
+| `OnInit()` returns a string literal | `return("Initialization Success");` from an `int` function | warning 93 |
+
+The `LossStreakCounter` one is the interesting one, because the code at line 182 clearly
+means to call the function:
+
+```cpp
+if(SlopeDetection || LossStreakCounter!=0)          // the input
+   bool LossStreak_flag = LossStreakCounter(VTrade,3);   // the function
+```
+
+An input and a function with the same name cannot coexist, so that block never worked as
+written.
+
+### Fixed in GOLD_ORB_single.mq5
+
+- Default parameters **stripped from the 18 definitions** (in-class declarations keep
+  theirs — that is where MQL5 wants them)
+- The input **renamed `LossStreakLimit`**, leaving the function call intact. The 19
+  `orb-grid` sets were updated to match, and every set key is verified against the EA's
+  28 inputs
+- Both `#define`s wrapped in `#ifndef`
+- `OnInit` returns `INIT_SUCCEEDED`
+
+Nothing else touched. Braces and parens still balance (222/222, 992/992).
+
 ## Single-file build
 
 `GOLD_ORB_single.mq5` is the one to compile. Upstream pulls nine `.mqh` files from an

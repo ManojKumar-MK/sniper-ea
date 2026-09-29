@@ -10,5 +10,5 @@ MaxEquityDrawdownPercent=0.0
 MaxRiskPerTradePercent=0.5
 FixedVolume=0.10
 SlopeDetection=false
-LossStreakCounter=0
+LossStreakLimit=0
 PriceActionORB_CandleComposition=3
