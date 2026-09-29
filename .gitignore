@@ -38,6 +38,7 @@ SniperEA_Log_*.jsonl
 #  binary unless told otherwise.
 !GoldReaper_*.set
 !FvgGold_*.set
+!SniperEA_KZ_*.set
 !vendor/**/*.set
 !orb-grid/sets_orb/*.set
 !gmp-grid/sets_gmp/*.set
