@@ -47,6 +47,28 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## Third-party EAs under test — one click
+
+```
+RUN_ORB_GMP.bat        GOLD_ORB + GridMaster Pro, 156 runs
+```
+
+| grid | EA | sets | TF | runs |
+|---|---|---|---|---|
+| [orb-grid/](orb-grid/) | GOLD_ORB (opening range breakout) | 19 | H1 | 76 |
+| [gmp-grid/](gmp-grid/) | GridMaster Pro (ATR grid) | 20 | M15 | 80 |
+
+Each runs on the timeframe its author built it for, which is why it is two passes
+rather than one loop. Compile `vendor/GOLD_ORB/GOLD_ORB_single.mq5` (single file, no
+`Include/` needed) and `vendor/GridMasterPro/GridMaster Pro.mq5` first.
+
+**Read equity drawdown, not balance drawdown.** Across the eleven grid EAs reviewed from
+`geraked/metatrader5` that ratio was never below 3.4×, and the gap is where a funded
+account dies. The FundedNext limit is 6% equity.
+
+Also built but not in this launcher: [fvg-grid/](fvg-grid/) (FvgGold, 20 sets) and
+[smc-grid/](smc-grid/) (MT5-SMC, 21 sets — does not compile yet).
+
 ## Backtesting — one click
 
 ```
