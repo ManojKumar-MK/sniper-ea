@@ -1,5 +1,34 @@
 # EMA Based Strategy EA — reference
 
+> ## Critical fix — recompile before trusting any of these live
+>
+> An EA could report **FLAT while four of its own positions were open**, then add
+> another on every signal instead of flipping.
+>
+> `PositionSelect(_Symbol)` selects **one** position for a symbol. On a **hedging**
+> account there can be several, and with another EA on the same symbol — Gold Reaper
+> on magic 8002 — it could select *that* one. The magic test then failed,
+> `PositionOnSymbol()` returned false, and the EA concluded it was flat. Seen live:
+> four `990555` positions, three buys and a sell, with the panel showing `FLAT`.
+>
+> Everything followed from that. Each new signal opened another position instead of
+> flipping, and none of them was ever managed — no ladder, no stop stepping, no runner
+> — because all 18 call sites gate on that one function.
+>
+> Fixed in all four EAs:
+>
+> | | |
+> |---|---|
+> | `SelectOurPosition()` | walks every position, matches symbol **and** magic |
+> | `CloseAllTagged()` | loops and closes **all** of ours — it closed exactly one despite the name |
+> | `CloseWithComment()` | acts on the selected position, falls back **by ticket**, so it can never close another EA's trade |
+> | `ClosePositionTagged()` | returns `bool` |
+> | the flip | **aborts** if the close fails, instead of stacking a reverse on a position it has already forgotten |
+> | `CountOurPositions()` | new — makes "more than one of ours" detectable |
+>
+> A live-only bug: it needs a second EA on the same symbol on a hedging account, which
+> is why four years of backtesting never surfaced it.
+
 MQL5 expert advisor. EMA9/EMA21 cross entries, ATR stop, a five-level target
 ladder, IST-aware sessions, prop-account guards, Telegram reporting and a
 machine-readable event log.
