@@ -12,14 +12,15 @@ REM  3. RUN_ORB_GMP.bat   156 backtests across four years
 REM
 REM  Each step pauses, so you can stop if something is wrong rather
 REM  than discovering it 80 runs later.
+REM  Optional: pass the MT5 folder, e.g.  .\GO.bat "D:\MT5-Tester"
 REM ===================================================================
 cd /d "%~dp0"
 echo.
 echo   STEP 1 of 3 - compiling
-call COMPILE.bat
+call COMPILE.bat %*
 echo.
 echo   STEP 2 of 3 - checking the setup
-call CHECK_SETUP.bat
+call CHECK_SETUP.bat %*
 echo.
 echo   STEP 3 of 3 - running the grids
-call RUN_ORB_GMP.bat
+call RUN_ORB_GMP.bat %*

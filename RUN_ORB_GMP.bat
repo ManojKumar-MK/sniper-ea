@@ -39,7 +39,10 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
-set MT5DIR=C:\MT5-Tester
+REM  MT5 folder: first argument, else the MT5DIR environment variable,
+REM  else the default. Same convention as COMPILE.bat and CHECK_SETUP.bat.
+if not defined MT5DIR set MT5DIR=C:\MT5-Tester
+if not "%~1"=="" set MT5DIR=%~1
 set MISSING=0
 if not exist "%MT5DIR%\MQL5\Experts\GOLD_ORB_single.ex5"   set MISSING=1
 if not exist "%MT5DIR%\MQL5\Experts\GridMaster Pro.ex5"     set MISSING=1
