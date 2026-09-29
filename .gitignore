@@ -39,6 +39,8 @@ SniperEA_Log_*.jsonl
 !GoldReaper_*.set
 !FvgGold_*.set
 !vendor/**/*.set
+!orb-grid/sets_orb/*.set
+!fvg-grid/sets_fvg/*.set
 
 # ...with one narrow exception: the BACKTEST GRID sets. These are parameter
 # sweeps, not live presets - every one has InpUseTelegram=false and an EMPTY

@@ -1,0 +1,14 @@
+; GOLD_ORB - ORB_rr6
+StartOfTradingHour_ServerTime=1
+TakeProfit=2400
+StopLoss=400
+MaxTradePerDay=2
+LongPosition=true
+ShortPosition=true
+EnableTrail=true
+MaxEquityDrawdownPercent=0.0
+MaxRiskPerTradePercent=0.0
+FixedVolume=0.10
+SlopeDetection=false
+LossStreakCounter=0
+PriceActionORB_CandleComposition=3
