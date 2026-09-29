@@ -47,6 +47,40 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## Single click: compile, check, run
+
+```
+GO.bat
+```
+
+Three steps, each pausing so you can stop rather than find out 80 runs later:
+
+1. **`COMPILE.bat`** — builds the EAs headlessly with MetaEditor's command line,
+   straight into `C:\MT5-Tester\MQL5\Experts\`. No opening MetaEditor, no F7.
+   Prints the compiler's errors if a build fails.
+2. **`CHECK_SETUP.bat`** — the seven pre-flight checks below.
+3. **`RUN_ORB_GMP.bat`** — 156 backtests.
+
+`COMPILE.bat` alone builds the two under test; `COMPILE.bat all` builds all eight EAs
+in the repo.
+
+### What compiles to what
+
+| source | → `.ex5` | used by |
+|---|---|---|
+| `vendor/GOLD_ORB/GOLD_ORB_single.mq5` | `GOLD_ORB_single.ex5` | `orb-grid` |
+| `vendor/GridMasterPro/GridMaster Pro.mq5` | `GridMaster Pro.ex5` | `gmp-grid` |
+| `vendor/FvgGold-EA/FvgGold.mq5` | `FvgGold.ex5` | `fvg-grid` |
+| `vendor/MT5-SMC/EA_Script.mq5` | `EA_Script.ex5` | `smc-grid` — **does not compile yet** |
+| `SniperTurtle_KZ_v1.00.mq5` | `SniperTurtle_KZ_v1.00.ex5` | `turtle`, `v2`–`v9` |
+| `SniperOTE_Fib_v1.00.mq5` | `SniperOTE_Fib_v1.00.ex5` | `ote-grid` |
+| `SniperSweep_PDHPDL_v1.00.mq5` | `SniperSweep_PDHPDL_v1.00.ex5` | — |
+| `SniperEntry_Strict...v1.30.mq5` | `...v1.30.ex5` | `kz-grid` |
+
+**`vendor/GOLD_ORB/GOLD_ORB.mq5` is not in that list on purpose.** It is the original
+and needs its nine `.mqh` files from an `Include/` folder beside it;
+`GOLD_ORB_single.mq5` has them inlined and builds alone. Both carry the braces fix.
+
 ## Before any grid — check the setup
 
 ```
