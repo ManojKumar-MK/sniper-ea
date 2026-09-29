@@ -672,6 +672,7 @@ void Say(const string tag,const string msg)
 
 // prints the indicator state and the filter verdicts as two separate lines,
 // always immediately after the [ENTRY] line so the three read together.
+bool ClosePositionTagged(const string comment,const string evt);
 void SayEntryLogic();
 void SayEntryFilters();
 
@@ -1184,7 +1185,15 @@ void OpenTrade(int dir, double atr, double structStop=0.0)
       Say("FLIP",StringFormat("%s -> %s | closing trade %d @ %s before SL/target",
           (oldDir==1?"BUY":"SELL"),(dir==1?"BUY":"SELL"),oldId,DoubleToString(px,_Digits)));
 
-      ClosePositionTagged("FLIP exit","EXIT_FLIP");
+      //  ABORT if the close failed. Previously this carried on and placed the
+      //  reverse regardless, leaving both open with ResetPosState() having
+      //  already forgotten the first - so it was never managed again.
+      if(!ClosePositionTagged("FLIP exit","EXIT_FLIP"))
+      {
+         Say("GUARD","flip ABORTED - could not close trade "+IntegerToString(oldId)
+                    +". Not opening the reverse on top of it.");
+         return;
+      }
 
       // audit NOW - the replacement position opens on this same tick, so the usual
       // "position gone" check in OnTick would never see this one close.
@@ -1303,7 +1312,7 @@ void OpenTrade(int dir, double atr, double structStop=0.0)
    g_lastSignal =dir;
    g_lastSigTime=iTime(_Symbol,_Period,1);
 
-   if(PositionSelect(_Symbol))
+   if(SelectOurPosition())          // ours by symbol AND magic, not whatever
    {
       g_posId  =PositionGetInteger(POSITION_IDENTIFIER);
       g_tradeId=g_posId;
@@ -1752,7 +1761,18 @@ ENUM_ORDER_TYPE_FILLING PickFilling()
 
 bool CloseWithComment(double volume,const string comment)
 {
-   if(!PositionSelect(_Symbol)) return false;
+   //  Operate on whatever position the CALLER selected. It used to
+   //  PositionSelect(_Symbol) itself, which on a hedging account re-picks an
+   //  arbitrary position for the symbol - and with another EA on the same
+   //  symbol that could be THEIRS. Since CloseAllTagged now loops over our
+   //  positions and calls this for each, re-selecting here would have closed
+   //  the wrong trade. The magic check makes that impossible.
+   if(PositionGetString(POSITION_SYMBOL)!=_Symbol
+   || PositionGetInteger(POSITION_MAGIC)!=InpMagic)
+   {
+      if(!SelectOurPosition()) return false;
+   }
+   ulong ourTicket = PositionGetInteger(POSITION_TICKET);
 
    MqlTradeRequest req; MqlTradeResult res;
    ZeroMemory(req); ZeroMemory(res);
@@ -1774,10 +1794,12 @@ bool CloseWithComment(double volume,const string comment)
    {
       Say("ERROR",StringFormat("close rejected | %s | retcode %d | %s | falling back to library close",
           comment,res.retcode,res.comment));
-      // fall back to the library call so a trade is never left hanging because of a comment
+      // fall back to the library call so a trade is never left hanging because of
+      // a comment - BY TICKET, so it closes the one we selected rather than
+      // whichever the symbol lookup happens to return
       return (volume>=PositionGetDouble(POSITION_VOLUME))
-             ? trade.PositionClose(_Symbol)
-             : trade.PositionClosePartial(_Symbol,volume);
+             ? trade.PositionClose(ourTicket)
+             : trade.PositionClosePartial(ourTicket,volume);
    }
    return true;
 }
@@ -1786,13 +1808,25 @@ bool ClosePartialTagged(double volume,const string comment){ return CloseWithCom
 
 bool CloseAllTagged(const string comment)
 {
-   if(!PositionSelect(_Symbol)) return false;
-   return CloseWithComment(PositionGetDouble(POSITION_VOLUME),comment);
+   //  Loop, do not PositionSelect once. On a hedging account several of ours
+   //  can be open at the same time - which is the state this bug produced -
+   //  and closing one while reporting success would leave the rest orphaned.
+   bool any=false, allok=true;
+   for(int i=PositionsTotal()-1;i>=0;i--)
+   {
+      ulong tk=PositionGetTicket(i);
+      if(tk==0) continue;
+      if(PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+      if(PositionGetInteger(POSITION_MAGIC)!=InpMagic) continue;
+      any=true;
+      if(!CloseWithComment(PositionGetDouble(POSITION_VOLUME),comment)) allok=false;
+   }
+   return (any && allok);
 }
 
-void ClosePositionTagged(const string comment,const string evt)
+bool ClosePositionTagged(const string comment,const string evt)
 {
-   if(!PositionOnSymbol()) return;
+   if(!PositionOnSymbol()) return true;        // nothing of ours to close
    double vol=PositionGetDouble(POSITION_VOLUME);
    double px =(PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY)
               ?SymbolInfoDouble(_Symbol,SYMBOL_BID):SymbolInfoDouble(_Symbol,SYMBOL_ASK);
@@ -1800,7 +1834,10 @@ void ClosePositionTagged(const string comment,const string evt)
    {
       LogEvent(evt,px,vol,0.0,0.0,RealizedR(px),0.0,comment);
       g_lastSignal=0;
+      return true;
    }
+   Say("ERROR","close FAILED: "+comment+" | err "+IntegerToString(GetLastError()));
+   return false;
 }
 
 //====================================================================
@@ -4983,10 +5020,53 @@ int BarsBetween(datetime a,datetime b)
 {
    int s=PeriodSeconds(_Period); if(s<=0) return 0; return (int)((b-a)/s);
 }
+//====================================================================
+//  SelectOurPosition  -  the fix for "FLAT while four positions are open"
+//
+//  PositionSelect(_Symbol) picks ONE position for the symbol. On a HEDGING
+//  account there can be several, and if another EA also trades this symbol -
+//  Gold Reaper on magic 8002, say - PositionSelect can land on THAT one. The
+//  magic test then fails, PositionOnSymbol() reports false, and the EA
+//  believes it is flat while its own trades are open.
+//
+//  Every new signal then opens another position instead of flipping, nothing
+//  is ever managed, and the panel says FLAT with four trades live. That is
+//  exactly what happened: four 990555 positions - three buys and a sell -
+//  alongside a Gold Reaper sell on 8002.
+//
+//  This walks every position and selects OURS by symbol AND magic.
+//====================================================================
+bool SelectOurPosition()
+{
+   for(int i=PositionsTotal()-1;i>=0;i--)
+   {
+      ulong tk=PositionGetTicket(i);
+      if(tk==0) continue;
+      if(PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+      if(PositionGetInteger(POSITION_MAGIC)!=InpMagic) continue;
+      return true;                     // PositionGetTicket already selected it
+   }
+   return false;
+}
+
+//  How many of ours are open. Should never exceed 1; if it does, the flip
+//  failed somewhere and the EA is running blind.
+int CountOurPositions()
+{
+   int n=0;
+   for(int i=PositionsTotal()-1;i>=0;i--)
+   {
+      ulong tk=PositionGetTicket(i);
+      if(tk==0) continue;
+      if(PositionGetString(POSITION_SYMBOL)==_Symbol
+      && PositionGetInteger(POSITION_MAGIC)==InpMagic) n++;
+   }
+   return n;
+}
+
 bool PositionOnSymbol()
 {
-   if(!PositionSelect(_Symbol)) return false;
-   return (PositionGetInteger(POSITION_MAGIC)==InpMagic);
+   return SelectOurPosition();
 }
 void ResetPosState()
 {
