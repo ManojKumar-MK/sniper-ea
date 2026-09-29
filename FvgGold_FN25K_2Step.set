@@ -1,0 +1,88 @@
+; FvgGold EA - FundedNext Stellar 2-Step 25K
+; ATTACH TO XAUUSD  M15   (FVGTimeframe is M15, HTF bias is H1)
+;
+; Changed from the vendor FvgGold.set:
+;   FixedLot        0.01 -> 0.0     see below - this is not optional
+;   RiskPercent     0.5  -> 0.35    $87.50 per trade on 25k
+;   DailyLossLimit  5.0  -> 300.0   the vendor value halts after a $5 loss
+;
+; ================= READ THIS FIRST =================
+; THIS EA HAS NO TOTAL-DRAWDOWN GUARD. Searched the source: DailyLossLimit is
+; the only protection that exists. There is no max-loss stop, no equity guard,
+; no baseline. Nothing in this EA will stop it at -$1500.
+;
+; That is why DailyLossLimit is 300 and not 750. The arithmetic:
+;     daily 750  ->  two bad days and a half reaches -1500. Account gone.
+;     daily 300  ->  FIVE bad days to reach it, and you get to notice.
+; It costs some upside. It buys the only margin available, because the firm's
+; max-loss rule is unprotected by the software.
+;
+; You still have to watch the cumulative figure yourself. Set an alert in the
+; FundedNext dashboard, or remove the EA manually at -$1000.
+;
+; ================= WHY FixedLot MUST BE 0 =================
+; CalcLot() checks "if(FixedLot > 0)" FIRST and returns immediately. While
+; FixedLot is 0.01 the RiskPercent setting does NOTHING - every trade is a
+; flat 0.01 lot regardless. With FixedLot=0.0 the 0.35% actually applies.
+;
+; ================= UNCHANGED, AND WHY =================
+; The strategy inputs - MinGapSize 25, MinScoreFVG 50, the score weights,
+; UseOBFilter, EMA 50/200, HTF H1 - are the author's defaults. There is no
+; backtest in the repo to justify changing any of them, and guessing would
+; only mean running something nobody has tested.
+;
+; MaxTrades stays 1. One position at a time keeps exposure to 0.35% and
+; matters more than usual here given there is no total-loss guard.
+;
+; ================= KNOWN ISSUE: KILLZONES IGNORE DST =================
+; KZ_* are fixed GMT hours read from TimeGMT(), with no daylight-saving
+; handling anywhere in the source. 7-10 GMT is the WINTER-correct London
+; killzone; for roughly five months a year every window sits an hour off the
+; session it is named after. Broker-independent, so no InpServerGmtOffset
+; problem - but the labels are wrong in summer. Shift each KZ_* value down by
+; 1 between late March and late October if you want them accurate.
+;
+; ================= BEFORE IT TRADES =================
+;   * Compile FvgGold.mq5 with F7. Third-party source, never built here.
+;   * There is NO BACKTEST in that repo - no results, no equity curve, no
+;     data. The landing page shows an equity chart and a demo video; that is
+;     marketing, not something you can verify. Run it on 2023-2026 first.
+;   * Magic 7777 does not collide with 990021 / 993000 / 994000 / 995000
+;     (our EAs) or 52731 (Gold Reaper), so it can run alongside them.
+FVGTimeframe=PERIOD_M15||PERIOD_M15||PERIOD_M15||PERIOD_M15||N
+MinGapSize=25||25||25||25||N
+MaxAgeBars=20||20||20||20||N
+MinAgeBars=2||2||2||2||N
+FVGBuffer=3.0||3.0||3.0||3.0||N
+MinScoreFVG=50.0||50.0||50.0||50.0||N
+ScoreGapWeight=30.0||30.0||30.0||30.0||N
+ScoreDispWeight=30.0||30.0||30.0||30.0||N
+ScoreHTFWeight=20.0||20.0||20.0||20.0||N
+ScoreFreshWeight=10.0||10.0||10.0||10.0||N
+ScorePDWeight=10.0||10.0||10.0||10.0||N
+UseOBFilter=true||true||true||true||N
+OB_ImpulseATR=1.5||1.5||1.5||1.5||N
+OB_LookbackBars=50||50||50||50||N
+OB_MinSize=10.0||10.0||10.0||10.0||N
+OB_ConfluenceBonus=20.0||20.0||20.0||20.0||N
+OB_MaxDistance=200.0||200.0||200.0||200.0||N
+HTF_Period=PERIOD_H1||PERIOD_H1||PERIOD_H1||PERIOD_H1||N
+EMA_Fast=50||50||50||50||N
+EMA_Slow=200||200||200||200||N
+FixedLot=0.0||0.01||0.01||0.01||N
+RiskPercent=0.35||0.5||0.5||0.5||N
+MaxTrades=1||1||1||1||N
+DailyLossLimit=300.0||5.0||5.0||5.0||N
+ATR_TP_Mult=2.0||2.0||2.0||2.0||N
+RiskRewardRatio=1.5||1.5||1.5||1.5||N
+UseFixedRR=true||true||true||true||N
+UseKillzone=true||true||true||true||N
+KZ_LondonStart=7||7||7||7||N
+KZ_LondonEnd=10||10||10||10||N
+KZ_OverlapStart=12||12||12||12||N
+KZ_OverlapEnd=16||16||16||16||N
+KZ_NYEnd=21||21||21||21||N
+KZ_PreferOverlap=false||false||false||false||N
+CloseAtEOD=false||false||false||false||N
+MagicNumber=7777||7777||7777||7777||N
+SlippagePoints=20||20||20||20||N

@@ -37,6 +37,7 @@ SniperEA_Log_*.jsonl
 #  Note these are UTF-16: MT5 writes them that way and git will show them as
 #  binary unless told otherwise.
 !GoldReaper_*.set
+!FvgGold_*.set
 
 # ...with one narrow exception: the BACKTEST GRID sets. These are parameter
 # sweeps, not live presets - every one has InpUseTelegram=false and an EMPTY
