@@ -89,6 +89,15 @@ input double   InpTP4_R          = 4.0;
 input double   InpTP5_R          = 5.0;
 input double   InpPartialPct      = 20.0;   // % of the ORIGINAL position closed at each TP
 input bool     InpTrailBehindTP  = true;    // BE after TP1, then SL to the previous TP
+input int      InpTrailStartTP   = 1;       // which TP must be reached before the stop moves AT ALL.
+                                            // 1 = the usual behaviour: BE at TP1, then SL to the
+                                            //     previous target at each level after that.
+                                            // 3 = the stop does not move until TP3 is hit, and then
+                                            //     goes to TP2. Everything below TP3 runs on the
+                                            //     original stop, so a trade that reaches TP1 and
+                                            //     turns loses a full R instead of scratching -
+                                            //     the trade being made is fewer scratches for
+                                            //     bigger drawdown on the ones that fail.
 input double   InpTpRMultiple     = 3.0;    // (single-TP mode only) TP in R
 input bool     InpMoveToBE_Single = true;   // (single-TP mode only) BE after +1R
 
@@ -1347,7 +1356,7 @@ void ManageScaleOut()
          if(i<4)
          {
             string slLine = "SL unchanged";
-            if(InpTrailBehindTP)
+            if(InpTrailBehindTP && (i+1) >= InpTrailStartTP)
             {
                // one level at a time: TP1 -> breakeven, TP2 -> TP1, TP3 -> TP2, TP4 -> TP3
                double newSL = (i==0) ? g_entry : g_tpPrice[i-1];
@@ -1386,7 +1395,7 @@ void ManageScaleOut()
             // RUNNER: TP5 is just one more rung. Step the stop to TP4 and keep going -
             // ManageRunner() takes over the trail from here, one rung at a time.
             string slLine = "SL unchanged";
-            if(InpTrailBehindTP)
+            if(InpTrailBehindTP && 5 >= InpTrailStartTP)
             {
                double newSL=NormalizeDouble(g_tpPrice[3],_Digits);
                double curTP=PositionGetDouble(POSITION_TP);
@@ -1476,7 +1485,7 @@ void ManageScaleOut()
 
          // trail the stop behind the target just hit (BE after TP1, then to previous TP)
          string tgSlLine = "SL unchanged";
-         if(InpTrailBehindTP)
+         if(InpTrailBehindTP && (i+1) >= InpTrailStartTP)
          {
             double newSL=(i==0)?g_entry:g_tpPrice[i-1];
             newSL=NormalizeDouble(newSL,_Digits);
@@ -1505,7 +1514,7 @@ void ManageScaleOut()
          // RUNNER, scale-out mode: the four partials are already booked; let the
          // remainder run instead of closing it, stop stepped to TP4.
          string slLine = "SL unchanged";
-         if(InpTrailBehindTP)
+         if(InpTrailBehindTP && 5 >= InpTrailStartTP)
          {
             double newSL=NormalizeDouble(g_tpPrice[3],_Digits);
             double curTP=PositionGetDouble(POSITION_TP);
@@ -4600,7 +4609,7 @@ void MonitorVirtual()
       if(i<4)
       {
          string slLine = "SL unchanged";
-         if(InpTrailBehindTP)
+         if(InpTrailBehindTP && (i+1) >= InpTrailStartTP)
          {
             g_virtSL = (i==0) ? g_entry : g_tpPrice[i-1];
             g_virtSL = NormalizeDouble(g_virtSL,_Digits);
@@ -4629,7 +4638,7 @@ void MonitorVirtual()
       {
          // mirror the live runner, so a signals-only instance and a trading
          // instance on the same symbol tell the same story
-         if(InpTrailBehindTP)
+         if(InpTrailBehindTP && 5 >= InpTrailStartTP)
          {
             g_virtSL = NormalizeDouble(g_tpPrice[3],_Digits);
             g_curSL  = g_virtSL;

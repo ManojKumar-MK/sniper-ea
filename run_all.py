@@ -66,6 +66,8 @@ GRIDS = {
     "v9":     dict(folder="turtle-grid", sets="sets_v9",
                    expert="SniperTurtle_KZ_v1.00.ex5",
                    out="results_v9"),
+    "tp":     dict(folder="tp-grid", sets="sets_tp",
+                   expert="SniperTurtle_KZ_v1.00.ex5", out="results_tp"),
     "gmp":    dict(folder="gmp-grid", sets="sets_gmp",
                    expert="GridMaster Pro.ex5", out="results_gmp"),
     "smc":    dict(folder="smc-grid", sets="sets_smc",
