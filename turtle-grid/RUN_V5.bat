@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_V5.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  v5 - validation, plus the funded question. 11 sets x 3 TF x 4 years.
 REM
 REM  The four configs that were net-positive in BOTH 2026 and 2025, put

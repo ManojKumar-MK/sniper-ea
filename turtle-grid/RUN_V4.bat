@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_V4.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  v4 - is 50/100 real, or the best of 69 draws?
 REM
 REM  It runs TWICE on purpose:

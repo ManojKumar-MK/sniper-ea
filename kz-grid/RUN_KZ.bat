@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_KZ.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  KILLZONE grid - one click, M5 + M3, then one merged table.
 REM
 REM  Runs against a SEPARATE PORTABLE MT5 so your live terminal keeps

@@ -1,6 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\CHECK_SETUP.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  Pre-flight check. Runs nothing, changes nothing, places no trade.
 REM  Verifies the tester setup before you burn an evening on 156 passes.
 REM ===================================================================

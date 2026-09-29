@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_V2.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  v2 grid - 28 sets x M5/M3 = 56 backtests.
 REM
 REM  Built from what v1 actually showed, not from a fresh guess:

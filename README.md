@@ -50,8 +50,13 @@ Requires Python 3.8+. Nothing to install.
 ## Single click: compile, check, run
 
 ```
-GO.bat
+GO.bat            in cmd.exe, or just double-click it
+.\GO.bat          in PowerShell  <-- the .\ is required
 ```
+
+**PowerShell will not run a script from the current directory without `.\`.** Every
+`.bat` here carries that note in its header, because `COMPILE.bat all` fails with
+*"not recognized as the name of a cmdlet"* and it reads like a missing file.
 
 Three steps, each pausing so you can stop rather than find out 80 runs later:
 
@@ -63,6 +68,17 @@ Three steps, each pausing so you can stop rather than find out 80 runs later:
 
 `COMPILE.bat` alone builds the two under test; `COMPILE.bat all` builds all eight EAs
 in the repo.
+
+**MetaEditor comes from the same folder as the tester terminal** — `metaeditor64.exe`
+ships beside `terminal64.exe` in every MT5 install, so it uses the same MT5 the
+backtests run on and there is no second version to keep in step. If yours is elsewhere:
+
+```
+.\COMPILE.bat all "D:\MT5-Tester"      as an argument
+set MT5DIR=D:\MT5-Tester                or as an environment variable
+```
+
+It lists any `metaeditor64.exe` it can find if the expected one is missing.
 
 ### What compiles to what
 

@@ -1,5 +1,9 @@
 @echo off
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\GO.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  SINGLE CLICK: compile -> check -> run.
 REM
 REM  1. COMPILE.bat       builds GOLD_ORB + GridMaster into the tester

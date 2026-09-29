@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_ALL.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  ONE CLICK - every grid, every timeframe, then collect the results.
 REM
 REM  kz-grid + turtle-grid, each across M5 and M3,

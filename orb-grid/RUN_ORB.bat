@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_ORB.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  GOLD ORB — Opening Range Breakout, H1
 REM  4 years x H1. Generating the evidence that does not exist.
 REM

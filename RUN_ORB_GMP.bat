@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_ORB_GMP.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  ONE CLICK - GOLD_ORB + GridMaster Pro, four years each.
 REM
 REM    GOLD_ORB         19 sets x H1   x 2023-2026  =  76 runs

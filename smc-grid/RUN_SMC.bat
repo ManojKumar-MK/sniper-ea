@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_SMC.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  MT5-SMC — Order Block / FVG / BOS
 REM  4 years x M15. No backtest exists upstream - this makes one.
 REM

@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_OTE.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  Fib OTE model - 25 sets x M15/M5 x 4 years = 200 backtests.
 REM
 REM  A different model from everything else in this repo: session

@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_FVG.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  FvgGold — FVG + Order Block, M15
 REM  4 years x M15. Generating the evidence that does not exist.
 REM

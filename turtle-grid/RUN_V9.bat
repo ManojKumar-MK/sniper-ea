@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_V9.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  v9 - the v8 leaders on years they have never seen.
 REM       8 sets x M15 x 2023 + 2024 = 16 backtests. Minutes, not hours.
 REM

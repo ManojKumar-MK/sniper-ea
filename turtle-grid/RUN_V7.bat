@@ -1,6 +1,10 @@
 @echo off
 setlocal
 REM ===================================================================
+REM  IN POWERSHELL prefix with .\  -  PowerShell will not run a script from
+REM  the current directory otherwise:   .\RUN_V7.bat
+REM  In cmd.exe, or by double-clicking, the bare name works.
+REM
 REM  v7 - the COMPLETE filter space on the 50/100 signal.
 REM
 REM  All 128 on/off combinations of the seven quality conditions,
