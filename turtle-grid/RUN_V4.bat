@@ -18,6 +18,18 @@ REM  the tester terminal and scroll back past Jan 2025 first.
 REM ===================================================================
 
 cd /d "%~dp0"
+
+REM  ---------------------------------------------------------------
+REM  Clear PYTHONHOME / PYTHONPATH for this window only.
+REM  A stale PYTHONHOME makes python.exe start and then die with
+REM      Could not find platform independent libraries <prefix>
+REM      ModuleNotFoundError: No module named 'encodings'
+REM  because it looks for its standard library where that variable
+REM  points instead of beside the exe. Clearing them here affects only
+REM  this script's environment, never the system.
+REM  ---------------------------------------------------------------
+set "PYTHONHOME="
+set "PYTHONPATH="
 set MT5DIR=C:\MT5-Tester
 set EXPERT=SniperTurtle_KZ_v1.00.ex5
 set BASE=--skip-done --deposit 25000 --symbol XAUUSD ^

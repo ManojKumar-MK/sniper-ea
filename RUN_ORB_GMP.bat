@@ -32,6 +32,18 @@ REM ===================================================================
 
 cd /d "%~dp0"
 
+REM  ---------------------------------------------------------------
+REM  Clear PYTHONHOME / PYTHONPATH for this window only.
+REM  A stale PYTHONHOME makes python.exe start and then die with
+REM      Could not find platform independent libraries <prefix>
+REM      ModuleNotFoundError: No module named 'encodings'
+REM  because it looks for its standard library where that variable
+REM  points instead of beside the exe. Clearing them here affects only
+REM  this script's environment, never the system.
+REM  ---------------------------------------------------------------
+set "PYTHONHOME="
+set "PYTHONPATH="
+
 where python >nul 2>nul
 if errorlevel 1 (
   echo. & echo   python is not on PATH. Install from python.org and tick

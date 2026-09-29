@@ -10,6 +10,18 @@ REM  Verifies the tester setup before you burn an evening on 156 passes.
 REM ===================================================================
 
 cd /d "%~dp0"
+
+REM  ---------------------------------------------------------------
+REM  Clear PYTHONHOME / PYTHONPATH for this window only.
+REM  A stale PYTHONHOME makes python.exe start and then die with
+REM      Could not find platform independent libraries <prefix>
+REM      ModuleNotFoundError: No module named 'encodings'
+REM  because it looks for its standard library where that variable
+REM  points instead of beside the exe. Clearing them here affects only
+REM  this script's environment, never the system.
+REM  ---------------------------------------------------------------
+set "PYTHONHOME="
+set "PYTHONPATH="
 set MT5DIR=C:\MT5-Tester
 if not "%~1"=="" set MT5DIR=%~1
 
@@ -23,6 +35,21 @@ set FAIL=0
 
 echo [1] python on PATH
 where python >nul 2>nul && (for /f "delims=" %%v in ('python --version 2^>^&1') do echo     OK   %%v) || (echo     FAIL  install from python.org, tick "Add python.exe to PATH" & set FAIL=1)
+
+echo [1b] python actually runs
+python -c "import sys,encodings; print('     OK   '+sys.executable)" 2>nul || (
+  echo     FAIL  python.exe starts but cannot load its standard library.
+  echo           Almost always a stale PYTHONHOME or PYTHONPATH:
+  echo             PYTHONHOME = %PYTHONHOME%
+  echo             PYTHONPATH = %PYTHONPATH%
+  echo           The launchers clear both for their own window. If it still
+  echo           fails, clear them for good:
+  echo             setx PYTHONHOME ""
+  echo             setx PYTHONPATH ""
+  echo           then open a NEW terminal. Or reinstall python and tick
+  echo           "Add python.exe to PATH".
+  set FAIL=1
+)
 
 echo [2] tester terminal exists
 if exist "%MT5DIR%\terminal64.exe" (echo     OK   %MT5DIR%\terminal64.exe) else (echo     FAIL  not found - install a SECOND MT5 there, or pass the path: CHECK_SETUP.bat "D:\Your\Path" & set FAIL=1)
