@@ -190,8 +190,8 @@ def main():
                     help="comma list: kz,sweep,turtle  (default: all)")
     ap.add_argument("--periods", default=",".join(PERIODS),
                     help="comma list of timeframes (default: M15,M5,M3)")
-    ap.add_argument("--mt5dir", default=r"C:\MetaTrade-Live",
-                    help=r"portable MT5 folder (default: C:\MetaTrade-Live)")
+    ap.add_argument("--mt5dir", default=r"C:\MT5-Tester",
+                    help=r"portable MT5 folder (default: C:\MT5-Tester)")
     ap.add_argument("--years", default="",
                     help="comma list of whole calendar years to run, e.g. "
                          "2023,2024,2025,2026 - each becomes its own window and its "

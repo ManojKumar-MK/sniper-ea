@@ -15,7 +15,7 @@ REM  COMPILE FIRST (F7) and CLOSE the tester terminal before running.
 REM ===================================================================
 
 cd /d "%~dp0"
-set MT5DIR=C:\MetaTrade-Live
+set MT5DIR=C:\MT5-Tester
 set EXPERT=SniperOTE_Fib_v1.00.ex5
 set BASE=--skip-done --deposit 25000 --symbol XAUUSD ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable

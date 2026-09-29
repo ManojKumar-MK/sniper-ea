@@ -15,8 +15,8 @@ REM  Results land in orb-grid\ and gmp-grid\, then get collected into
 REM  backtest-results\<timestamp>\ ready to commit.
 REM
 REM  SETUP, once:
-REM    1. Second MT5 at C:\MetaTrade-Live, launched with /portable
-REM    2. Compile BOTH and copy the .ex5 into C:\MetaTrade-Live\MQL5\Experts\
+REM    1. Second MT5 at C:\MT5-Tester, launched with /portable
+REM    2. Compile BOTH and copy the .ex5 into C:\MT5-Tester\MQL5\Experts\
 REM         vendor\GOLD_ORB\GOLD_ORB_single.mq5   -> GOLD_ORB_single.ex5
 REM         vendor\GridMasterPro\GridMaster Pro.mq5 -> GridMaster Pro.ex5
 REM       Use GOLD_ORB_single - it needs no Include\ folder, and upstream's
@@ -35,7 +35,7 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
-set MT5DIR=C:\MetaTrade-Live
+set MT5DIR=C:\MT5-Tester
 set MISSING=0
 if not exist "%MT5DIR%\MQL5\Experts\GOLD_ORB_single.ex5"   set MISSING=1
 if not exist "%MT5DIR%\MQL5\Experts\GridMaster Pro.ex5"     set MISSING=1

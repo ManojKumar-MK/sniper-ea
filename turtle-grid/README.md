@@ -13,22 +13,22 @@ sets_turtle/            the 14 .set files
 The runner drives a **separate portable MT5** so your live terminal keeps running
 untouched.
 
-1. Install a second MT5 to `C:\MetaTrade-Live` (not the default path)
+1. Install a second MT5 to `C:\MT5-Tester` (not the default path)
 2. Shortcut with `/portable` appended — this exact command line:
 
    ```
-   C:\MetaTrade-Live\terminal64.exe /portable
+   C:\MT5-Tester\terminal64.exe /portable
    ```
 
    `/portable` is what makes the terminal keep its data folder **beside
    `terminal64.exe`** instead of under `%APPDATA%\MetaQuotes\Terminal\<hash>`.
    The `.bat` passes `--portable` to every tester run as well, so both halves
    agree on where `MQL5\Profiles\Tester` actually is. Without it the runner
-   stages each `.set` into `C:\MetaTrade-Live\...` while the terminal reads from
+   stages each `.set` into `C:\MT5-Tester\...` while the terminal reads from
    `%APPDATA%` — every run produces no report and the failure looks like a
    missing EA.
 3. Launch it, log in, **compile the EA with F7** and copy `SniperTurtle_KZ_v1.00.ex5`
-   into `C:\MetaTrade-Live\MQL5\Experts\`
+   into `C:\MT5-Tester\MQL5\Experts\`
 4. Open an XAUUSD M3 chart there and scroll back past 1 Jan so it downloads the history
 5. Close that terminal. Leave your live one running.
 

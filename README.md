@@ -47,6 +47,27 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## Before any grid — check the setup
+
+```
+CHECK_SETUP.bat                      checks C:\MT5-Tester
+CHECK_SETUP.bat "D:\Your\Path"       or wherever yours is
+```
+
+Runs nothing, changes nothing, places no trade. Seven checks, in the order they bite:
+
+| | |
+|---|---|
+| 1 | `python` on PATH |
+| 2 | `terminal64.exe` exists at the tester folder |
+| 3 | it is **portable** — `MQL5\Profiles\Tester` sits beside the exe, not under `%APPDATA%` |
+| 4 | the tester terminal is **closed** — a second launch hands off to the open instance and every pass finishes in seconds with no report |
+| 5 | which `.ex5` files are compiled and in place |
+| 6 | no space or bracket in the repo path — MT5 cannot read a `/config:` path containing one |
+| 7 | prints the exact windows, timeframes and run count the launcher will use |
+
+Everything it checks is something that has actually gone wrong here at least once.
+
 ## Third-party EAs under test — one click
 
 ```
