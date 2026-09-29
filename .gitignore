@@ -40,6 +40,8 @@ SniperEA_Log_*.jsonl
 !FvgGold_*.set
 !vendor/**/*.set
 !orb-grid/sets_orb/*.set
+!gmp-grid/sets_gmp/*.set
+!smc-grid/sets_smc/*.set
 !fvg-grid/sets_fvg/*.set
 
 # ...with one narrow exception: the BACKTEST GRID sets. These are parameter

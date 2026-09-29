@@ -1,0 +1,17 @@
+; MT5-SMC - SMC_ob
+Strategy=0
+MagicNumber=76543
+HedgeMagic=76544
+OneTradePerBar=true
+LotPerK=0.02
+BagProfitPercent=8.0
+BagLossPercent=4.0
+UseSessionFilter=true
+UseATRFilters=true
+UseRegimeFilter=true
+RegimeMethod=0
+ATR_Period=14
+SwingBars=5
+FibRetraceLevel=61.8
+DisplacementMin=0.0
+MaxSpreadPoints=120

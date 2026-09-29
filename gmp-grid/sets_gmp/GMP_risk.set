@@ -1,0 +1,19 @@
+; GridMaster Pro - GMP_risk
+GridMode=0
+MaxOrders=5
+ATRPeriod=14
+ATRMultiplier=1.5
+LotMode=1
+LotSize=0.01
+RiskPercent=0.35
+UseTakeProfit=true
+DefaultTP=200.0
+UseStopLoss=true
+DefaultSL=1000.0
+UseTrailingStop=true
+TrailingPoints=100.0
+TrailingStep=20.0
+MaxDrawdownPct=5.0
+CloseOnDrawdown=true
+MagicBase=47291
+DebugMode=false
