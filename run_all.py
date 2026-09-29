@@ -71,7 +71,7 @@ GRIDS = {
     "smc":    dict(folder="smc-grid", sets="sets_smc",
                    expert="EA_Script.ex5", out="results_smc"),
     "orb":    dict(folder="orb-grid", sets="sets_orb",
-                   expert="GOLD_ORB.ex5", out="results_orb"),
+                   expert="GOLD_ORB_single.ex5", out="results_orb"),
     "fvg":    dict(folder="fvg-grid", sets="sets_fvg",
                    expert="FvgGold.ex5", out="results_fvg"),
     "ote":    dict(folder="ote-grid", sets="sets_ote",

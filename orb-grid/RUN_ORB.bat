@@ -12,7 +12,7 @@ REM ===================================================================
 
 cd /d "%~dp0"
 set MT5DIR=C:\MT5-Tester
-set EXPERT=GOLD_ORB.ex5
+set EXPERT=GOLD_ORB_single.ex5
 set BASE=--skip-done --deposit 25000 --symbol XAUUSD ^
  --expert "%EXPERT%" --terminal "%MT5DIR%\terminal64.exe" --data-dir "%MT5DIR%" --portable
 

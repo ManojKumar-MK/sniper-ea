@@ -57,6 +57,32 @@ The same precedence trap as `InpUseSessionLots` in our own EA and `FixedLot` in 
 The grid sets it to `0.0` in the control so `FixedVolume` applies, and to a real value
 only in the sets that intend risk-based sizing.
 
+## Single-file build
+
+`GOLD_ORB_single.mq5` is the one to compile. Upstream pulls nine `.mqh` files from an
+`Include/` folder beside the source; this has them inlined, so it builds on its own with
+nothing else to copy into `MQL5/Experts/`.
+
+- **Inlined** (the author's, ~2,960 lines): Trade, TradeVirtual, TrailingStops,
+  TrailingStopsVirtual, price_action, Indicators, MoneyManagement, RiskManagement,
+  errordescription. Each appears once even though four files included
+  `errordescription.mqh`, and each file's own includes are emitted before its body so
+  dependencies precede use.
+- **`#property` stripped** from the inlined files — every one carried its own
+  copyright/link/version block and repeating them makes MQL5 complain. Only the main
+  file's three remain.
+- **Not inlined:** `Include/Math/Stat/Normal.mqh` is MetaQuotes' own standard library
+  file that had been bundled into the repo. It now uses MT5's copy via
+  `#include <Math\Stat\Normal.mqh>`. Inlining it would have added 6,400 lines of
+  MetaQuotes code when the only symbol used from it is `MathSum()`.
+
+Verified: braces and parens balance (222/222, 992/992) with line comments, block
+comments and string literals all stripped correctly; no duplicate function, class or
+enum definitions; `OnInit` and `OnTick` both present.
+
+The original `GOLD_ORB.mq5` and `Include/` are kept alongside for reference. Compile
+whichever you prefer — they are the same EA, and both carry the braces fix.
+
 ## Status
 
 **Never compiled here and never backtested.** Upstream ships a `.ex5` and a
