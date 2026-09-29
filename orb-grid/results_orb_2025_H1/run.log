@@ -1,0 +1,57 @@
+
+======================================================================
+2026-09-29 10:36:13  run_backtests.py --sets sets_orb --out results_orb_2025_H1 --period H1 --expert GOLD_ORB_single.ex5 --skip-done --portable --deposit 25000 --from 2025.01.01 --to 2025.12.31 --terminal C:\MT5-Tester\terminal64.exe --data-dir C:\MT5-Tester
+======================================================================
+Terminal : C:\MT5-Tester\terminal64.exe
+Data dir : C:\MT5-Tester
+Expert   : GOLD_ORB_single.ex5   (as given: GOLD_ORB_single.ex5)
+Run      : XAUUSD H1 2025.01.01 - 2025.12.31, model real, deposit 25000
+Sets     : 19
+
+MT5 will open and close once per run. Do not use the terminal meanwhile.
+
+[1/19]   running ORB_1perday ... done in 0.6 min, no EA logs found
+[2/19]   running ORB_4perday ... done in 0.7 min, no EA logs found
+[3/19]   running ORB_comp2 ... done in 0.6 min, no EA logs found
+[4/19]   running ORB_comp4 ... done in 0.5 min, no EA logs found
+[5/19]   running ORB_comp6 ... done in 0.6 min, no EA logs found
+[6/19]   running ORB_ctrl ... done in 0.6 min, no EA logs found
+[7/19]   running ORB_dd10 ... done in 0.6 min, no EA logs found
+[8/19]   running ORB_dd6 ... done in 0.6 min, no EA logs found
+[9/19]   running ORB_fn25k ... done in 0.6 min, no EA logs found
+[10/19]   running ORB_longs ... done in 0.6 min, no EA logs found
+[11/19]   running ORB_notrail ... done in 0.5 min, no EA logs found
+[12/19]   running ORB_risk035 ... done in 0.6 min, no EA logs found
+[13/19]   running ORB_risk05 ... done in 0.6 min, no EA logs found
+[14/19]   running ORB_rr2 ... done in 0.6 min, no EA logs found
+[15/19]   running ORB_rr4 ... done in 0.6 min, no EA logs found
+[16/19]   running ORB_rr6 ... done in 0.6 min, no EA logs found
+[17/19]   running ORB_shorts ... done in 0.5 min, no EA logs found
+[18/19]   running ORB_sl300 ... done in 0.6 min, no EA logs found
+[19/19]   running ORB_sl600 ... done in 0.6 min, no EA logs found
+
+19 of 19 runs produced a report in 11 min
+
+run                       filter                 trades       net    PF    DD%  win%    avgW    avgL
+----------------------------------------------------------------------------------------------------
+ORB_risk05                none                      265   4079.24  1.21   6.94  35.1  256.09 -112.95
+ORB_risk035               none                      265   2869.44  1.21   4.86  35.1  176.58  -77.56
+ORB_fn25k                 none                      217   2399.59  1.22   4.07  37.3  166.10  -79.99
+ORB_comp2                 none                      304   1904.96  1.28   1.79  36.5   77.84  -34.35
+ORB_longs                 none                      147   1479.61  1.46   1.73  36.7   87.38  -34.27
+ORB_comp4                 none                      233   1388.10  1.27   2.39  34.8   81.78  -33.91
+ORB_ctrl                  none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_dd10                  none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_dd6                   none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_rr2                   none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_rr4                   none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_rr6                   none                      265   1283.90  1.22   2.23  35.1   77.38  -33.83
+ORB_1perday               none                      217   1091.23  1.23   1.79  37.3   72.34  -34.50
+ORB_sl300                 none                      265   1012.21  1.20   2.38  30.9   74.72  -27.44
+ORB_sl600                 none                      265    815.20  1.12   2.46  38.1   76.02  -41.28
+ORB_notrail               none                      265    684.11  1.09   2.61  27.2  119.83  -40.68
+ORB_4perday               none                     1293    557.02  1.02   6.39  32.6   72.52  -33.86
+ORB_comp6                 none                      162    461.41  1.12   2.44  31.5   84.37  -34.09
+ORB_shorts                none                      118   -195.71  0.93   2.12  33.0   63.53  -33.32
+
+Wrote C:\Users\Administrator\Downloads\sniper-ea\orb-grid\results_orb_2025_H1\comparison.csv
