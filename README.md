@@ -66,8 +66,16 @@ Three steps, each pausing so you can stop rather than find out 80 runs later:
 2. **`CHECK_SETUP.bat`** — the seven pre-flight checks below.
 3. **`RUN_ORB_GMP.bat`** — 156 backtests.
 
-`COMPILE.bat` alone builds the two under test; `COMPILE.bat all` builds all eight EAs
-in the repo.
+```
+.\COMPILE.bat                          the two under test
+.\COMPILE.bat all                      every .mq5 found in the repo
+.\COMPILE.bat SniperGrid_v1.00.mq5     just that one
+```
+
+The `all` list is **discovered**, not hand-maintained — it went stale twice, and the
+symptom was a grid failing with *"not in MQL5\Experts"*, which reads like a missing
+file rather than a launcher that had not been told about a new EA. Only
+`vendor/GOLD_ORB/GOLD_ORB.mq5` is skipped, because it needs its `Include/` folder.
 
 **MetaEditor comes from the same folder as the tester terminal** — `metaeditor64.exe`
 ships beside `terminal64.exe` in every MT5 install, so it uses the same MT5 the

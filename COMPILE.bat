@@ -13,7 +13,8 @@ REM      .\COMPILE.bat all "D:\MT5-Tester"
 REM  In cmd.exe the bare name works.
 REM
 REM  Arguments, in any order:
-REM      all        build every EA in the repo, not just the two under test
+REM      all        build every .mq5 found in the repo (discovered, not listed)
+REM      <file.mq5> build just that one, e.g. .\COMPILE.bat SniperGrid_v1.00.mq5
 REM      <path>     the MT5 folder to use (anything containing \ or :)
 REM  Or set MT5DIR as an environment variable.
 REM ===================================================================
@@ -32,12 +33,14 @@ REM  ---------------------------------------------------------------
 set "PYTHONHOME="
 set "PYTHONPATH="
 if not defined MT5DIR set MT5DIR=C:\MT5-Tester
-REM  Simple and unambiguous: "all" means build everything, anything else
-REM  is the MT5 folder. No regex on a for-variable, which is where batch
-REM  argument parsing usually goes wrong.
+REM  "all" builds everything discovered, a *.mq5 name builds just that one,
+REM  anything else is the MT5 folder.
 set BUILDALL=0
+set ONEFILE=
 for %%A in (%*) do (
-  if /I "%%~A"=="all" (set BUILDALL=1) else (set MT5DIR=%%~A)
+  if /I "%%~A"=="all" (set BUILDALL=1) else (
+    if /I "%%~xA"==".mq5" (set ONEFILE=%%~A) else (set MT5DIR=%%~A)
+  )
 )
 
 REM --- metaeditor64.exe comes from the SAME folder as terminal64.exe ---
@@ -61,8 +64,26 @@ if not exist "%ME%" (
 set EXPDIR=%MT5DIR%\MQL5\Experts
 if not exist "%EXPDIR%" mkdir "%EXPDIR%"
 
-set LIST="vendor\GOLD_ORB\GOLD_ORB_single.mq5" "vendor\GridMasterPro\GridMaster Pro.mq5"
-if %BUILDALL%==1 set LIST="vendor\GOLD_ORB\GOLD_ORB_single.mq5" "vendor\GridMasterPro\GridMaster Pro.mq5" "vendor\FvgGold-EA\FvgGold.mq5" "vendor\MT5-SMC\EA_Script.mq5" "SniperTurtle_KZ_v1.00.mq5" "SniperOTE_Fib_v1.00.mq5" "SniperSweep_PDHPDL_v1.00.mq5" "SniperEntry_Strict_SessionFilter_Telegram_v1.30.mq5"
+REM  --- what to build -----------------------------------------------
+REM  DISCOVERED, not hand-listed. The list went stale twice - a new EA was
+REM  added and COMPILE.bat did not know about it, so the grid failed with
+REM  "not in MQL5\Experts" and looked like a missing file.
+REM
+REM  Only one file is skipped: vendor\GOLD_ORB\GOLD_ORB.mq5, the original
+REM  that needs its nine .mqh files from an Include\ folder.
+REM  GOLD_ORB_single.mq5 has them inlined and builds alone.
+set LIST=
+if not "%ONEFILE%"=="" (
+  set LIST="%ONEFILE%"
+) else (
+  if %BUILDALL%==1 (
+    for /r %%F in (*.mq5) do (
+      if /I not "%%~nxF"=="GOLD_ORB.mq5" call set LIST=%%LIST%% "%%F"
+    )
+  ) else (
+    set LIST="vendor\GOLD_ORB\GOLD_ORB_single.mq5" "vendor\GridMasterPro\GridMaster Pro.mq5"
+  )
+)
 
 echo.
 echo ==================================================================
