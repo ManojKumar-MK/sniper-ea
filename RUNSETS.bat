@@ -61,9 +61,33 @@ goto :collect
 if "!YEARS!"=="" goto :usage
 set TERM=%MT5DIR%\terminal64.exe
 set TESTERDIR=%MT5DIR%\MQL5\Profiles\Tester
-if not exist "%TERM%"                        echo. & echo   terminal64.exe not at %TERM% & echo. & if not defined NOPAUSE pause & exit /b 1
-if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" echo. & echo   %EXPERT% not in %MT5DIR%\MQL5\Experts\ - compile it first & echo. & if not defined NOPAUSE pause & exit /b 1
-if not exist "%SETS%"                        echo. & echo   not found: %SETS% & echo. & if not defined NOPAUSE pause & exit /b 1
+REM  Parenthesised blocks, not "if COND a & b & c". In that form only the
+REM  FIRST command is conditional and the rest run regardless - which is why
+REM  a missing sets folder printed "not found" and then carried on to report
+REM  0 files and 0 runs as though nothing were wrong.
+if not exist "%TERM%" (
+  echo.
+  echo   terminal64.exe not at %TERM%
+  echo.
+  if not defined NOPAUSE pause
+  exit /b 1
+)
+if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" (
+  echo.
+  echo   %EXPERT% is not in %MT5DIR%\MQL5\Experts\ - compile it first
+  echo.
+  if not defined NOPAUSE pause
+  exit /b 1
+)
+if not exist "%SETS%" (
+  echo.
+  echo   NOT FOUND: %SETS%
+  echo   If that is a sets folder, the .set files may never have been
+  echo   committed - check .gitignore and "git ls-files".
+  echo.
+  if not defined NOPAUSE pause
+  exit /b 1
+)
 if not exist "%TESTERDIR%" mkdir "%TESTERDIR%"
 
 REM  A single .set FILE is accepted as well as a folder, so one run can be
@@ -123,6 +147,15 @@ echo   years     :!YEARS!
 echo   runs      : !RUNS!
 echo   terminal  : %TERM%
 echo ==================================================================
+
+if !RUNS!==0 (
+  echo.
+  echo   ZERO RUNS - no .set files matched. Nothing was tested.
+  echo   This used to print a tidy summary and exit 0, which reads as success.
+  echo.
+  if not defined NOPAUSE pause
+  exit /b 1
+)
 
 set /a DONE=0
 for %%Y in (!YEARS!) do (

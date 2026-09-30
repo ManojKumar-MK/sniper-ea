@@ -32,6 +32,11 @@ SniperEA_Log_*.jsonl
 # a token committed once lives in the history until the history is rewritten.
 *.set
 !*.example.set
+#  Grid sets: ONE rule rather than a negation per folder. That list reached
+#  sixteen entries and still missed srhtf-grid, so those 36 sets were never
+#  committed and the runner reported "not found" on the machine that pulled.
+#  Any <name>-grid/sets_<name>/ folder is covered from now on.
+!*-grid/sets_*/*.set
 #  Third-party EA presets. Kept because they are configuration for a funded
 #  account and belong with the rest of it - verified token-free before adding.
 #  Note these are UTF-16: MT5 writes them that way and git will show them as
@@ -40,29 +45,12 @@ SniperEA_Log_*.jsonl
 !FvgGold_*.set
 !SniperEA_KZ_*.set
 !vendor/**/*.set
-!orb-grid/sets_orb/*.set
-!grid-grid/sets_grid/*.set
-!tp-grid/sets_tp/*.set
-!gmp-grid/sets_gmp/*.set
-!smc-grid/sets_smc/*.set
-!fvg-grid/sets_fvg/*.set
 
 # ...with one narrow exception: the BACKTEST GRID sets. These are parameter
 # sweeps, not live presets - every one has InpUseTelegram=false and an EMPTY
 # InpTgToken, and the runner globs the folder, so the grid is useless if they
 # are not in the repo. The rule above still covers every set outside these two
 # folders. Verify a set is token-free before adding anything else here.
-!kz-grid/sets_kz/*.set
 !kz-grid/*.set
-!turtle-grid/sets_turtle/*.set
-!turtle-grid/sets_v2/*.set
-!turtle-grid/sets_v3/*.set
-!turtle-grid/sets_v4/*.set
-!turtle-grid/sets_v5/*.set
-!turtle-grid/sets_v6/*.set
-!turtle-grid/sets_v7/*.set
-!turtle-grid/sets_v8/*.set
-!turtle-grid/sets_v9/*.set
-!ote-grid/sets_ote/*.set
 !ote-grid/*.set
 !turtle-grid/*.set
