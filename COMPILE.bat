@@ -61,28 +61,67 @@ if not exist "%ME%" (
   pause & exit /b 1
 )
 
-set EXPDIR=%MT5DIR%\MQL5\Experts
-if not exist "%EXPDIR%" mkdir "%EXPDIR%"
+set MQLDIR=%MT5DIR%\MQL5
+set EXPDIR=%MQLDIR%\Experts
+set SCRDIR=%MQLDIR%\Scripts
+set INDDIR=%MQLDIR%\Indicators
+set INCDIR=%MQLDIR%\Include
+for %%D in ("%EXPDIR%" "%SCRDIR%" "%INDDIR%" "%INCDIR%") do if not exist "%%~D" mkdir "%%~D"
+
+REM  Any vendor Include\ tree goes to MQL5\Include so that quoted includes
+REM  resolve. GOLD_ORB's original needs nine .mqh files this way; the
+REM  single-file build does not, but copying them costs nothing and lets the
+REM  original compile too if you ever want to diff the two.
+for /d %%V in ("vendor\*") do (
+  if exist "%%~V\Include" (
+    echo   includes: %%~nxV\Include -^> MQL5\Include
+    xcopy /E /I /Y /Q "%%~V\Include\*" "%INCDIR%\" >nul
+  )
+)
 
 REM  --- what to build -----------------------------------------------
-REM  DISCOVERED, not hand-listed. The list went stale twice - a new EA was
-REM  added and COMPILE.bat did not know about it, so the grid failed with
-REM  "not in MQL5\Experts" and looked like a missing file.
+REM  DISCOVERED, not hand-listed. The list went stale twice, and the symptom
+REM  was a grid failing with "not in MQL5\Experts" - which reads like a
+REM  missing file rather than a launcher that had not been told about a new EA.
 REM
-REM  Only one file is skipped: vendor\GOLD_ORB\GOLD_ORB.mq5, the original
-REM  that needs its nine .mqh files from an Include\ folder.
-REM  GOLD_ORB_single.mq5 has them inlined and builds alone.
+REM  Written with goto labels and !delayed! expansion rather than nested
+REM  parentheses. The previous version used "call set LIST=%%LIST%% ..." inside
+REM  a for inside an if, which silently produced an EMPTY list under
+REM  enabledelayedexpansion - so nothing was compiled and nothing said so.
+REM
+REM  Only vendor\GOLD_ORB\GOLD_ORB.mq5 is skipped: it needs its nine .mqh
+REM  files from an Include\ folder. GOLD_ORB_single.mq5 has them inlined.
 set LIST=
-if not "%ONEFILE%"=="" (
-  set LIST="%ONEFILE%"
-) else (
-  if %BUILDALL%==1 (
-    for /r %%F in (*.mq5) do (
-      if /I not "%%~nxF"=="GOLD_ORB.mq5" call set LIST=%%LIST%% "%%F"
-    )
-  ) else (
-    set LIST="vendor\GOLD_ORB\GOLD_ORB_single.mq5" "vendor\GridMasterPro\GridMaster Pro.mq5"
-  )
+if not "%ONEFILE%"=="" goto :pick_one
+if %BUILDALL%==1 goto :pick_all
+goto :pick_default
+
+:pick_one
+if not exist "%ONEFILE%" (
+  echo. & echo   %ONEFILE% not found. Run this from the repo root. & echo.
+  pause & exit /b 1
+)
+set LIST="%ONEFILE%"
+goto :have_list
+
+:pick_all
+for /r %%F in (*.mq5) do (
+  if /I not "%%~nxF"=="GOLD_ORB.mq5" set LIST=!LIST! "%%F"
+)
+goto :have_list
+
+:pick_default
+set LIST="vendor\GOLD_ORB\GOLD_ORB_single.mq5" "vendor\GridMasterPro\GridMaster Pro.mq5"
+goto :have_list
+
+:have_list
+if "!LIST!"=="" (
+  echo.
+  echo   NOTHING TO BUILD - the file list came out empty.
+  echo   That is a bug in this script, not a missing EA. Pass a filename:
+  echo       .\COMPILE.bat SniperGrid_v1.00.mq5
+  echo.
+  pause & exit /b 1
 )
 
 echo.
@@ -91,19 +130,35 @@ echo   MT5 folder  : %MT5DIR%
 echo   MetaEditor  : %ME%
 echo   Output to   : %EXPDIR%
 echo ==================================================================
+echo   Building:
+for %%F in (!LIST!) do echo       %%~nxF
 
 set FAILED=0
-for %%F in (%LIST%) do (
+for %%F in (!LIST!) do (
   echo.
   echo --- %%~nxF
   if not exist "%%~F" (
     echo     FAIL  source not found - are you in the repo root?
     set FAILED=1
   ) else (
-    copy /Y "%%~F" "%EXPDIR%\%%~nxF" >nul
-    del "%EXPDIR%\%%~nF.ex5" 2>nul
-    "%ME%" /compile:"%EXPDIR%\%%~nxF" /log:"%TEMP%\mecomp.log" >nul 2>&1
-    if exist "%EXPDIR%\%%~nF.ex5" (
+    REM  MQL5 wants each kind in its own folder, and MetaEditor decides what a
+    REM  file IS from its entry point, not from where it sits. Route by that:
+    REM      OnTick      -> Experts
+    REM      OnCalculate -> Indicators
+    REM      OnStart     -> Scripts
+    REM  Putting a script in Experts compiles but it never appears under
+    REM  Scripts in the Navigator, which looks like a failed build.
+    set "DEST=%EXPDIR%"
+    set "KIND=expert"
+    findstr /C:"OnCalculate" "%%~F" >nul 2>&1 && ( set "DEST=%INDDIR%" & set "KIND=indicator" )
+    findstr /C:"OnTick" "%%~F" >nul 2>&1 || (
+      findstr /C:"OnStart" "%%~F" >nul 2>&1 && ( set "DEST=%SCRDIR%" & set "KIND=script" )
+    )
+    echo     kind  !KIND!  -^>  !DEST!
+    copy /Y "%%~F" "!DEST!\%%~nxF" >nul
+    del "!DEST!\%%~nF.ex5" 2>nul
+    "%ME%" /compile:"!DEST!\%%~nxF" /log:"%TEMP%\mecomp.log" >nul 2>&1
+    if exist "!DEST!\%%~nF.ex5" (
       echo     OK    %%~nF.ex5
     ) else (
       echo     FAIL  no .ex5 produced. MetaEditor said:

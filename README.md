@@ -72,6 +72,18 @@ Three steps, each pausing so you can stop rather than find out 80 runs later:
 .\COMPILE.bat SniperGrid_v1.00.mq5     just that one
 ```
 
+Each file is routed by **what its entry point says it is**, not by where it sits:
+
+| entry point | goes to |
+|---|---|
+| `OnTick` | `MQL5\Experts` |
+| `OnCalculate` | `MQL5\Indicators` |
+| `OnStart` | `MQL5\Scripts` |
+
+A script compiled into `Experts` builds fine and then never appears under Scripts in the
+Navigator, which looks like a failed build. Any `vendor/*/Include` tree is copied to
+`MQL5\Include` as well, so quoted includes resolve.
+
 The `all` list is **discovered**, not hand-maintained — it went stale twice, and the
 symptom was a grid failing with *"not in MQL5\Experts"*, which reads like a missing
 file rather than a launcher that had not been told about a new EA. Only
