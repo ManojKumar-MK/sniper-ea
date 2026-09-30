@@ -7,7 +7,10 @@ REM
 REM  IN POWERSHELL prefix with .\   ->   .\RUNSETS.bat grid-grid\sets_grid ...
 REM
 REM  USAGE
-REM    RUNSETS.bat <setsfolder> <Expert.ex5> <TF> <year> [year...] [nostop]
+REM    RUNSETS.bat <setsfolder-OR-one.set> <Expert.ex5> <TF> <year> [...] [nostop]
+REM
+REM  DIAGNOSE A FAILURE IN 30 SECONDS - point it at ONE set file:
+REM    .\RUNSETS.bat grid-grid\sets_grid\G_fn_ctrl.set SniperGrid_v1.00.ex5 M5 2026
 REM
 REM  It STOPS at the first failed run and prints the MT5 log, because 100
 REM  identical failures tell you nothing that the first one did not. Add
@@ -58,8 +61,16 @@ set TERM=%MT5DIR%\terminal64.exe
 set TESTERDIR=%MT5DIR%\MQL5\Profiles\Tester
 if not exist "%TERM%"                        echo. & echo   terminal64.exe not at %TERM% & echo. & pause & exit /b 1
 if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" echo. & echo   %EXPERT% not in %MT5DIR%\MQL5\Experts\ - compile it first & echo. & pause & exit /b 1
-if not exist "%SETS%"                        echo. & echo   sets folder not found: %SETS% & echo. & pause & exit /b 1
+if not exist "%SETS%"                        echo. & echo   not found: %SETS% & echo. & pause & exit /b 1
 if not exist "%TESTERDIR%" mkdir "%TESTERDIR%"
+
+REM  A single .set FILE is accepted as well as a folder, so one run can be
+REM  tested in seconds instead of discovering a problem 100 passes in.
+set "ONESET="
+if /I "%~x1"==".set" (
+  for %%A in ("%SETS%") do set "ONESET=%%~fA"
+  for %%A in ("%SETS%") do set "SETS=%%~dpA"
+)
 
 REM  ABSOLUTE PATHS, and this is not cosmetic. With /portable the terminal
 REM  resolves a RELATIVE Report= against its OWN data folder, not against the
@@ -95,9 +106,11 @@ tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul
 )
 
 set /a TOTAL=0
-for %%S in ("!SETSABS!\*.set") do set /a TOTAL+=1
+set "GLOB=!SETSABS!\*.set"
+if defined ONESET set "GLOB=!ONESET!"
+for %%S in ("!GLOB!") do set /a TOTAL+=1
 set /a RUNS=0
-for %%Y in (!YEARS!) do for %%S in ("!SETSABS!\*.set") do set /a RUNS+=1
+for %%Y in (!YEARS!) do for %%S in ("!GLOB!") do set /a RUNS+=1
 
 echo.
 echo ==================================================================
@@ -113,7 +126,7 @@ set /a DONE=0
 for %%Y in (!YEARS!) do (
   set "OUTDIR=!GRIDDIR!results_%%Y_%TF%"
   if not exist "!OUTDIR!" mkdir "!OUTDIR!"
-  for %%S in ("!SETSABS!\*.set") do (
+  for %%S in ("!GLOB!") do (
     set /a DONE+=1
     set NAME=%%~nS
     set "REPORT=!OUTDIR!\report_!NAME!"
@@ -139,7 +152,9 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo Optimization=0
       >> "!INI!" echo ForwardMode=0
       >> "!INI!" echo ExecutionMode=0
-      >> "!INI!" echo Visual=0
+      if defined ONESET (>> "!INI!" echo Visual=0) else (>> "!INI!" echo Visual=0)
+      REM  ShutdownTerminal stays 1 even for a single run: without it the
+      REM  terminal sits open and start /wait never returns.
       >> "!INI!" echo Report=!REPORT!
       >> "!INI!" echo ReplaceReport=1
       >> "!INI!" echo ShutdownTerminal=1
