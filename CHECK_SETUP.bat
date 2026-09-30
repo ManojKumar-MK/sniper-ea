@@ -32,6 +32,7 @@ echo ==================================================================
 echo.
 
 set FAIL=0
+set "PYFAIL="
 
 echo [1] python on PATH
 where python >nul 2>nul && (for /f "delims=" %%v in ('python --version 2^>^&1') do echo     OK   %%v) || (echo     FAIL  install from python.org, tick "Add python.exe to PATH" & set FAIL=1)
@@ -52,7 +53,7 @@ python -c "import sys,encodings; print('     OK   '+sys.executable)" 2>nul || (
   echo           NOTHING IS BLOCKED ON THIS. Use RUNSETS.bat, which drives
   echo           MetaTrader directly and needs no python at all:
   echo               .\RUNSETS.bat ^<sets^> ^<Expert.ex5^> ^<TF^> ^<year^>
-  set FAIL=1
+  set PYFAIL=1
 )
 
 echo [2] tester terminal exists
@@ -116,7 +117,16 @@ python run_all.py --list --grids orb --periods H1 --years 2023,2024,2025,2026 --
 
 echo.
 echo ==================================================================
-if %FAIL%==1 (echo   NOT READY - fix the FAIL lines above.) else (echo   Checks passed. WARN lines are yours to judge.)
+if %FAIL%==1 (
+  echo   NOT READY - fix the FAIL lines above.
+) else (
+  if defined PYFAIL (
+    echo   READY for RUNSETS.bat. Python is broken but RUNSETS does not use it,
+    echo   so only run_all.py and the merged comparison table are unavailable.
+  ) else (
+    echo   Checks passed. WARN lines are yours to judge.
+  )
+)
 echo ==================================================================
 echo.
 echo   Then, in MT5 itself:
