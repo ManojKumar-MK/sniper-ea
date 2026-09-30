@@ -1,14 +1,15 @@
 # srhtf-grid — SR_HTF_StopEntry_EA
 
-36 sets × M5 × 2023–2026 = **144 runs**.
+36 sets, M5.
 
 ```
-.\RUN_SRHTF.bat                                          all of it
-.\RUNSETS.bat srhtf-grid\sets_srhtf\SR_ctrl.set SR_HTF_StopEntry_EA.ex5 M5 2026
+.\RUN_SRHTF.bat        ONE CLICK: compile -> prove on one set -> run 36 sets over 2026
+.\RUN_SRHTF_4Y.bat     the same 36 sets over 2023-2026 (144 runs), once one looks good
 ```
 
-Run the single set first. It takes seconds and proves the harness before committing to
-144 passes — the grid EA burned a full run producing nothing.
+`RUN_SRHTF.bat` compiles the EA, runs **`SR_ctrl` alone** and stops if that produces no
+report, then runs the other 35. The grid EA burned a whole 100-pass run producing
+nothing, so nothing here commits to 36 passes before one has worked.
 
 ---
 
