@@ -41,6 +41,7 @@ SniperEA_Log_*.jsonl
 !SniperEA_KZ_*.set
 !vendor/**/*.set
 !orb-grid/sets_orb/*.set
+!grid-grid/sets_grid/*.set
 !tp-grid/sets_tp/*.set
 !gmp-grid/sets_gmp/*.set
 !smc-grid/sets_smc/*.set
