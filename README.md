@@ -47,6 +47,29 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## No Python? Use MetaTrader directly
+
+```
+.\RUNSETS.bat <setsfolder> <Expert.ex5> <TF> <year> [year...]
+
+.\RUNSETS.bat grid-grid\sets_grid SniperGrid_v1.00.ex5 M5 2023 2024 2025 2026
+.\RUNSETS.bat orb-grid\sets_orb   GOLD_ORB_single.ex5  H1 2026
+.\RUN_GRID_NOPY.bat                         one-click wrapper for the grid EA
+```
+
+Pure batch. It writes the tester `.ini` itself and drives `terminal64.exe /config:`
+directly, so **nothing here needs python**. Use it when python.exe fails with
+`ModuleNotFoundError: No module named 'encodings'` — a broken `PYTHONHOME` or a damaged
+install, which clearing the variable per-window does not always fix.
+
+It skips runs whose report already exists, so it is resumable. It also stops to warn if
+a `terminal64.exe` is running, since a second launch of the tester terminal hands the
+`/config:` to the open instance and every pass finishes in seconds with no report.
+
+**What it gives up:** the merged comparison table, which was the Python part. MT5 still
+writes a full `.htm` report per run into `results_<year>_<TF>/` — commit those and they
+can be parsed for the table.
+
 ## Single click: compile, check, run
 
 ```
