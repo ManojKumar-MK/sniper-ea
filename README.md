@@ -77,6 +77,14 @@ It skips runs whose report already exists, so it is resumable. It also stops to 
 a `terminal64.exe` is running, since a second launch of the tester terminal hands the
 `/config:` to the open instance and every pass finishes in seconds with no report.
 
+Two sets folders under one grid folder would collide, because the results directory is
+named from the grid. `OUTTAG` separates them:
+
+```
+set OUTTAG=_v2
+.\RUNSETS.bat srhtf-grid\sets_srhtf_v2 SR_HTF_StopEntry_EA.ex5 M5 2026 nostop
+```
+
 ### It is taking hours
 
 `Model=4` (every tick from real ticks) costs about **19 minutes per XAUUSD year on

@@ -10,9 +10,21 @@
 //|      -> only fills if price actually breaks structure (MSS)      |
 //|   5. SL below the sweep low, TP at HTF liquidity (min RR gate)   |
 //|  Plus: killzones, news filter, daily/max loss guards, target lock|
+//|                                                                  |
+//|  v1.10 - every input below is additive and defaults to the v1.00  |
+//|  behaviour, so an existing .set reproduces its old result:        |
+//|   InpMaxOppose      separates "how many agree" from "none may     |
+//|                     disagree", which were conflated - 1/2/3 on    |
+//|                     InpMinAgree picked nearly the same bars       |
+//|   InpTPFallback     take a fixed-RR target when HTF liquidity is  |
+//|                     closer than InpMinRR, instead of skipping.    |
+//|                     That skip was rejecting almost every setup:   |
+//|                     5 trades in 9 months vs 30 without it         |
+//|   InpAsia*          a third killzone                              |
+//|   InpDailyTargetUSD bank the day once it is made                  |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.00"
+#property version   "1.10"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -23,6 +35,7 @@ input ENUM_TIMEFRAMES InpTF1          = PERIOD_H1;
 input ENUM_TIMEFRAMES InpTF2          = PERIOD_H4;
 input ENUM_TIMEFRAMES InpTF3          = PERIOD_D1;
 input int             InpMinAgree     = 3;      // TFs that must agree (1-3). 3 = A+ only
+input int             InpMaxOppose    = 0;      // TFs allowed to disagree. 0 = v1.00 behaviour
 input int             InpSwingStrength= 2;      // Fractal bars each side
 input int             InpSwingLookback= 150;    // Bars searched for swings
 input bool            InpUsePDFilter  = true;   // Longs in discount, shorts in premium
@@ -38,6 +51,7 @@ input double          InpSLBufPts     = 30;     // Points beyond sweep extreme f
 input double          InpTPBufPts     = 20;     // Points in front of HTF liquidity for TP
 input double          InpMinRR        = 3.0;    // Minimum reward:risk
 input bool            InpTargetLiquidity = true;// TP at HTF liquidity (else fixed MinRR)
+input bool            InpTPFallback   = false;  // Liquidity too close? take fixed MinRR instead of skipping
 input int             InpOrderExpiryBars = 6;   // Pending order life (entry-TF bars)
 input double          InpMinSLPts     = 100;    // Skip if stop tighter than this
 input double          InpMaxSLPts     = 1500;   // Skip if stop wider than this
@@ -50,6 +64,9 @@ input int             InpLonEnd       = 10;
 input bool            InpNY           = true;
 input int             InpNYStart      = 12;
 input int             InpNYEnd        = 15;
+input bool            InpAsia         = false;  // Third killzone. false = v1.00 behaviour
+input int             InpAsiaStart    = 0;
+input int             InpAsiaEnd      = 3;
 input bool            InpNewsFilter   = true;   // Live only (calendar not in tester)
 input int             InpNewsMinsBefore = 30;
 input int             InpNewsMinsAfter  = 30;
@@ -72,6 +89,7 @@ input double          InpDailyGuardPct  = 2.5;  // EA stops for the day (firm li
 input double          InpMaxGuardPct    = 6.0;  // EA stops permanently (firm limit 10%)
 input bool            InpTargetLock     = true; // Off for funded/instant accounts
 input double          InpTargetPct      = 8.0;  // Challenge phase target
+input double          InpDailyTargetUSD = 0;    // Bank the day at this realised profit. 0 = off
 input bool            InpResetState     = false;// true once to clear saved halts
 
 input group "=== Misc ==="
@@ -87,6 +105,8 @@ bool     g_accHalted    = false;
 int      g_bias         = 0, g_b1 = 0, g_b2 = 0, g_b3 = 0;
 bool     g_news         = false;
 int      g_tradesToday  = 0, g_lossesToday = 0;
+double   g_profitToday  = 0;      // realised only - floating would flap the target check
+bool     g_dayBanked    = false;
 datetime g_lastSweepTime= 0;
 string   g_status       = "Starting";
 
@@ -156,8 +176,13 @@ int ComputeBias()
    int up = (g_b1 == 1 ? 1 : 0) + (g_b2 == 1 ? 1 : 0) + (g_b3 == 1 ? 1 : 0);
    int dn = (g_b1 == -1 ? 1 : 0) + (g_b2 == -1 ? 1 : 0) + (g_b3 == -1 ? 1 : 0);
    int need = MathMax(1, MathMin(3, InpMinAgree));
-   if(up >= need && dn == 0) return 1;
-   if(dn >= need && up == 0) return -1;
+   // "how many agree" and "none may disagree" are separate questions. v1.00
+   // hard-coded the second as dn==0, which dominated the first: InpMinAgree
+   // 1, 2 and 3 selected almost the same bars, so the grid could not measure
+   // the A+ premise at all. InpMaxOppose=0 keeps the old behaviour.
+   int allowOpp = MathMax(0, MathMin(2, InpMaxOppose));
+   if(up >= need && dn <= allowOpp) return 1;
+   if(dn >= need && up <= allowOpp) return -1;
    return 0;
 }
 
@@ -179,7 +204,13 @@ bool InKillzone()
    int h = t.hour;
    bool lon = InpLondon && h >= InpLonStart && h < InpLonEnd;
    bool ny  = InpNY     && h >= InpNYStart  && h < InpNYEnd;
-   return lon || ny;
+   // Asia can wrap midnight (e.g. 23 -> 3), so test the wrap explicitly
+   // rather than letting start >= end silently match nothing.
+   bool asia = false;
+   if(InpAsia)
+      asia = (InpAsiaStart <= InpAsiaEnd) ? (h >= InpAsiaStart && h < InpAsiaEnd)
+                                          : (h >= InpAsiaStart || h < InpAsiaEnd);
+   return lon || ny || asia;
 }
 
 bool FridayCutoff()
@@ -269,6 +300,7 @@ void CheckNewDay()
       GlobalVariableSet(gvEq, g_dayStartEq);
    }
    g_dayHalted = GlobalVariableCheck(GVName("dh_" + key));
+   g_dayBanked = GlobalVariableCheck(GVName("dt_" + key));
    CountToday();
 }
 
@@ -307,12 +339,33 @@ bool RunGuards()
       Print(g_status);
       return false;
    }
+
+   // Checked AFTER the daily loss guard above, and deliberately: a banked day
+   // can still be holding an open position, and returning early here would
+   // leave nothing watching it drag equity through the daily limit.
+   // Daily target, checked on REALISED profit. Floating profit would flip this
+   // on and off as price moved. Open positions are left to reach their own TP
+   // or SL - only new entries stop, and the pendings are pulled.
+   if(InpDailyTargetUSD > 0 && !g_dayBanked && g_profitToday >= InpDailyTargetUSD)
+   {
+      DeletePendings();
+      g_dayBanked = true;
+      GlobalVariableSet(GVName("dt_" + IntegerToString((long)g_dayStart)), 1);
+      g_status = StringFormat("DAILY TARGET %.0f made (%.2f) - done for today",
+                              InpDailyTargetUSD, g_profitToday);
+      Print(g_status);
+   }
+   if(g_dayBanked)
+   {
+      g_status = StringFormat("Daily target banked (%.2f) - resumes next day", g_profitToday);
+      return false;
+   }
    return true;
 }
 
 void CountToday()
 {
-   g_tradesToday = 0; g_lossesToday = 0;
+   g_tradesToday = 0; g_lossesToday = 0; g_profitToday = 0;
    if(!HistorySelect(g_dayStart, TimeCurrent() + 60)) return;
    int n = HistoryDealsTotal();
    for(int i = 0; i < n; i++)
@@ -329,6 +382,7 @@ void CountToday()
                       HistoryDealGetDouble(d, DEAL_SWAP) +
                       HistoryDealGetDouble(d, DEAL_COMMISSION);
          if(net < 0) g_lossesToday++;
+         g_profitToday += net;
       }
    }
 }
@@ -464,6 +518,8 @@ void TryPlaceSetup()
    if(risk < InpMinSLPts * _Point || risk > InpMaxSLPts * _Point)
    { g_status = "Setup stop size out of range - skipped"; g_lastSweepTime = sweepT; return; }
 
+   double fixedTP = (type == ORDER_TYPE_BUY_STOP) ? entry + InpMinRR * risk
+                                                  : entry - InpMinRR * risk;
    if(InpTargetLiquidity)
    {
       tp = (type == ORDER_TYPE_BUY_STOP) ? rHi - InpTPBufPts * _Point
@@ -471,10 +527,23 @@ void TryPlaceSetup()
       double rr = MathAbs(tp - entry) / risk;
       bool wrongSide = (type == ORDER_TYPE_BUY_STOP) ? (tp <= entry) : (tp >= entry);
       if(wrongSide || rr < InpMinRR)
-      { g_status = StringFormat("Setup RR %.2f < %.1f - skipped", rr, InpMinRR); g_lastSweepTime = sweepT; return; }
+      {
+         // This skip is what held v1.00 to 5 trades in nine months: the HTF
+         // range extreme is rarely InpMinRR or more beyond entry, so a valid
+         // sweep was thrown away for want of a distant target. With the
+         // fallback the setup is still taken, at a fixed InpMinRR target.
+         if(!InpTPFallback)
+         {
+            g_status = StringFormat("Setup RR %.2f < %.1f - skipped", rr, InpMinRR);
+            g_lastSweepTime = sweepT;
+            return;
+         }
+         tp = fixedTP;
+         g_status = StringFormat("Liquidity RR %.2f < %.1f - fixed %.1fR target", rr, InpMinRR, InpMinRR);
+      }
    }
    else
-      tp = (type == ORDER_TYPE_BUY_STOP) ? entry + InpMinRR * risk : entry - InpMinRR * risk;
+      tp = fixedTP;
 
    entry = NormPrice(entry); sl = NormPrice(sl); tp = NormPrice(tp);
    double lots = CalcLots(type, entry, sl);
@@ -564,6 +633,7 @@ void UpdatePanel(bool kz)
       "Day start eq: %.2f   Daily guard at: %.2f\n"
       "Max guard at: %.2f   Target: %s\n"
       "Trades today: %d/%d   Losses: %d/%d\n"
+      "P/L today: %.2f   Day target: %s\n"
       "Status: %s",
       EnumToString(InpTF1), BiasStr(g_b1), EnumToString(InpTF2), BiasStr(g_b2),
       EnumToString(InpTF3), BiasStr(g_b3), BiasStr(g_bias),
@@ -571,7 +641,11 @@ void UpdatePanel(bool kz)
       g_dayStartEq, g_dayStartEq * (1.0 - InpDailyGuardPct / 100.0),
       InpInitialBalance * (1.0 - InpMaxGuardPct / 100.0),
       InpTargetLock ? DoubleToString(InpInitialBalance * (1.0 + InpTargetPct / 100.0), 2) : "off",
-      g_tradesToday, InpMaxTradesDay, g_lossesToday, InpMaxLossesDay, g_status));
+      g_tradesToday, InpMaxTradesDay, g_lossesToday, InpMaxLossesDay,
+      g_profitToday,
+      InpDailyTargetUSD > 0 ? DoubleToString(InpDailyTargetUSD, 0) + (g_dayBanked ? " BANKED" : "")
+                            : "off",
+      g_status));
 }
 
 //=================== EVENTS ===================
@@ -597,9 +671,13 @@ void OnTick()
    CheckNewDay();
    bool kz = InKillzone();
 
-   if(!RunGuards()) { UpdatePanel(kz); return; }
-
+   // BE runs BEFORE the guards, not after. A banked day (daily target made)
+   // deliberately leaves its open position alone to reach its own TP, and the
+   // guards return false for the rest of the day - so managing break-even
+   // after them would abandon that position unmanaged until it closed.
    if(InpBreakEven) ManageBreakEven();
+
+   if(!RunGuards()) { UpdatePanel(kz); return; }
 
    datetime bt = iTime(_Symbol, InpEntryTF, 0);
    bool newBar = (bt != g_lastBar && bt != 0);

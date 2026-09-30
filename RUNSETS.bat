@@ -55,6 +55,12 @@ if not defined MODEL set MODEL=4
 set "MODELTAG="
 if not "%MODEL%"=="4" set "MODELTAG=_m%MODEL%"
 
+REM  OUTTAG separates two sets FOLDERS that share one grid folder. The results
+REM  directory is named from the grid, not from the sets folder, so without
+REM  this sets_srhtf and sets_srhtf_v2 would both write into
+REM  srhtf-grid\results_2026_M5_m1 and land in the same comparison table.
+if not defined OUTTAG set "OUTTAG="
+
 set SETS=%~1
 set EXPERT=%~2
 set TF=%~3
@@ -205,7 +211,7 @@ if !RUNS!==0 (
 
 set /a DONE=0
 for %%Y in (!YEARS!) do (
-  set "OUTDIR=!GRIDDIR!results_%%Y_%TF%!MODELTAG!"
+  set "OUTDIR=!GRIDDIR!results_%%Y_%TF%%OUTTAG%!MODELTAG!"
   if not exist "!OUTDIR!" mkdir "!OUTDIR!"
   for %%S in ("!GLOB!") do (
     set /a DONE+=1
@@ -304,7 +310,7 @@ for %%Y in (!YEARS!) do (
 
 echo.
 echo ==================================================================
-echo   Reports are in !GRIDDIR!results_^<year^>_%TF%!MODELTAG!\
+echo   Reports are in !GRIDDIR!results_^<year^>_%TF%%OUTTAG%!MODELTAG!\
 echo   Commit that folder and the .htm files can be parsed for the
 echo   comparison table.
 echo ==================================================================

@@ -191,3 +191,69 @@ The useful move is a second grid with `InpTargetLiquidity=false` as the **baseli
 re-testing the knobs that were unmeasurable while 5 trades was the sample: `InpMinRR`,
 break-even, sessions, and `InpMinAgree` once `dn == 0` is separated from the count.
 Then real ticks, then 2023-2025.
+
+---
+
+## v1.10 and the v2 grid - chasing $100/day
+
+```
+.\RUN_SRHTF_V2.bat        44 sets, fast model, ~75 min
+```
+
+### The arithmetic first, because it decides how to read the results
+
+$100/day x 20 days = **$2,000/month = 8% of a 25k account, every month.** The best set
+in the 2026 screen made $514 in nine months at 0.5% risk - about $57/month. Closing that
+gap by size alone needs roughly 35x, and equity drawdown scales with it: 2.92% x 35 is
+past 100%. The account is gone long before the month ends.
+
+So size is not the route. **Frequency is the only lever with any headroom**, and the
+2026 screen showed exactly what was suppressing it. That is what v1.10 changes and what
+this grid measures. The `_r15` and `_r2` sets are in the grid to *find the wall*, not
+because they are expected to pass - they should breach `InpMaxGuardPct`, and seeing
+where they breach it is the useful part.
+
+### What v1.10 adds
+
+Every new input defaults to the v1.00 behaviour, so an old `.set` reproduces its old
+result exactly.
+
+| input | default | what it is for |
+|---|---|---|
+| `InpTPFallback` | `false` | HTF target nearer than `InpMinRR`? Take the setup at a fixed `InpMinRR` target instead of discarding it. **This was the 5-trades-in-nine-months cause.** |
+| `InpMaxOppose` | `0` | TFs allowed to disagree, separated from `InpMinAgree`. `0` is the old hard-coded `dn == 0`. |
+| `InpAsia` / `InpAsiaStart` / `InpAsiaEnd` | `false` / `0` / `3` | A third killzone; wraps midnight correctly. |
+| `InpDailyTargetUSD` | `0` | Bank the day at this **realised** profit: pull pendings, take no new entries, leave open positions to their own TP. |
+
+Two ordering points in the guards, both deliberate:
+
+- The daily **loss** guard runs before the daily-target check. A banked day can still be
+  holding a position, and returning early on the banked flag would leave nothing
+  watching it drag equity through the daily limit.
+- `ManageBreakEven` now runs **before** `RunGuards`, for the same reason - a banked day
+  returns false for the rest of the session, which would otherwise abandon the open
+  position unmanaged until it closed.
+
+### The grid
+
+44 sets, no two identical (checked - 15 of the last 36 were). Three layers:
+
+| block | sets | asks |
+|---|---|---|
+| anchors | `V2_nofb`, `V2_base`, `V2_fixedrr` | did `InpTPFallback` take? |
+| one knob | `V2_rr15`…`V2_be15` (23 sets) | which knob adds trades that pay |
+| frequency stacks | `V2_freq1`…`V2_freq4` | stacked, each adding one idea |
+| size | `_r1`, `_r15`, `_r2` on freq2/3/4 | where does size breach 6% |
+| daily target | `_t50`, `_t100`, `_t200` | what the rule costs |
+| funded | `V2_freq3_fn`, `V2_freq3_r2_fn` | no target lock, tighter guards |
+
+`V2_ag1` and `V2_ag2` are expected to stay **inert** - that is the `dn == 0` finding
+reproducing on the new baseline, and it is the control for `V2_opp1_ag1` / `V2_opp1_ag2`,
+which are the first real test of the A+ premise.
+
+### Reading it
+
+Rank on **expectancy per trade**, never net. Every set here trades more than the last
+grid did, so net rises on volume alone and would rank the loosest set first. A daily
+target cannot create an edge either - it can only end a good day early - so each `_t*`
+set is only meaningful against the same stack without it.
