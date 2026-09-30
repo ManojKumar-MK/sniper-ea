@@ -56,6 +56,28 @@ if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" echo. & echo   %EXPERT% not in %MT
 if not exist "%SETS%"                        echo. & echo   sets folder not found: %SETS% & echo. & pause & exit /b 1
 if not exist "%TESTERDIR%" mkdir "%TESTERDIR%"
 
+REM  ABSOLUTE PATHS, and this is not cosmetic. With /portable the terminal
+REM  resolves a RELATIVE Report= against its OWN data folder, not against the
+REM  directory this script was launched from - so a relative path writes the
+REM  report into C:\MT5-Tester\... while the "did it appear?" check looks in
+REM  the repo, and every run reports NO REPORT even when it succeeded.
+for %%A in ("%SETS%\.") do set "SETSABS=%%~fA"
+for %%A in ("!SETSABS!") do set "GRIDDIR=%%~dpA"
+
+REM  MT5 cannot read a /config: path containing a space or a bracket - it
+REM  opens, finds nothing and quits, leaving .ini files and no reports. The
+REM  Python runner refused outright in that case; same here, with the reason.
+echo !SETSABS! | findstr /C:" " >nul && (
+  echo.
+  echo   This path contains a SPACE:
+  echo       !SETSABS!
+  echo   MT5 cannot read a /config: path with spaces or brackets - it would
+  echo   open, find nothing and quit, writing .ini files but no reports.
+  echo   Move the repo somewhere plain, e.g. C:\ema, and rerun.
+  echo.
+  pause & exit /b 1
+)
+
 REM  The tester will not start while that same terminal is open - a second
 REM  launch hands the /config: to the running instance and exits at once.
 tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul && (
@@ -68,13 +90,13 @@ tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul
 )
 
 set /a TOTAL=0
-for %%S in ("%SETS%\*.set") do set /a TOTAL+=1
+for %%S in ("!SETSABS!\*.set") do set /a TOTAL+=1
 set /a RUNS=0
-for %%Y in (!YEARS!) do for %%S in ("%SETS%\*.set") do set /a RUNS+=1
+for %%Y in (!YEARS!) do for %%S in ("!SETSABS!\*.set") do set /a RUNS+=1
 
 echo.
 echo ==================================================================
-echo   sets      : %SETS%   (!TOTAL! files)
+echo   sets      : !SETSABS!   (!TOTAL! files)
 echo   expert    : %EXPERT%
 echo   timeframe : %TF%
 echo   years     :!YEARS!
@@ -84,12 +106,12 @@ echo ==================================================================
 
 set /a DONE=0
 for %%Y in (!YEARS!) do (
-  set OUT=results_%%Y_%TF%
-  if not exist "%SETS%\..\!OUT!" mkdir "%SETS%\..\!OUT!"
-  for %%S in ("%SETS%\*.set") do (
+  set "OUTDIR=!GRIDDIR!results_%%Y_%TF%"
+  if not exist "!OUTDIR!" mkdir "!OUTDIR!"
+  for %%S in ("!SETSABS!\*.set") do (
     set /a DONE+=1
     set NAME=%%~nS
-    set REPORT=%SETS%\..\!OUT!\report_!NAME!
+    set "REPORT=!OUTDIR!\report_!NAME!"
 
     if exist "!REPORT!.htm" (
       echo   [!DONE!/!RUNS!] %%Y !NAME! - already done, skipping
@@ -126,7 +148,7 @@ for %%Y in (!YEARS!) do (
 
 echo.
 echo ==================================================================
-echo   Reports are in %SETS%\..\results_^<year^>_%TF%\
+echo   Reports are in !GRIDDIR!results_^<year^>_%TF%\
 echo   Commit that folder and the .htm files can be parsed for the
 echo   comparison table.
 echo ==================================================================
