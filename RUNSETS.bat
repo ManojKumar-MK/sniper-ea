@@ -83,7 +83,7 @@ for %%A in ("!SETSABS!") do set "GRIDDIR=%%~dpA"
 REM  MT5 cannot read a /config: path containing a space or a bracket - it
 REM  opens, finds nothing and quits, leaving .ini files and no reports. The
 REM  Python runner refused outright in that case; same here, with the reason.
-echo !SETSABS! | findstr /C:" " >nul && (
+if not "!SETSABS!"=="!SETSABS: =!" (
   echo.
   echo   This path contains a SPACE:
   echo       !SETSABS!

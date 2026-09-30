@@ -66,7 +66,12 @@ for %%E in ("GOLD_ORB_single.ex5" "GridMaster Pro.ex5" "FvgGold.ex5" "SniperTurt
 )
 
 echo [6] no spaces or brackets in this folder path
-echo %CD% | findstr /C:" " >nul && (echo     WARN  "%CD%" contains a space. MT5 cannot read a /config: path with & echo           spaces - move the repo somewhere plain like C:\ema and rerun.) || echo     OK   %CD%
+if not "%CD%"=="%CD: =%" (
+  echo     WARN  "%CD%" contains a space. MT5 cannot read a /config: path
+  echo           with spaces - move the repo somewhere plain like C:\ema.
+) else (
+  echo     OK   %CD%
+)
 
 echo [7] what the runner will actually do
 python run_all.py --list --grids orb --periods H1 --years 2023,2024,2025,2026 --mt5dir "%MT5DIR%" 2>nul || echo     FAIL  run_all.py did not run - see [1]
