@@ -39,15 +39,19 @@ where python >nul 2>nul && (for /f "delims=" %%v in ('python --version 2^>^&1') 
 echo [1b] python actually runs
 python -c "import sys,encodings; print('     OK   '+sys.executable)" 2>nul || (
   echo     FAIL  python.exe starts but cannot load its standard library.
-  echo           Almost always a stale PYTHONHOME or PYTHONPATH:
-  echo             PYTHONHOME = %PYTHONHOME%
-  echo             PYTHONPATH = %PYTHONPATH%
-  echo           The launchers clear both for their own window. If it still
-  echo           fails, clear them for good:
-  echo             setx PYTHONHOME ""
-  echo             setx PYTHONPATH ""
-  echo           then open a NEW terminal. Or reinstall python and tick
-  echo           "Add python.exe to PATH".
+  echo           PYTHONHOME = [%PYTHONHOME%]
+  echo           PYTHONPATH = [%PYTHONPATH%]
+  echo.
+  echo           If BOTH are empty above, this is NOT a stale variable - the
+  echo           Python INSTALL is damaged or incomplete, most often a missing
+  echo           or moved Lib folder. Clearing variables will not fix it.
+  echo.
+  echo           Repair it:  Settings ^> Apps ^> Python ^> Modify ^> Repair
+  echo           or reinstall from python.org, ticking "Add python.exe to PATH".
+  echo.
+  echo           NOTHING IS BLOCKED ON THIS. Use RUNSETS.bat, which drives
+  echo           MetaTrader directly and needs no python at all:
+  echo               .\RUNSETS.bat ^<sets^> ^<Expert.ex5^> ^<TF^> ^<year^>
   set FAIL=1
 )
 
@@ -58,11 +62,42 @@ echo [3] it is PORTABLE  ^(data folder beside the exe, not under %%APPDATA%%^)
 if exist "%MT5DIR%\MQL5\Profiles\Tester" (echo     OK   %MT5DIR%\MQL5\Profiles\Tester) else (echo     FAIL  launch it once as: %MT5DIR%\terminal64.exe /portable & set FAIL=1)
 
 echo [4] tester terminal is CLOSED
-tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul && (echo     WARN  a terminal64.exe is running. If it is the TESTER one, close it - a & echo           second launch hands off to the open instance and every pass & echo           finishes in seconds with no report. Your LIVE terminal is fine.) || echo     OK   nothing running
+set "TESTERUP="
+for /f "delims=" %%P in ('powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='terminal64.exe'\" ^| ForEach-Object { $_.ExecutablePath }" 2^>nul') do (
+  if /I "%%~P"=="%MT5DIR%\terminal64.exe" set "TESTERUP=1"
+)
+if defined TESTERUP (
+  echo     FAIL  THE TESTER TERMINAL IS OPEN:
+  echo             %MT5DIR%\terminal64.exe
+  echo           Close it. A second launch of the SAME terminal hands the
+  echo           /config: to the open instance and exits, so every pass
+  echo           finishes in seconds with NO REPORT. This is the most common
+  echo           cause of a whole grid producing nothing.
+  set FAIL=1
+) else (
+  tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul && (
+    echo     OK   a terminal64.exe is running but it is NOT the tester one
+    echo          - your live terminal is fine to leave open
+  ) || echo     OK   no terminal running
+)
 
 echo [5] compiled EAs in %MT5DIR%\MQL5\Experts
-for %%E in ("GOLD_ORB_single.ex5" "GridMaster Pro.ex5" "FvgGold.ex5" "SniperTurtle_KZ_v1.00.ex5") do (
-  if exist "%MT5DIR%\MQL5\Experts\%%~E" (echo     OK   %%~E) else (echo     --   %%~E   missing ^(only needed for its own grid^))
+REM  DISCOVERED. This was a hardcoded list of four names written before
+REM  SniperGrid existed, so SniperGrid's absence looked like a finding when
+REM  the check simply never looked for it. Same mistake as COMPILE.bat's list.
+set /a NEX=0
+for %%F in (*.mq5) do (
+  if exist "%MT5DIR%\MQL5\Experts\%%~nF.ex5" (
+    echo     OK   %%~nF.ex5
+  ) else (
+    echo     --   %%~nF.ex5   NOT BUILT
+  )
+  set /a NEX+=1
+)
+for /r vendor %%F in (*.mq5) do (
+  if /I not "%%~nxF"=="GOLD_ORB.mq5" (
+    if exist "%MT5DIR%\MQL5\Experts\%%~nF.ex5" (echo     OK   %%~nF.ex5) else (echo     --   %%~nF.ex5   NOT BUILT)
+  )
 )
 
 echo [6] no spaces or brackets in this folder path
@@ -73,8 +108,11 @@ if not "%CD%"=="%CD: =%" (
   echo     OK   %CD%
 )
 
-echo [7] what the runner will actually do
-python run_all.py --list --grids orb --periods H1 --years 2023,2024,2025,2026 --mt5dir "%MT5DIR%" 2>nul || echo     FAIL  run_all.py did not run - see [1]
+echo [7] what the python runner would do (optional - RUNSETS does not need it)
+python run_all.py --list --grids orb --periods H1 --years 2023,2024,2025,2026 --mt5dir "%MT5DIR%" 2>nul || (
+  echo     --   skipped, python is not usable. Use RUNSETS.bat instead:
+  echo            .\RUNSETS.bat grid-grid\sets_grid SniperGrid_v1.00.ex5 M5 2026
+)
 
 echo.
 echo ==================================================================
