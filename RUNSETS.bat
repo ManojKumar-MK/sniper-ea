@@ -35,6 +35,8 @@ REM  WHAT IT DOES NOT DO
 REM  No merged comparison table - that was the Python part. MT5 still writes
 REM  a full .htm report per run into the results folder; push those and they
 REM  can be parsed. Everything the analysis needs is in them.
+REM  Set NOPAUSE=1 before calling to suppress the "press any key" stops,
+REM  so this can be chained from a wrapper as one continuous run.
 REM ===================================================================
 
 cd /d "%~dp0"
@@ -59,9 +61,9 @@ goto :collect
 if "!YEARS!"=="" goto :usage
 set TERM=%MT5DIR%\terminal64.exe
 set TESTERDIR=%MT5DIR%\MQL5\Profiles\Tester
-if not exist "%TERM%"                        echo. & echo   terminal64.exe not at %TERM% & echo. & pause & exit /b 1
-if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" echo. & echo   %EXPERT% not in %MT5DIR%\MQL5\Experts\ - compile it first & echo. & pause & exit /b 1
-if not exist "%SETS%"                        echo. & echo   not found: %SETS% & echo. & pause & exit /b 1
+if not exist "%TERM%"                        echo. & echo   terminal64.exe not at %TERM% & echo. & if not defined NOPAUSE pause & exit /b 1
+if not exist "%MT5DIR%\MQL5\Experts\%EXPERT%" echo. & echo   %EXPERT% not in %MT5DIR%\MQL5\Experts\ - compile it first & echo. & if not defined NOPAUSE pause & exit /b 1
+if not exist "%SETS%"                        echo. & echo   not found: %SETS% & echo. & if not defined NOPAUSE pause & exit /b 1
 if not exist "%TESTERDIR%" mkdir "%TESTERDIR%"
 
 REM  A single .set FILE is accepted as well as a folder, so one run can be
@@ -91,7 +93,7 @@ if not "!SETSABS!"=="!SETSABS: =!" (
   echo   open, find nothing and quit, writing .ini files but no reports.
   echo   Move the repo somewhere plain, e.g. C:\ema, and rerun.
   echo.
-  pause & exit /b 1
+  if not defined NOPAUSE pause & exit /b 1
 )
 
 REM  The tester will not start while that same terminal is open - a second
@@ -102,7 +104,7 @@ tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul
   echo   otherwise every pass finishes in seconds with no report. Your LIVE
   echo   terminal is fine to leave open.
   echo.
-  pause
+  if not defined NOPAUSE pause
 )
 
 set /a TOTAL=0
@@ -189,7 +191,7 @@ for %%Y in (!YEARS!) do (
           echo         Stopping after the first failure so the cause is readable.
           echo         Pass "nostop" as the last argument to run all of them anyway.
           echo.
-          pause & exit /b 1
+          if not defined NOPAUSE pause & exit /b 1
         )
       )
     )
@@ -203,7 +205,7 @@ echo   Commit that folder and the .htm files can be parsed for the
 echo   comparison table.
 echo ==================================================================
 echo.
-pause
+if not defined NOPAUSE pause
 exit /b 0
 
 :usage
@@ -212,5 +214,5 @@ echo   RUNSETS.bat ^<setsfolder^> ^<Expert.ex5^> ^<TF^> ^<year^> [year...]
 echo.
 echo   e.g.  RUNSETS.bat grid-grid\sets_grid SniperGrid_v1.00.ex5 M5 2023 2024 2025 2026
 echo.
-pause
+if not defined NOPAUSE pause
 exit /b 1

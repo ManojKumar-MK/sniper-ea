@@ -22,6 +22,11 @@ set "PYTHONPATH="
 if not defined MT5DIR set MT5DIR=C:\MT5-Tester
 if not "%~1"=="" set MT5DIR=%~1
 
+REM  One click means one click: the steps below are chained, so suppress the
+REM  "press any key" at the end of COMPILE and each RUNSETS pass. The final
+REM  pause at the bottom of THIS file is the only one.
+set NOPAUSE=1
+
 echo.
 echo   STEP 1 of 3 - compiling SR_HTF_StopEntry_EA
 echo ==================================================================
@@ -31,7 +36,7 @@ if not exist "%MT5DIR%\MQL5\Experts\SR_HTF_StopEntry_EA.ex5" (
   echo   Compile produced no .ex5 - stopping here rather than running 36
   echo   passes against a build that does not exist.
   echo.
-  pause & exit /b 1
+  set "NOPAUSE=" & pause & exit /b 1
 )
 
 echo.
@@ -43,7 +48,7 @@ if not exist "srhtf-grid\results_2026_M5\report_SR_ctrl.htm" (
   echo   The single test produced no report, so the other 35 would not
   echo   either. The cause is printed above - fix that first.
   echo.
-  pause & exit /b 1
+  set "NOPAUSE=" & pause & exit /b 1
 )
 
 echo.
@@ -68,4 +73,5 @@ echo.
 echo   Then commit srhtf-grid\results_2026_M5 and the reports can be
 echo   parsed into a comparison table.
 echo ==================================================================
+set "NOPAUSE="
 pause

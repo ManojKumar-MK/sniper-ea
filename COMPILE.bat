@@ -17,6 +17,8 @@ REM      all        build every .mq5 found in the repo (discovered, not listed)
 REM      <file.mq5> build just that one, e.g. .\COMPILE.bat SniperGrid_v1.00.mq5
 REM      <path>     the MT5 folder to use (anything containing \ or :)
 REM  Or set MT5DIR as an environment variable.
+REM  Set NOPAUSE=1 before calling to suppress the "press any key" stops,
+REM  so this can be chained from a wrapper as one continuous run.
 REM ===================================================================
 
 cd /d "%~dp0"
@@ -177,4 +179,4 @@ echo   Note: vendor\GOLD_ORB\GOLD_ORB.mq5 is NOT built - it is the original
 echo   and needs its nine .mqh files from an Include\ folder. The
 echo   GOLD_ORB_single.mq5 built above has them inlined.
 echo.
-pause
+if not defined NOPAUSE pause
