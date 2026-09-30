@@ -107,3 +107,87 @@ measuring a year, because every good year truncates at the same number.
 4. **Then 2024.** Every grid EA reviewed lost there, and so did both of our own
    strategies — it is the year that has separated real from fitted so far.
 5. **Rank by the worst year**, never the best.
+
+---
+
+## 2026 fast screen (Model=1, Jan-Sep) - what it found
+
+All 36 ran. `results_2026_M5_m1/`. **35 of the 36 sets are uninformative**, and the
+reason is worth more than the numbers.
+
+### The grid could not test what it was built to test
+
+15 sets returned numbers *identical* to `SR_ctrl` - same net (-368.89), same 5 trades,
+same drawdown. The reports embed the inputs actually used, and all 35 applied
+correctly, so this is not a harness fault: those inputs genuinely changed nothing.
+
+| set | input changed | trades |
+|---|---|---|
+| `SR_ctrl` | - | 5 |
+| `SR_agree1` | `InpMinAgree` 3 -> 1 | 5, identical |
+| `SR_agree2` | `InpMinAgree` 3 -> 2 | 5, identical |
+| `SR_nopd` | `InpUsePDFilter` off | 5, identical |
+| `SR_entry_m1` | `InpEntryTF` M5 -> M1 | 5, identical |
+| `SR_entry_m15` | `InpEntryTF` M5 -> M15 | 5, identical |
+| `SR_sweep6` / `SR_sweep20` | `InpSweepWindow` 12 -> 6 / 20 | 5, identical |
+| `SR_trades4` | `InpMaxTradesDay` 2 -> 4 | 5, identical |
+
+**`InpMinAgree` is not a relaxable threshold, because of `dn == 0`:**
+
+```cpp
+if(up >= need && dn == 0) return 1;
+if(dn >= need && up == 0) return -1;
+```
+
+Lowering `need` to 1 still requires that **no** timeframe disagrees. The no-opposition
+clause dominates the count, so 1, 2 and 3 select almost the same bars. The "3 TFs must
+agree = A+ only" premise cannot be measured against 1 or 2 until that is separated.
+
+### One trade a month, and one binding constraint
+
+`SR_ctrl` took **5 trades in nine months** - none at all before 4 May. The gate is
+`InpTargetLiquidity`:
+
+```cpp
+tp = (buy) ? rHi - InpTPBufPts*_Point : rLo + InpTPBufPts*_Point;
+double rr = MathAbs(tp - entry) / risk;
+if(wrongSide || rr < InpMinRR) { ...skipped... }
+```
+
+The H4 30-bar range extreme has to sit **3R or further** beyond entry. It almost never
+does, so nearly every valid sweep is discarded - which is also why loosening the
+*upstream* filters changes nothing: they were never what was rejecting the setups.
+
+`SR_fixedrr` (`InpTargetLiquidity=false`, so TP is a flat 3R) is the only set that got
+past it: **30 trades instead of 5, 6x the sample.**
+
+### The one candidate, and why it is not yet a result
+
+| | `SR_fixedrr` |
+|---|---|
+| net | +514.48 |
+| trades | 30 |
+| win rate | 63.3% |
+| profit factor | 1.37 |
+| expected payoff | $17.15 / trade |
+| equity DD | 745.64 (**2.92%**, inside `InpMaxGuardPct` 6.0) |
+| avg win / avg loss | 99.82 / -124.25 |
+
+Three reasons to hold off:
+
+1. **It is not significant.** Average win is *below* average loss (payoff ratio 0.80),
+   so breakeven needs 55.4% wins. It scored 63.3%, but the standard error of a win rate
+   on 30 trades is ~8.8 points. The edge is inside one standard error of nothing.
+2. **`Model=1` flatters it specifically.** 1-minute OHLC fills stop orders anywhere in
+   the bar's range, and every entry here is a stop order. This is the set most exposed
+   to that bias, being the one that actually trades.
+3. **Longs and shorts disagree** - shorts 73.7% won (19 trades), longs 45.5% (11). On a
+   year that trended, a short-only edge on gold is more likely a regime artifact than a
+   model.
+
+### Next grid, not next live set
+
+The useful move is a second grid with `InpTargetLiquidity=false` as the **baseline**,
+re-testing the knobs that were unmeasurable while 5 trades was the sample: `InpMinRR`,
+break-even, sessions, and `InpMinAgree` once `dn == 0` is separated from the count.
+Then real ticks, then 2023-2025.
