@@ -11,6 +11,11 @@
 report, then runs the other 35. The grid EA burned a whole 100-pass run producing
 nothing, so nothing here commits to 36 passes before one has worked.
 
+**If step 2 prints `NO REPORT` after a pass that clearly ran** (the log tail shows
+`Test passed in 0:19:xx` and `automatic testing finished`), the run was fine and only
+the report went missing — an absolute `Report=` in the `.ini` is silently not written.
+Fixed by asking for a bare name and moving the file afterwards. Pull and rerun.
+
 **If step 2 prints `(0 files)` and `ZERO RUNS`,** you are on a build from before the
 single-`.set` fix. `RUNSETS.bat` read the extension off `%~x1`, which is empty by then
 because the argument loop has already shifted every argument away — so a `.set` file

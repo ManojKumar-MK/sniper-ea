@@ -77,6 +77,12 @@ It skips runs whose report already exists, so it is resumable. It also stops to 
 a `terminal64.exe` is running, since a second launch of the tester terminal hands the
 `/config:` to the open instance and every pass finishes in seconds with no report.
 
+The tester is given `Report=<setname>` as a **bare name**, not the path the report
+should end up at, and the runner moves it afterwards. An absolute `Report=` is accepted
+silently and then never written: a full 19-minute pass logged `automatic testing
+finished` and produced no file anywhere. A bare name resolves against the terminal's
+own data folder, which under `/portable` is the terminal directory itself.
+
 If it prints `ZERO RUNS`, no `.set` matched and **nothing was tested** — it exits 1
 rather than printing a tidy summary. The two causes seen so far: the sets were never
 committed (a `.gitignore` rule — check `git ls-files`), or the path was wrong.

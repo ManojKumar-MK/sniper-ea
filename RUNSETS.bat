@@ -108,11 +108,11 @@ if /I "!SETEXT!"==".set" (
   for %%A in ("%SETS%\.") do set "SETSABS=%%~fA"
 )
 
-REM  ABSOLUTE PATHS, and this is not cosmetic. With /portable the terminal
-REM  resolves a RELATIVE Report= against its OWN data folder, not against the
-REM  directory this script was launched from - so a relative path writes the
-REM  report into C:\MT5-Tester\... while the "did it appear?" check looks in
-REM  the repo, and every run reports NO REPORT even when it succeeded.
+REM  ABSOLUTE PATHS for everything the terminal is not asked to write. The
+REM  one exception is Report=, which is a bare name - see the comment at the
+REM  .ini, and the move that follows the run. With /portable the terminal
+REM  resolves a relative path against its OWN data folder (MT5DIR), not
+REM  against the directory this script was launched from.
 REM  SETSABS is the sets FOLDER with no trailing backslash in both forms, so
 REM  %%~dp can take its parent - the grid folder the results go in.
 for %%A in ("!SETSABS!") do set "GRIDDIR=%%~dpA"
@@ -196,6 +196,8 @@ for %%Y in (!YEARS!) do (
 
     if exist "!REPORT!.htm" (
       echo   [!DONE!/!RUNS!] %%Y !NAME! - already done, skipping
+    ) else if exist "!REPORT!.html" (
+      echo   [!DONE!/!RUNS!] %%Y !NAME! - already done, skipping
     ) else (
       REM  the terminal reads the .set ONLY from MQL5\Profiles\Tester
       copy /Y "%%~S" "%TESTERDIR%\%%~nxS" >nul
@@ -218,12 +220,34 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo Visual=0
       REM  ShutdownTerminal stays 1 even for a single run: without it the
       REM  terminal sits open and start /wait never returns.
-      >> "!INI!" echo Report=!REPORT!
+      REM  Report is a BARE NAME, not the path we want. An absolute Report=
+      REM  is accepted silently and then not written: a full 19-minute pass
+      REM  finished with "automatic testing finished" in the log and no file
+      REM  anywhere. The terminal resolves a bare name against its own data
+      REM  folder - which under /portable is MT5DIR itself - so we collect it
+      REM  from there afterwards and move it where we want it.
+      >> "!INI!" echo Report=!NAME!
       >> "!INI!" echo ReplaceReport=1
       >> "!INI!" echo ShutdownTerminal=1
 
+      REM  A leftover from a previous pass would be mistaken for this one's.
+      if exist "%MT5DIR%\!NAME!.htm"  del /q "%MT5DIR%\!NAME!.htm"
+      if exist "%MT5DIR%\!NAME!.html" del /q "%MT5DIR%\!NAME!.html"
+
       echo   [!DONE!/!RUNS!] %%Y !NAME! ...
       start /wait "" "%TERM%" /config:"!INI!" /portable
+
+      REM  Normalise to .htm whichever the build wrote, so the skip check and
+      REM  the report parser only ever have one name to look for.
+      if exist "%MT5DIR%\!NAME!.htm"  move /y "%MT5DIR%\!NAME!.htm"  "!REPORT!.htm" >nul
+      if exist "%MT5DIR%\!NAME!.html" move /y "%MT5DIR%\!NAME!.html" "!REPORT!.htm" >nul
+      if exist "%MT5DIR%\!NAME!.htm.html" move /y "%MT5DIR%\!NAME!.htm.html" "!REPORT!.htm" >nul
+      REM  Charts/orders the report links to sit in a sibling folder.
+      if exist "%MT5DIR%\!NAME!" (
+        if exist "!OUTDIR!\report_!NAME!" rd /s /q "!OUTDIR!\report_!NAME!"
+        move /y "%MT5DIR%\!NAME!" "!OUTDIR!\report_!NAME!" >nul
+      )
+
       if exist "!REPORT!.htm" (
         echo         OK
       ) else (
@@ -233,6 +257,7 @@ for %%Y in (!YEARS!) do (
         REM  the terminal handed off to an already-open instance, or the report
         REM  was written somewhere else.
         if exist "!REPORT!.html" echo         ...but report_!NAME!.html exists - MT5 wrote .html not .htm
+        for /f "delims=" %%L in ('dir /b /s "%MT5DIR%\!NAME!.htm*" 2^>nul') do echo         found in data folder: %%L
         for /f "delims=" %%L in ('dir /b /s "%MT5DIR%\report_!NAME!.htm*" 2^>nul') do echo         found elsewhere: %%L
         set "MTLOG="
         for /f "delims=" %%G in ('dir /b /o-d "%MT5DIR%\logs\*.log" 2^>nul') do if not defined MTLOG set "MTLOG=%MT5DIR%\logs\%%G"
