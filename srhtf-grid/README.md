@@ -4,8 +4,21 @@
 
 ```
 .\RUN_SRHTF.bat        ONE CLICK: compile -> prove on one set -> run 36 sets over 2026
+.\RUN_SRHTF_FAST.bat   the same 36 sets on Model=1 - ~1 hour instead of ~11, as a screen
 .\RUN_SRHTF_4Y.bat     the same 36 sets over 2023-2026 (144 runs), once one looks good
 ```
+
+**Budget the time before starting.** Real ticks cost ~19 min per set per year:
+
+| | passes | time |
+|---|---|---|
+| `RUN_SRHTF_FAST.bat` | 36 | ~1 hour |
+| `RUN_SRHTF.bat` | 36 | ~11 hours |
+| `RUN_SRHTF_4Y.bat` | 144 | ~45 hours |
+
+The fast pass writes to `results_2026_M5_m1` and is a **shortlist only** — 1-minute
+OHLC fills stop orders at prices the tape may never have printed, and this EA is
+entirely stop-entry, so its numbers are optimistic. Take the survivors to real ticks.
 
 `RUN_SRHTF.bat` compiles the EA, runs **`SR_ctrl` alone** and stops if that produces no
 report, then runs the other 35. The grid EA burned a whole 100-pass run producing

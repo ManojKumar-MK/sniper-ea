@@ -77,6 +77,28 @@ It skips runs whose report already exists, so it is resumable. It also stops to 
 a `terminal64.exe` is running, since a second launch of the tester terminal hands the
 `/config:` to the open instance and every pass finishes in seconds with no report.
 
+### It is taking hours
+
+`Model=4` (every tick from real ticks) costs about **19 minutes per XAUUSD year on
+M5** — 36 sets is ~11 hours. Set `MODEL=1` (1-minute OHLC) for a screening pass at
+roughly 10–15x that speed:
+
+```
+set MODEL=1
+.\RUNSETS.bat srhtf-grid\sets_srhtf SR_HTF_StopEntry_EA.ex5 M5 2026 nostop
+
+.\RUN_SRHTF_FAST.bat        one-click, same 36 sets, Model=1
+```
+
+Reports land in `results_<year>_<TF>_m1`, a different folder from the real-tick
+`results_<year>_<TF>`, so a fast screen can never end up in the same comparison table
+as an authoritative run.
+
+**A fast pass is a shortlist, not a result.** 1-minute OHLC grants stop-order fills at
+prices the tape may never have printed, which flatters any stop-entry strategy — and
+every EA here is one. Screen wide on `MODEL=1`, then re-run only the survivors on
+`MODEL=4`. A set that looks good on 1 and bad on 4 was never good.
+
 The tester is given `Report=<setname>` as a **bare name**, not the path the report
 should end up at, and the runner moves it afterwards. An absolute `Report=` is accepted
 silently and then never written: a full 19-minute pass logged `automatic testing

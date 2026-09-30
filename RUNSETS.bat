@@ -42,6 +42,19 @@ REM ===================================================================
 cd /d "%~dp0"
 if not defined MT5DIR set MT5DIR=C:\MT5-Tester
 
+REM  MODEL is the tester's tick-generation model, and it is the single biggest
+REM  lever on how long a grid takes:
+REM      4 = every tick based on real ticks   ~19 min per XAUUSD year on M5
+REM      1 = 1-minute OHLC                    ~1-2 min, roughly 10-15x faster
+REM  Default stays 4 because that is what a result has to survive. Screen a
+REM  wide grid with MODEL=1, then re-run only the survivors on 4.
+REM
+REM  The model is recorded in the results folder name, so a fast screen and a
+REM  real-tick run can never be silently compared against each other.
+if not defined MODEL set MODEL=4
+set "MODELTAG="
+if not "%MODEL%"=="4" set "MODELTAG=_m%MODEL%"
+
 set SETS=%~1
 set EXPERT=%~2
 set TF=%~3
@@ -174,6 +187,11 @@ echo   timeframe : %TF%
 echo   years     :!YEARS!
 echo   runs      : !RUNS!
 echo   terminal  : %TERM%
+if "%MODEL%"=="4" (
+  echo   model     : 4 - every tick based on real ticks ^(slow, authoritative^)
+) else (
+  echo   model     : %MODEL% - FAST SCREEN, not a result. Re-run survivors on MODEL=4.
+)
 echo ==================================================================
 
 if !RUNS!==0 (
@@ -187,7 +205,7 @@ if !RUNS!==0 (
 
 set /a DONE=0
 for %%Y in (!YEARS!) do (
-  set "OUTDIR=!GRIDDIR!results_%%Y_%TF%"
+  set "OUTDIR=!GRIDDIR!results_%%Y_%TF%!MODELTAG!"
   if not exist "!OUTDIR!" mkdir "!OUTDIR!"
   for %%S in ("!GLOB!") do (
     set /a DONE+=1
@@ -208,7 +226,7 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo ExpertParameters=%%~nxS
       >> "!INI!" echo Symbol=XAUUSD
       >> "!INI!" echo Period=%TF%
-      >> "!INI!" echo Model=4
+      >> "!INI!" echo Model=%MODEL%
       >> "!INI!" echo FromDate=%%Y.01.01
       >> "!INI!" echo ToDate=%%Y.12.31
       >> "!INI!" echo Deposit=25000
@@ -286,7 +304,7 @@ for %%Y in (!YEARS!) do (
 
 echo.
 echo ==================================================================
-echo   Reports are in !GRIDDIR!results_^<year^>_%TF%\
+echo   Reports are in !GRIDDIR!results_^<year^>_%TF%!MODELTAG!\
 echo   Commit that folder and the .htm files can be parsed for the
 echo   comparison table.
 echo ==================================================================
