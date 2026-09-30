@@ -7,7 +7,11 @@ REM
 REM  IN POWERSHELL prefix with .\   ->   .\RUNSETS.bat grid-grid\sets_grid ...
 REM
 REM  USAGE
-REM    RUNSETS.bat <setsfolder> <Expert.ex5> <TF> <year> [year...]
+REM    RUNSETS.bat <setsfolder> <Expert.ex5> <TF> <year> [year...] [nostop]
+REM
+REM  It STOPS at the first failed run and prints the MT5 log, because 100
+REM  identical failures tell you nothing that the first one did not. Add
+REM  "nostop" to push through regardless.
 REM
 REM  EXAMPLES
 REM    RUNSETS.bat grid-grid\sets_grid SniperGrid_v1.00.ex5 M5 2023 2024 2025 2026
@@ -41,9 +45,10 @@ if "%EXPERT%"=="" goto :usage
 if "%TF%"=="" goto :usage
 shift & shift & shift
 set YEARS=
+set STOPFIRST=1
 :collect
 if "%~1"=="" goto :checks
-set YEARS=!YEARS! %~1
+if /I "%~1"=="nostop" (set STOPFIRST=0) else (set YEARS=!YEARS! %~1)
 shift
 goto :collect
 
@@ -141,7 +146,37 @@ for %%Y in (!YEARS!) do (
 
       echo   [!DONE!/!RUNS!] %%Y !NAME! ...
       start /wait "" "%TERM%" /config:"!INI!" /portable
-      if exist "!REPORT!.htm" (echo         OK) else (echo         NO REPORT - see %MT5DIR%\logs)
+      if exist "!REPORT!.htm" (
+        echo         OK
+      ) else (
+        echo         NO REPORT
+        REM  Say WHY, here, rather than pointing at a log directory. The three
+        REM  causes look identical from outside: the EA refused to initialise,
+        REM  the terminal handed off to an already-open instance, or the report
+        REM  was written somewhere else.
+        if exist "!REPORT!.html" echo         ...but report_!NAME!.html exists - MT5 wrote .html not .htm
+        for /f "delims=" %%L in ('dir /b /s "%MT5DIR%\report_!NAME!.htm*" 2^>nul') do echo         found elsewhere: %%L
+        set "MTLOG="
+        for /f "delims=" %%G in ('dir /b /o-d "%MT5DIR%\logs\*.log" 2^>nul') do if not defined MTLOG set "MTLOG=%MT5DIR%\logs\%%G"
+        if defined MTLOG (
+          echo         --- last lines of !MTLOG!
+          powershell -NoProfile -Command "Get-Content -LiteralPath '!MTLOG!' -Tail 12 -ErrorAction SilentlyContinue | ForEach-Object { '             ' + $_ }" 2>nul
+        )
+        set "TSLOG="
+        for /f "delims=" %%G in ('dir /b /o-d "%MT5DIR%\Tester\logs\*.log" 2^>nul') do if not defined TSLOG set "TSLOG=%MT5DIR%\Tester\logs\%%G"
+        if defined TSLOG (
+          echo         --- last lines of !TSLOG!
+          powershell -NoProfile -Command "Get-Content -LiteralPath '!TSLOG!' -Tail 12 -ErrorAction SilentlyContinue | ForEach-Object { '             ' + $_ }" 2>nul
+        )
+        echo         --- the .ini used: !INI!
+        if /I "!STOPFIRST!"=="1" (
+          echo.
+          echo         Stopping after the first failure so the cause is readable.
+          echo         Pass "nostop" as the last argument to run all of them anyway.
+          echo.
+          pause & exit /b 1
+        )
+      )
     )
   )
 )
