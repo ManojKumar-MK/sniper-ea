@@ -57,6 +57,17 @@ Requires Python 3.8+. Nothing to install.
 .\RUN_GRID_NOPY.bat                         one-click wrapper for the grid EA
 ```
 
+The first argument may be a **single `.set` file** instead of a folder — one run,
+a couple of minutes, to prove the harness before committing to 36 or 144 passes:
+
+```
+.\RUNSETS.bat srhtf-grid\sets_srhtf\SR_ctrl.set SR_HTF_StopEntry_EA.ex5 M5 2026
+```
+
+Reports still land in `<grid>\results_<year>_<TF>\`, so the folder form afterwards
+skips the set that already ran. `RUN_SRHTF.bat` chains exactly that: compile, one set,
+then the rest.
+
 Pure batch. It writes the tester `.ini` itself and drives `terminal64.exe /config:`
 directly, so **nothing here needs python**. Use it when python.exe fails with
 `ModuleNotFoundError: No module named 'encodings'` — a broken `PYTHONHOME` or a damaged
@@ -65,6 +76,10 @@ install, which clearing the variable per-window does not always fix.
 It skips runs whose report already exists, so it is resumable. It also stops to warn if
 a `terminal64.exe` is running, since a second launch of the tester terminal hands the
 `/config:` to the open instance and every pass finishes in seconds with no report.
+
+If it prints `ZERO RUNS`, no `.set` matched and **nothing was tested** — it exits 1
+rather than printing a tidy summary. The two causes seen so far: the sets were never
+committed (a `.gitignore` rule — check `git ls-files`), or the path was wrong.
 
 **What it gives up:** the merged comparison table, which was the Python part. MT5 still
 writes a full `.htm` report per run into `results_<year>_<TF>/` — commit those and they

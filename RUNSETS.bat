@@ -92,10 +92,20 @@ if not exist "%TESTERDIR%" mkdir "%TESTERDIR%"
 
 REM  A single .set FILE is accepted as well as a folder, so one run can be
 REM  tested in seconds instead of discovering a problem 100 passes in.
+REM
+REM  Read the extension off the SETS VARIABLE, not off %~x1. By this point
+REM  three shifts and the year-collection loop have consumed every argument,
+REM  so %1 is empty - which is why the file form silently fell through to the
+REM  folder form and matched 0 files inside a path that is not a directory.
 set "ONESET="
-if /I "%~x1"==".set" (
+set "SETEXT="
+for %%A in ("%SETS%") do set "SETEXT=%%~xA"
+if /I "!SETEXT!"==".set" (
   for %%A in ("%SETS%") do set "ONESET=%%~fA"
-  for %%A in ("%SETS%") do set "SETS=%%~dpA"
+  for %%A in ("%SETS%") do set "SETSABS=%%~dpA"
+  set "SETSABS=!SETSABS:~0,-1!"
+) else (
+  for %%A in ("%SETS%\.") do set "SETSABS=%%~fA"
 )
 
 REM  ABSOLUTE PATHS, and this is not cosmetic. With /portable the terminal
@@ -103,7 +113,8 @@ REM  resolves a RELATIVE Report= against its OWN data folder, not against the
 REM  directory this script was launched from - so a relative path writes the
 REM  report into C:\MT5-Tester\... while the "did it appear?" check looks in
 REM  the repo, and every run reports NO REPORT even when it succeeded.
-for %%A in ("%SETS%\.") do set "SETSABS=%%~fA"
+REM  SETSABS is the sets FOLDER with no trailing backslash in both forms, so
+REM  %%~dp can take its parent - the grid folder the results go in.
 for %%A in ("!SETSABS!") do set "GRIDDIR=%%~dpA"
 
 REM  MT5 cannot read a /config: path containing a space or a bracket - it
@@ -131,16 +142,33 @@ tasklist /FI "IMAGENAME eq terminal64.exe" 2>nul | find /I "terminal64.exe" >nul
   if not defined NOPAUSE pause
 )
 
+REM  A quoted path with no wildcard is echoed back by FOR whether or not it
+REM  exists, so the single-file form has to be existence-checked by hand or a
+REM  typo'd name counts as 1 file and then fails 20 minutes later on NO REPORT.
 set /a TOTAL=0
 set "GLOB=!SETSABS!\*.set"
-if defined ONESET set "GLOB=!ONESET!"
+if defined ONESET (
+  if not exist "!ONESET!" (
+    echo.
+    echo   .set file does not exist:
+    echo       !ONESET!
+    echo.
+    if not defined NOPAUSE pause
+    exit /b 1
+  )
+  set "GLOB=!ONESET!"
+)
 for %%S in ("!GLOB!") do set /a TOTAL+=1
 set /a RUNS=0
 for %%Y in (!YEARS!) do for %%S in ("!GLOB!") do set /a RUNS+=1
 
 echo.
 echo ==================================================================
-echo   sets      : !SETSABS!   (!TOTAL! files)
+if defined ONESET (
+  echo   sets      : !ONESET!   ^(single set^)
+) else (
+  echo   sets      : !SETSABS!   ^(!TOTAL! files^)
+)
 echo   expert    : %EXPERT%
 echo   timeframe : %TF%
 echo   years     :!YEARS!
@@ -187,7 +215,7 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo Optimization=0
       >> "!INI!" echo ForwardMode=0
       >> "!INI!" echo ExecutionMode=0
-      if defined ONESET (>> "!INI!" echo Visual=0) else (>> "!INI!" echo Visual=0)
+      >> "!INI!" echo Visual=0
       REM  ShutdownTerminal stays 1 even for a single run: without it the
       REM  terminal sits open and start /wait never returns.
       >> "!INI!" echo Report=!REPORT!

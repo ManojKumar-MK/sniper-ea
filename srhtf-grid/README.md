@@ -11,6 +11,12 @@
 report, then runs the other 35. The grid EA burned a whole 100-pass run producing
 nothing, so nothing here commits to 36 passes before one has worked.
 
+**If step 2 prints `(0 files)` and `ZERO RUNS`,** you are on a build from before the
+single-`.set` fix. `RUNSETS.bat` read the extension off `%~x1`, which is empty by then
+because the argument loop has already shifted every argument away — so a `.set` file
+fell through to the folder branch and globbed `SR_ctrl.set\*.set`, which matches
+nothing. It now reads the extension off the variable instead. Pull and rerun.
+
 ---
 
 ## `InpResetState=true` in every set, and why that is not optional
