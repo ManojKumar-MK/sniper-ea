@@ -1,0 +1,624 @@
+//+------------------------------------------------------------------+
+//|  SR_HTF_StopEntry_EA.mq5                                         |
+//|  HTF-gated ICT entry model using Buy Stop / Sell Stop orders     |
+//|                                                                  |
+//|  Model (long side; short is mirrored):                           |
+//|   1. HTF bias: H1 / H4 / D1 swing structure must agree           |
+//|   2. Location: price in discount of the HTF dealing range        |
+//|   3. Liquidity: an M5 candle sweeps a prior low and closes back  |
+//|   4. Entry: BUY STOP above the structure high before the sweep   |
+//|      -> only fills if price actually breaks structure (MSS)      |
+//|   5. SL below the sweep low, TP at HTF liquidity (min RR gate)   |
+//|  Plus: killzones, news filter, daily/max loss guards, target lock|
+//+------------------------------------------------------------------+
+#property copyright "Shriram"
+#property version   "1.00"
+
+#include <Trade/Trade.mqh>
+CTrade trade;
+
+//=================== INPUTS ===================
+input group "=== HTF Bias ==="
+input ENUM_TIMEFRAMES InpTF1          = PERIOD_H1;
+input ENUM_TIMEFRAMES InpTF2          = PERIOD_H4;
+input ENUM_TIMEFRAMES InpTF3          = PERIOD_D1;
+input int             InpMinAgree     = 3;      // TFs that must agree (1-3). 3 = A+ only
+input int             InpSwingStrength= 2;      // Fractal bars each side
+input int             InpSwingLookback= 150;    // Bars searched for swings
+input bool            InpUsePDFilter  = true;   // Longs in discount, shorts in premium
+input ENUM_TIMEFRAMES InpRangeTF      = PERIOD_H4; // Dealing range / liquidity TF
+input int             InpRangeBars    = 30;     // Dealing range length (bars)
+
+input group "=== LTF Entry (Stop orders) ==="
+input ENUM_TIMEFRAMES InpEntryTF      = PERIOD_M5;
+input int             InpSweepLookback= 20;     // Bars forming the liquidity pool
+input int             InpSweepWindow  = 12;     // Sweep must be within last N bars
+input double          InpEntryBufPts  = 20;     // Points beyond structure for the stop order
+input double          InpSLBufPts     = 30;     // Points beyond sweep extreme for SL
+input double          InpTPBufPts     = 20;     // Points in front of HTF liquidity for TP
+input double          InpMinRR        = 3.0;    // Minimum reward:risk
+input bool            InpTargetLiquidity = true;// TP at HTF liquidity (else fixed MinRR)
+input int             InpOrderExpiryBars = 6;   // Pending order life (entry-TF bars)
+input double          InpMinSLPts     = 100;    // Skip if stop tighter than this
+input double          InpMaxSLPts     = 1500;   // Skip if stop wider than this
+
+input group "=== Sessions (UTC) & News ==="
+input int             InpServerGMTOffset = 2;   // Broker server GMT offset (hours)
+input bool            InpLondon       = true;
+input int             InpLonStart     = 7;
+input int             InpLonEnd       = 10;
+input bool            InpNY           = true;
+input int             InpNYStart      = 12;
+input int             InpNYEnd        = 15;
+input bool            InpNewsFilter   = true;   // Live only (calendar not in tester)
+input int             InpNewsMinsBefore = 30;
+input int             InpNewsMinsAfter  = 30;
+
+input group "=== Risk ==="
+input double          InpRiskPct      = 0.5;    // % of balance risked per trade
+input double          InpMaxLots      = 5.0;
+input int             InpMaxTradesDay = 2;
+input int             InpMaxLossesDay = 2;
+input double          InpMaxSpreadPts = 250;
+input bool            InpBreakEven    = true;
+input double          InpBE_R         = 1.0;    // Move SL to BE at this R
+input double          InpBEOffsetPts  = 20;     // Covers commission
+input bool            InpFridayClose  = true;
+input int             InpFridayHourUTC= 19;
+
+input group "=== Prop Firm Guards ==="
+input double          InpInitialBalance = 25000;
+input double          InpDailyGuardPct  = 2.5;  // EA stops for the day (firm limit 5%)
+input double          InpMaxGuardPct    = 6.0;  // EA stops permanently (firm limit 10%)
+input bool            InpTargetLock     = true; // Off for funded/instant accounts
+input double          InpTargetPct      = 8.0;  // Challenge phase target
+input bool            InpResetState     = false;// true once to clear saved halts
+
+input group "=== Misc ==="
+input long            InpMagic        = 52741;
+input string          InpComment      = "SR_HTF";
+
+//=================== GLOBALS ===================
+datetime g_lastBar      = 0;
+datetime g_dayStart     = 0;
+double   g_dayStartEq   = 0;
+bool     g_dayHalted    = false;
+bool     g_accHalted    = false;
+int      g_bias         = 0, g_b1 = 0, g_b2 = 0, g_b3 = 0;
+bool     g_news         = false;
+int      g_tradesToday  = 0, g_lossesToday = 0;
+datetime g_lastSweepTime= 0;
+string   g_status       = "Starting";
+
+//=================== HELPERS ===================
+string GVName(string s) { return "SRHTF_" + IntegerToString(InpMagic) + "_" + s; }
+
+double NormPrice(double p)
+{
+   double ts = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   if(ts > 0) p = MathRound(p / ts) * ts;
+   return NormalizeDouble(p, _Digits);
+}
+
+string BiasStr(int b) { return b == 1 ? "BULL" : (b == -1 ? "BEAR" : "--"); }
+
+bool IsSwingHigh(ENUM_TIMEFRAMES tf, int i, int s)
+{
+   double h = iHigh(_Symbol, tf, i);
+   for(int k = 1; k <= s; k++)
+   {
+      if(iHigh(_Symbol, tf, i - k) >= h) return false;
+      if(iHigh(_Symbol, tf, i + k) >  h) return false;
+   }
+   return true;
+}
+
+bool IsSwingLow(ENUM_TIMEFRAMES tf, int i, int s)
+{
+   double l = iLow(_Symbol, tf, i);
+   for(int k = 1; k <= s; k++)
+   {
+      if(iLow(_Symbol, tf, i - k) <= l) return false;
+      if(iLow(_Symbol, tf, i + k) <  l) return false;
+   }
+   return true;
+}
+
+// +1 bullish structure, -1 bearish, 0 unclear
+int TFBias(ENUM_TIMEFRAMES tf)
+{
+   int bars = iBars(_Symbol, tf);
+   if(bars < InpSwingStrength * 2 + 10) return 0;
+   int lim = MathMin(InpSwingLookback, bars - InpSwingStrength - 2);
+
+   double sh[2], sl[2];
+   int nh = 0, nl = 0;
+   for(int i = InpSwingStrength + 1; i < lim && (nh < 2 || nl < 2); i++)
+   {
+      if(nh < 2 && IsSwingHigh(tf, i, InpSwingStrength)) sh[nh++] = iHigh(_Symbol, tf, i);
+      if(nl < 2 && IsSwingLow(tf, i, InpSwingStrength))  sl[nl++] = iLow(_Symbol, tf, i);
+   }
+   if(nh < 2 || nl < 2) return 0;
+
+   double c = iClose(_Symbol, tf, 1);
+   if(c > sh[0]) return 1;            // broke last swing high
+   if(c < sl[0]) return -1;           // broke last swing low
+   if(sh[0] > sh[1] && sl[0] > sl[1]) return 1;   // HH + HL
+   if(sh[0] < sh[1] && sl[0] < sl[1]) return -1;  // LH + LL
+   return 0;
+}
+
+int ComputeBias()
+{
+   g_b1 = TFBias(InpTF1);
+   g_b2 = TFBias(InpTF2);
+   g_b3 = TFBias(InpTF3);
+   int up = (g_b1 == 1 ? 1 : 0) + (g_b2 == 1 ? 1 : 0) + (g_b3 == 1 ? 1 : 0);
+   int dn = (g_b1 == -1 ? 1 : 0) + (g_b2 == -1 ? 1 : 0) + (g_b3 == -1 ? 1 : 0);
+   int need = MathMax(1, MathMin(3, InpMinAgree));
+   if(up >= need && dn == 0) return 1;
+   if(dn >= need && up == 0) return -1;
+   return 0;
+}
+
+bool GetRange(double &hi, double &lo)
+{
+   int ih = iHighest(_Symbol, InpRangeTF, MODE_HIGH, InpRangeBars, 1);
+   int il = iLowest(_Symbol, InpRangeTF, MODE_LOW, InpRangeBars, 1);
+   if(ih < 0 || il < 0) return false;
+   hi = iHigh(_Symbol, InpRangeTF, ih);
+   lo = iLow(_Symbol, InpRangeTF, il);
+   return hi > lo;
+}
+
+bool InKillzone()
+{
+   MqlDateTime t;
+   TimeToStruct(TimeCurrent() - InpServerGMTOffset * 3600, t);
+   if(t.day_of_week == 0 || t.day_of_week == 6) return false;
+   int h = t.hour;
+   bool lon = InpLondon && h >= InpLonStart && h < InpLonEnd;
+   bool ny  = InpNY     && h >= InpNYStart  && h < InpNYEnd;
+   return lon || ny;
+}
+
+bool FridayCutoff()
+{
+   if(!InpFridayClose) return false;
+   MqlDateTime t;
+   TimeToStruct(TimeCurrent() - InpServerGMTOffset * 3600, t);
+   return (t.day_of_week == 5 && t.hour >= InpFridayHourUTC);
+}
+
+bool NewsBlocked()
+{
+   if(!InpNewsFilter || MQLInfoInteger(MQL_TESTER)) return false;
+   MqlCalendarValue vals[];
+   datetime now = TimeTradeServer();
+   if(!CalendarValueHistory(vals, now - InpNewsMinsAfter * 60,
+                            now + InpNewsMinsBefore * 60, NULL, "USD"))
+      return false;
+   for(int i = 0; i < ArraySize(vals); i++)
+   {
+      MqlCalendarEvent ev;
+      if(CalendarEventById(vals[i].event_id, ev) &&
+         ev.importance == CALENDAR_IMPORTANCE_HIGH)
+         return true;
+   }
+   return false;
+}
+
+bool HasExposure()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
+         PositionGetInteger(POSITION_MAGIC) == InpMagic) return true;
+   }
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      ulong t = OrderGetTicket(i);
+      if(t == 0) continue;
+      if(OrderGetString(ORDER_SYMBOL) == _Symbol &&
+         OrderGetInteger(ORDER_MAGIC) == InpMagic) return true;
+   }
+   return false;
+}
+
+void CloseAll()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) == _Symbol &&
+         PositionGetInteger(POSITION_MAGIC) == InpMagic)
+         trade.PositionClose(t);
+   }
+}
+
+void DeletePendings()
+{
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      ulong t = OrderGetTicket(i);
+      if(t == 0) continue;
+      if(OrderGetString(ORDER_SYMBOL) == _Symbol &&
+         OrderGetInteger(ORDER_MAGIC) == InpMagic)
+         trade.OrderDelete(t);
+   }
+}
+
+//=================== DAY / GUARDS ===================
+void CheckNewDay()
+{
+   datetime ds = StringToTime(TimeToString(TimeCurrent(), TIME_DATE));
+   if(ds == g_dayStart) return;
+   g_dayStart = ds;
+
+   string key = IntegerToString((long)ds);
+   string gvEq = GVName("deq_" + key);
+   if(GlobalVariableCheck(gvEq))
+      g_dayStartEq = GlobalVariableGet(gvEq);
+   else
+   {
+      g_dayStartEq = MathMax(AccountInfoDouble(ACCOUNT_BALANCE),
+                             AccountInfoDouble(ACCOUNT_EQUITY));
+      GlobalVariableSet(gvEq, g_dayStartEq);
+   }
+   g_dayHalted = GlobalVariableCheck(GVName("dh_" + key));
+   CountToday();
+}
+
+bool RunGuards()
+{
+   double eq = AccountInfoDouble(ACCOUNT_EQUITY);
+
+   if(g_accHalted) { CloseAll(); DeletePendings(); return false; }
+
+   if(eq <= InpInitialBalance * (1.0 - InpMaxGuardPct / 100.0))
+   {
+      CloseAll(); DeletePendings();
+      g_accHalted = true;
+      GlobalVariableSet(GVName("acc_halt"), 1);
+      g_status = "MAX LOSS GUARD hit - EA stopped";
+      Print(g_status);
+      return false;
+   }
+   if(InpTargetLock && eq >= InpInitialBalance * (1.0 + InpTargetPct / 100.0))
+   {
+      CloseAll(); DeletePendings();
+      g_accHalted = true;
+      GlobalVariableSet(GVName("acc_halt"), 1);
+      g_status = "TARGET reached - EA locked";
+      Print(g_status);
+      return false;
+   }
+   if(g_dayHalted) { g_status = "Daily guard active - resumes next day"; return false; }
+
+   if(eq <= g_dayStartEq * (1.0 - InpDailyGuardPct / 100.0))
+   {
+      CloseAll(); DeletePendings();
+      g_dayHalted = true;
+      GlobalVariableSet(GVName("dh_" + IntegerToString((long)g_dayStart)), 1);
+      g_status = "DAILY GUARD hit - stopped for today";
+      Print(g_status);
+      return false;
+   }
+   return true;
+}
+
+void CountToday()
+{
+   g_tradesToday = 0; g_lossesToday = 0;
+   if(!HistorySelect(g_dayStart, TimeCurrent() + 60)) return;
+   int n = HistoryDealsTotal();
+   for(int i = 0; i < n; i++)
+   {
+      ulong d = HistoryDealGetTicket(i);
+      if(d == 0) continue;
+      if(HistoryDealGetString(d, DEAL_SYMBOL) != _Symbol) continue;
+      if(HistoryDealGetInteger(d, DEAL_MAGIC) != InpMagic) continue;
+      long e = HistoryDealGetInteger(d, DEAL_ENTRY);
+      if(e == DEAL_ENTRY_IN) g_tradesToday++;
+      else if(e == DEAL_ENTRY_OUT || e == DEAL_ENTRY_OUT_BY)
+      {
+         double net = HistoryDealGetDouble(d, DEAL_PROFIT) +
+                      HistoryDealGetDouble(d, DEAL_SWAP) +
+                      HistoryDealGetDouble(d, DEAL_COMMISSION);
+         if(net < 0) g_lossesToday++;
+      }
+   }
+}
+
+//=================== SETUP DETECTION ===================
+// Bullish: sweep of M5 sell-side liquidity, entry above prior structure high
+bool FindBullSetup(double &entry, double &sl, datetime &sweepTime)
+{
+   for(int k = 1; k <= InpSweepWindow; k++)
+   {
+      int idx = iLowest(_Symbol, InpEntryTF, MODE_LOW, InpSweepLookback, k + 1);
+      if(idx < 0) return false;
+      double pool = iLow(_Symbol, InpEntryTF, idx);
+      double lk   = iLow(_Symbol, InpEntryTF, k);
+      double ck   = iClose(_Symbol, InpEntryTF, k);
+      if(!(lk < pool && ck > pool)) continue;
+
+      // Sweep low must still be the lowest point since the sweep
+      int lowIdx = iLowest(_Symbol, InpEntryTF, MODE_LOW, k, 1);
+      if(lowIdx < 0 || iLow(_Symbol, InpEntryTF, lowIdx) < lk) continue;
+
+      // Structure high between the pool and the sweep
+      int hiIdx = iHighest(_Symbol, InpEntryTF, MODE_HIGH, idx - k + 1, k);
+      if(hiIdx < 0) continue;
+      double structHi = iHigh(_Symbol, InpEntryTF, hiIdx);
+
+      // Already broken -> missed, don't chase
+      for(int j = 1; j < k; j++)
+         if(iClose(_Symbol, InpEntryTF, j) > structHi) return false;
+
+      entry     = structHi + InpEntryBufPts * _Point;
+      sl        = lk - InpSLBufPts * _Point;
+      sweepTime = iTime(_Symbol, InpEntryTF, k);
+      return true;
+   }
+   return false;
+}
+
+// Bearish: sweep of M5 buy-side liquidity, entry below prior structure low
+bool FindBearSetup(double &entry, double &sl, datetime &sweepTime)
+{
+   for(int k = 1; k <= InpSweepWindow; k++)
+   {
+      int idx = iHighest(_Symbol, InpEntryTF, MODE_HIGH, InpSweepLookback, k + 1);
+      if(idx < 0) return false;
+      double pool = iHigh(_Symbol, InpEntryTF, idx);
+      double hk   = iHigh(_Symbol, InpEntryTF, k);
+      double ck   = iClose(_Symbol, InpEntryTF, k);
+      if(!(hk > pool && ck < pool)) continue;
+
+      int hiIdx = iHighest(_Symbol, InpEntryTF, MODE_HIGH, k, 1);
+      if(hiIdx < 0 || iHigh(_Symbol, InpEntryTF, hiIdx) > hk) continue;
+
+      int loIdx = iLowest(_Symbol, InpEntryTF, MODE_LOW, idx - k + 1, k);
+      if(loIdx < 0) continue;
+      double structLo = iLow(_Symbol, InpEntryTF, loIdx);
+
+      for(int j = 1; j < k; j++)
+         if(iClose(_Symbol, InpEntryTF, j) < structLo) return false;
+
+      entry     = structLo - InpEntryBufPts * _Point;
+      sl        = hk + InpSLBufPts * _Point;
+      sweepTime = iTime(_Symbol, InpEntryTF, k);
+      return true;
+   }
+   return false;
+}
+
+double CalcLots(ENUM_ORDER_TYPE type, double entry, double sl)
+{
+   double riskMoney = AccountInfoDouble(ACCOUNT_BALANCE) * InpRiskPct / 100.0;
+   double pl = 0;
+   ENUM_ORDER_TYPE calcType = (type == ORDER_TYPE_BUY_STOP) ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   if(!OrderCalcProfit(calcType, _Symbol, 1.0, entry, sl, pl)) return 0;
+   double lossPerLot = MathAbs(pl);
+   if(lossPerLot <= 0) return 0;
+
+   double step = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+   double vmin = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double vmax = MathMin(SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX), InpMaxLots);
+
+   double lots = riskMoney / lossPerLot;
+   lots = MathFloor(lots / step) * step;
+   if(lots < vmin) return 0;          // never round UP past the risk budget
+   lots = MathMin(lots, vmax);
+   int vd = (int)MathMax(0, MathRound(-MathLog10(step)));
+   lots = NormalizeDouble(lots, vd);
+
+   double margin = 0;
+   if(OrderCalcMargin(calcType, _Symbol, lots, entry, margin) &&
+      margin > AccountInfoDouble(ACCOUNT_MARGIN_FREE) * 0.9) return 0;
+   return lots;
+}
+
+void TryPlaceSetup()
+{
+   if(g_bias == 0) { g_status = "No HTF agreement - standing aside"; return; }
+   if(HasExposure()) return;
+   if(g_tradesToday >= InpMaxTradesDay) { g_status = "Max trades today"; return; }
+   if(g_lossesToday >= InpMaxLossesDay) { g_status = "Max losses today"; return; }
+
+   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   if((ask - bid) / _Point > InpMaxSpreadPts) { g_status = "Spread too wide"; return; }
+
+   double rHi, rLo;
+   if(!GetRange(rHi, rLo)) return;
+   double eqm = (rHi + rLo) / 2.0;
+   double stopsLvl = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+
+   double entry, sl, tp;
+   datetime sweepT;
+   ENUM_ORDER_TYPE type;
+
+   if(g_bias == 1)
+   {
+      if(InpUsePDFilter && bid >= eqm) { g_status = "Bull bias, price in premium - waiting"; return; }
+      if(!FindBullSetup(entry, sl, sweepT)) { g_status = "Bull bias - waiting for sweep"; return; }
+      type = ORDER_TYPE_BUY_STOP;
+      if(entry - ask <= stopsLvl) return;
+   }
+   else
+   {
+      if(InpUsePDFilter && ask <= eqm) { g_status = "Bear bias, price in discount - waiting"; return; }
+      if(!FindBearSetup(entry, sl, sweepT)) { g_status = "Bear bias - waiting for sweep"; return; }
+      type = ORDER_TYPE_SELL_STOP;
+      if(bid - entry <= stopsLvl) return;
+   }
+
+   if(sweepT == g_lastSweepTime) return;          // same setup already used
+
+   double risk = MathAbs(entry - sl);
+   if(risk < InpMinSLPts * _Point || risk > InpMaxSLPts * _Point)
+   { g_status = "Setup stop size out of range - skipped"; g_lastSweepTime = sweepT; return; }
+
+   if(InpTargetLiquidity)
+   {
+      tp = (type == ORDER_TYPE_BUY_STOP) ? rHi - InpTPBufPts * _Point
+                                         : rLo + InpTPBufPts * _Point;
+      double rr = MathAbs(tp - entry) / risk;
+      bool wrongSide = (type == ORDER_TYPE_BUY_STOP) ? (tp <= entry) : (tp >= entry);
+      if(wrongSide || rr < InpMinRR)
+      { g_status = StringFormat("Setup RR %.2f < %.1f - skipped", rr, InpMinRR); g_lastSweepTime = sweepT; return; }
+   }
+   else
+      tp = (type == ORDER_TYPE_BUY_STOP) ? entry + InpMinRR * risk : entry - InpMinRR * risk;
+
+   entry = NormPrice(entry); sl = NormPrice(sl); tp = NormPrice(tp);
+   double lots = CalcLots(type, entry, sl);
+   if(lots <= 0) { g_status = "Lot size below minimum for this risk - skipped"; g_lastSweepTime = sweepT; return; }
+
+   bool ok = (type == ORDER_TYPE_BUY_STOP)
+             ? trade.BuyStop(lots, entry, _Symbol, sl, tp, ORDER_TIME_GTC, 0, InpComment)
+             : trade.SellStop(lots, entry, _Symbol, sl, tp, ORDER_TIME_GTC, 0, InpComment);
+
+   if(ok)
+   {
+      g_lastSweepTime = sweepT;
+      g_status = StringFormat("%s placed @ %.2f SL %.2f TP %.2f lots %.2f",
+                  type == ORDER_TYPE_BUY_STOP ? "BUY STOP" : "SELL STOP", entry, sl, tp, lots);
+      Print(g_status);
+   }
+   else
+      Print("Order failed: ", trade.ResultRetcode(), " ", trade.ResultRetcodeDescription());
+}
+
+//=================== MANAGEMENT ===================
+void ManagePendings(bool allowed)
+{
+   int life = InpOrderExpiryBars * PeriodSeconds(InpEntryTF);
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      ulong t = OrderGetTicket(i);
+      if(t == 0) continue;
+      if(OrderGetString(ORDER_SYMBOL) != _Symbol || OrderGetInteger(ORDER_MAGIC) != InpMagic) continue;
+
+      long     type  = OrderGetInteger(ORDER_TYPE);
+      datetime setup = (datetime)OrderGetInteger(ORDER_TIME_SETUP);
+      double   osl   = OrderGetDouble(ORDER_SL);
+
+      bool kill = !allowed || (TimeCurrent() - setup > life);
+      if(type == ORDER_TYPE_BUY_STOP  && (g_bias != 1  || bid <= osl)) kill = true;  // bias flip / sweep low broken
+      if(type == ORDER_TYPE_SELL_STOP && (g_bias != -1 || ask >= osl)) kill = true;
+
+      if(kill && trade.OrderDelete(t)) Print("Pending ", t, " cancelled");
+   }
+}
+
+void ManageBreakEven()
+{
+   double stopsLvl = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) != _Symbol || PositionGetInteger(POSITION_MAGIC) != InpMagic) continue;
+
+      double open = PositionGetDouble(POSITION_PRICE_OPEN);
+      double sl   = PositionGetDouble(POSITION_SL);
+      double tp   = PositionGetDouble(POSITION_TP);
+      if(sl == 0) continue;
+
+      if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY && sl < open)
+      {
+         double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+         if(bid - open >= InpBE_R * (open - sl))
+         {
+            double nsl = NormPrice(open + InpBEOffsetPts * _Point);
+            if(nsl < bid - stopsLvl) trade.PositionModify(t, nsl, tp);
+         }
+      }
+      else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL && sl > open)
+      {
+         double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+         if(open - ask >= InpBE_R * (sl - open))
+         {
+            double nsl = NormPrice(open - InpBEOffsetPts * _Point);
+            if(nsl > ask + stopsLvl) trade.PositionModify(t, nsl, tp);
+         }
+      }
+   }
+}
+
+void UpdatePanel(bool kz)
+{
+   Comment(StringFormat(
+      "SR HTF Stop-Entry EA\n"
+      "Bias  %s:%s  %s:%s  %s:%s  ->  %s\n"
+      "Killzone: %s   News block: %s\n"
+      "Day start eq: %.2f   Daily guard at: %.2f\n"
+      "Max guard at: %.2f   Target: %s\n"
+      "Trades today: %d/%d   Losses: %d/%d\n"
+      "Status: %s",
+      EnumToString(InpTF1), BiasStr(g_b1), EnumToString(InpTF2), BiasStr(g_b2),
+      EnumToString(InpTF3), BiasStr(g_b3), BiasStr(g_bias),
+      kz ? "YES" : "no", g_news ? "YES" : "no",
+      g_dayStartEq, g_dayStartEq * (1.0 - InpDailyGuardPct / 100.0),
+      InpInitialBalance * (1.0 - InpMaxGuardPct / 100.0),
+      InpTargetLock ? DoubleToString(InpInitialBalance * (1.0 + InpTargetPct / 100.0), 2) : "off",
+      g_tradesToday, InpMaxTradesDay, g_lossesToday, InpMaxLossesDay, g_status));
+}
+
+//=================== EVENTS ===================
+int OnInit()
+{
+   trade.SetExpertMagicNumber(InpMagic);
+   trade.SetTypeFillingBySymbol(_Symbol);
+   trade.SetDeviationInPoints(30);
+
+   if(InpResetState) GlobalVariablesDeleteAll(GVName(""));
+   g_accHalted = GlobalVariableCheck(GVName("acc_halt"));
+
+   CheckNewDay();
+   g_bias = ComputeBias();
+   g_news = NewsBlocked();
+   return INIT_SUCCEEDED;
+}
+
+void OnDeinit(const int reason) { Comment(""); }
+
+void OnTick()
+{
+   CheckNewDay();
+   bool kz = InKillzone();
+
+   if(!RunGuards()) { UpdatePanel(kz); return; }
+
+   if(InpBreakEven) ManageBreakEven();
+
+   datetime bt = iTime(_Symbol, InpEntryTF, 0);
+   bool newBar = (bt != g_lastBar && bt != 0);
+   if(newBar)
+   {
+      g_lastBar = bt;
+      g_bias = ComputeBias();
+      g_news = NewsBlocked();
+      CountToday();
+   }
+
+   bool fri = FridayCutoff();
+   if(fri) { CloseAll(); DeletePendings(); g_status = "Friday cutoff - flat for weekend"; }
+
+   ManagePendings(kz && !fri && !g_news);
+
+   if(newBar && kz && !fri && !g_news) TryPlaceSetup();
+   else if(newBar && !kz && !fri) g_status = "Outside killzone";
+
+   UpdatePanel(kz);
+}
+//+------------------------------------------------------------------+
