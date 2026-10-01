@@ -3,8 +3,15 @@ setlocal
 REM ===================================================================
 REM  IN POWERSHELL prefix with .\   ->   .\RUN_SRHTF_FINAL.bat
 REM
-REM  THE DECISIVE TEST. 4 sets x 4 years on REAL TICKS.
-REM  16 passes x ~19 min = about 5 hours. Start it and leave it.
+REM  4 sets x 2026 on REAL TICKS. 4 passes x ~19 min = ~1.3 hours.
+REM
+REM  NOTE: 2026 is the year these sets were CHOSEN on, so this measures
+REM  the tick model, not out-of-sample survival. It answers "does the
+REM  scale-out still hold up when fills are real?" and nothing more.
+REM  For the out-of-sample question add the other years back:
+REM      call RUNSETS.bat srhtf-grid\sets_srhtf_final SR_HTF_StopEntry_EA.ex5 M5 2023 2024 2025 nostop
+REM  Those three are ~3.7 hours and can be run any time later - the
+REM  2026 reports are kept and never redone.
 REM
 REM  Everything before this was Model=1 (1-minute OHLC), which fills a
 REM  stop order anywhere inside the bar - including at prices the tape
@@ -22,9 +29,6 @@ REM                  control that shows the partial is what fixed the
 REM                  drawdown rather than luck.
 REM    V4_ag2_opp1   best $/trade (72.41) from a different bias config.
 REM    V4_s1_r025    half the risk, to separate edge from sizing.
-REM
-REM  2023-2025 is the point. Every strategy in this repo has looked
-REM  fine on one year and failed out of sample.
 REM
 REM  Reports: srhtf-grid\results_<year>_M5_final\  (no _m1 - real ticks)
 REM ===================================================================
@@ -49,25 +53,29 @@ if not exist "%MT5DIR%\MQL5\Experts\SR_HTF_StopEntry_EA.ex5" (
 )
 
 echo.
-echo   STEP 2 of 2 - 4 sets x 2023 2024 2025 2026, real ticks
+echo   STEP 2 of 2 - 4 sets x 2026, real ticks
 echo ==================================================================
-call RUNSETS.bat srhtf-grid\sets_srhtf_final SR_HTF_StopEntry_EA.ex5 M5 2023 2024 2025 2026 nostop
+call RUNSETS.bat srhtf-grid\sets_srhtf_final SR_HTF_StopEntry_EA.ex5 M5 2026 nostop
 
 echo.
 echo ==================================================================
 echo   Reports: srhtf-grid\results_^<year^>_M5_final\
 echo.
 echo   HOW TO JUDGE IT
-echo     Rank on the WORST of the four years, not the average. A set
-echo     that is positive in three years and loses 8%% in the fourth is
-echo     not tradeable on a 6%% account - it is already dead.
+echo     Compare each set against its OWN fast-model number, not
+echo     against the others. V4_s1_part50 was 70 trades, +1737,
+echo     2.47%% equity drawdown on Model=1.
 echo.
-echo     V4_s1_part50 needs to survive 2023-2025 at under 6%% equity
-echo     drawdown. If it does, it is worth real ticks on more sets and
-echo     then a demo. If it does not, the strategy is finished and the
-echo     honest answer is that nothing here reached 100 USD a day.
+echo     The scale-out is the thing on trial. Model=1 fills a stop
+echo     order anywhere inside the bar, which flatters it, so if the
+echo     drawdown stays near 2.5%% on real ticks the result is real. If
+echo     it blows out toward V4_s1's 9.15%%, the scale-out was an
+echo     artifact of the fill model and there is nothing here.
 echo.
-echo   Commit all four results folders.
+echo     This is still ONE year, and the year the sets were picked on.
+echo     A pass here earns 2023-2025, it does not replace it.
+echo.
+echo   Commit srhtf-grid\results_2026_M5_final.
 echo ==================================================================
 set "NOPAUSE="
 REM  CHAINED is set by RUN_NEXT.bat, which runs these back to back - a bare

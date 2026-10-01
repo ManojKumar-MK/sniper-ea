@@ -158,7 +158,7 @@ can be parsed for the table.
 ## Everything outstanding, one click
 
 ```
-.\RUN_NEXT.bat        ~5.5 hours, resumable
+.\RUN_NEXT.bat        ~2 hours, resumable
 ```
 
 Runs the cheap study first and the decisive one second:
@@ -166,11 +166,21 @@ Runs the cheap study first and the decisive one second:
 | step | what | time |
 |---|---|---|
 | 1 | FvgGold killzones, 28 sets, 6 months, fast model | ~35 min |
-| 2 | SR_HTF shortlist, 4 sets x 2023-2026, **real ticks** | ~5 h |
+| 2 | SR_HTF shortlist, 4 sets x **2026**, **real ticks** | ~1.3 h |
 
 Both steps skip any pass whose report already exists, so an interruption - reboot, closed
 window, anything - costs nothing: run it again and it continues. `CHAINED=1` suppresses
 the per-step "press any key" so the two run back to back.
+
+Step 2 is 2026 only, which is the year those sets were **chosen** on, so it tests the
+fill model rather than out-of-sample survival. The other three years are a separate
+~3.7 hours whenever wanted, and the 2026 reports are never redone:
+
+```
+set MODEL=4
+set OUTTAG=_final
+.\RUNSETS.bat srhtf-grid\sets_srhtf_final SR_HTF_StopEntry_EA.ex5 M5 2023 2024 2025 nostop
+```
 
 ## Single click: compile, check, run
 

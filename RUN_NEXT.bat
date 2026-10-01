@@ -4,15 +4,19 @@ REM ===================================================================
 REM  IN POWERSHELL prefix with .\   ->   .\RUN_NEXT.bat
 REM
 REM  ONE CLICK for everything outstanding. Start it, walk away.
-REM  Total about five and a half hours.
+REM  Total about two hours.
 REM
 REM    STEP 1  FvgGold killzones, 28 sets, 6 months, fast model  ~35 min
-REM    STEP 2  SR_HTF shortlist, 4 sets x 2023-2026, REAL TICKS  ~5 h
+REM    STEP 2  SR_HTF shortlist, 4 sets x 2026, REAL TICKS       ~1.3 h
 REM
 REM  Cheap first on purpose: step 1 either finds a session edge or
 REM  rules the idea out in half an hour, and it needs no decision from
-REM  you either way. Step 2 is the one that actually settles whether
-REM  V4_s1_part50 is tradeable, and it is worth the night.
+REM  you either way. Step 2 asks whether V4_s1_part50's scale-out
+REM  survives real fills - 2026 only, which is the year it was chosen
+REM  on, so it tests the FILL MODEL and not out-of-sample survival.
+REM  2023-2025 is a separate ~3.7 hours whenever you want it:
+REM     set MODEL=4 & set OUTTAG=_final
+REM     .\RUNSETS.bat srhtf-grid\sets_srhtf_final SR_HTF_StopEntry_EA.ex5 M5 2023 2024 2025 nostop
 REM
 REM  Both steps SKIP any pass whose report already exists, so if this
 REM  is interrupted - reboot, closed window, anything - just run it
@@ -20,7 +24,7 @@ REM  again and it picks up where it stopped. Nothing is redone.
 REM
 REM  Results land in:
 REM    fvg-grid\results_2026H2_M15_kz_m1\
-REM    srhtf-grid\results_2023_M5_final\  ... and 2024, 2025, 2026
+REM    srhtf-grid\results_2026_M5_final\
 REM
 REM  Commit all of those when it finishes.
 REM ===================================================================
@@ -43,7 +47,7 @@ call RUN_FVG_KZ.bat "%MT5DIR%"
 
 echo.
 echo ###################################################################
-echo #  STEP 2 of 2 - SR_HTF shortlist, real ticks, 4 years  ~5 hours
+echo #  STEP 2 of 2 - SR_HTF shortlist, real ticks, 2026     ~1.3 hours
 echo ###################################################################
 call RUN_SRHTF_FINAL.bat "%MT5DIR%"
 
@@ -52,9 +56,6 @@ echo ===================================================================
 echo   BOTH DONE. Commit the results:
 echo.
 echo     git add fvg-grid/results_2026H2_M15_kz_m1
-echo     git add srhtf-grid/results_2023_M5_final
-echo     git add srhtf-grid/results_2024_M5_final
-echo     git add srhtf-grid/results_2025_M5_final
 echo     git add srhtf-grid/results_2026_M5_final
 echo     git commit -m "fvg killzones + srhtf real-tick finals"
 echo     git push
