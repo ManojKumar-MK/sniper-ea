@@ -70,4 +70,6 @@ echo.
 echo   Commit all four results folders.
 echo ==================================================================
 set "NOPAUSE="
-pause
+REM  CHAINED is set by RUN_NEXT.bat, which runs these back to back - a bare
+REM  pause here would stop the chain waiting for a keypress.
+if not defined CHAINED pause

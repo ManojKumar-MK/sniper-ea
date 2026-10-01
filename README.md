@@ -155,6 +155,23 @@ committed (a `.gitignore` rule — check `git ls-files`), or the path was wrong.
 writes a full `.htm` report per run into `results_<year>_<TF>/` — commit those and they
 can be parsed for the table.
 
+## Everything outstanding, one click
+
+```
+.\RUN_NEXT.bat        ~5.5 hours, resumable
+```
+
+Runs the cheap study first and the decisive one second:
+
+| step | what | time |
+|---|---|---|
+| 1 | FvgGold killzones, 28 sets, 6 months, fast model | ~35 min |
+| 2 | SR_HTF shortlist, 4 sets x 2023-2026, **real ticks** | ~5 h |
+
+Both steps skip any pass whose report already exists, so an interruption - reboot, closed
+window, anything - costs nothing: run it again and it continues. `CHAINED=1` suppresses
+the per-step "press any key" so the two run back to back.
+
 ## Single click: compile, check, run
 
 ```
