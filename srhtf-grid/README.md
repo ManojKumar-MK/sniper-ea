@@ -257,3 +257,91 @@ Rank on **expectancy per trade**, never net. Every set here trades more than the
 grid did, so net rises on volume alone and would rank the loosest set first. A daily
 target cannot create an edge either - it can only end a good day early - so each `_t*`
 set is only meaningful against the same stack without it.
+
+---
+
+## v2 grid results (2026 Jan-Sep, Model=1) - the daily number, measured
+
+44 ran. `results_2026_M5_v2_m1/`. **29 of 44 profitable**, against 4 of 36 before.
+
+### The fix worked
+
+| set | trades | net | $/trade | eqDD% |
+|---|---|---|---|---|
+| `V2_nofb` (= old `SR_ctrl`) | 5 | -368.9 | -73.78 | 1.79 |
+| `V2_base` (`InpTPFallback=true`) | 30 | +514.5 | +17.15 | 2.92 |
+| `V2_rr20` (fallback + `InpMinRR=2.0`) | **30** | **+1384.7** | **+46.16** | **1.44** |
+
+`InpTPFallback` took: 5 trades to 30, and the sign flipped. Dropping `InpMinRR` to 2.0
+then nearly tripled net on the *same* trade count - a closer target converts the same
+setups at a better rate than a 3R target does.
+
+### The ceiling, which is the real answer
+
+| set | risk% | trades | net | $/month | eqDD% |
+|---|---|---|---|---|---|
+| `V2_freq2` | 0.5 | 38 | 1646.9 | 183 | 2.12 |
+| `V2_freq2_r1` | 1.0 | 24 | 2000.7 | 222 | 3.21 |
+| `V2_freq2_r15` | 1.5 | 18 | 2153.0 | 239 | 4.82 |
+| `V2_freq2_r2` | 2.0 | 15 | 2054.8 | 228 | **6.43 - breach** |
+
+**Net plateaus at about $2,100 no matter how much size is added, and trade count falls
+as risk rises** - 38, 24, 18, 15. That is not noise. Bigger positions trip
+`InpDailyGuardPct` sooner, the guard halts the day, and the halted days remove the
+trades that would have paid. Under a 2.5% daily / 6% maximum rule the drawdown guard is
+a hard ceiling on monthly profit, and **more risk buys fewer trading days, not more
+money.**
+
+So the daily figure this model supports is about **$240/month, or ~$11 a trading day** -
+roughly a ninth of $100/day. $100/day would need 8.3x this, and the table above shows
+size cannot deliver it: 2.0% risk already breaches the rule while earning *less* than
+1.5%.
+
+### `InpDailyTargetUSD=100` is free, and slightly positive
+
+| | trades | net | PF | eqDD% | Sharpe |
+|---|---|---|---|---|---|
+| `V2_freq2` | 38 | 1646.9 | 1.87 | 2.12 | 19.2 |
+| `V2_freq2_t100` | 37 | **1769.1** | **1.99** | 2.11 | **20.8** |
+
+Banking the day at $100 cost one trade and *gained* $122. A daily target cannot create
+an edge, so read this as "costs nothing measurable" rather than as an edge - but it does
+mean the rule you wanted is not a handicap.
+
+### What broke
+
+`V2_freq3` and `V2_freq4` - the stacks that drop the PD filter, loosen the swing
+strength and widen the sweep window - **all breach 6%** and all lose money
+(-1505, -1519). Pushed further with size, `V2_freq3_r2` reaches **12.04%** drawdown.
+Loosening the entry quality filters adds trades that lose. That is the same monotonic
+result the EMA grids gave: more trades from weaker filters is always worse.
+
+`V2_nobe` is the other clear one: break-even off drops the win rate from 63.3% to
+**23.3%**. The break-even move is carrying this strategy, not the targets.
+
+### Still inert, and it is now a question about the code
+
+11 sets again returned identical numbers to `V2_base`. The reports confirm the inputs
+applied, so these genuinely change nothing:
+
+`V2_ag1` `V2_ag2` `V2_opp1` `V2_opp1_ag1` `V2_opp1_ag2` `V2_entry_m1` `V2_trades4`
+`V2_trades6` `V2_fixedrr`
+
+Two are explained. `V2_opp1` is vacuous by construction - `InpMinAgree=3` means `up>=3`,
+which already implies `dn==0`, so `InpMaxOppose` has nothing to relax. `V2_fixedrr`
+matching `V2_base` means the HTF target is *never* `InpMinRR` or further away, so the
+fallback fires every time and the two settings are the same thing on this data.
+
+**`V2_opp1_ag1` and `V2_entry_m1` are not explained.** `InpMinAgree=1` with
+`InpMaxOppose=1` is a far looser bias gate, and `InpEntryTF=M1` changes every input to
+the sweep search - neither can legitimately leave the trade list byte-identical. Before
+this grid is extended, the EA should tally *why* setups are rejected (it already builds
+the reason into `g_status`) and print the tally at `OnDeinit`. Without that, the next
+grid risks measuring the same thing 44 more times.
+
+### The candidate
+
+`SRHTF_v110_CANDIDATE_t100.set` - `V2_freq2_t100` with `InpNewsFilter=true` and
+`InpResetState=false` for live use. **Not validated:** one year, and on `Model=1`, which
+fills stop orders anywhere inside the bar while every entry here is a stop order. Real
+ticks and 2023-2025 first.
