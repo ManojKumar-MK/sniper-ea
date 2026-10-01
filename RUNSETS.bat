@@ -61,6 +61,15 @@ REM  this sets_srhtf and sets_srhtf_v2 would both write into
 REM  srhtf-grid\results_2026_M5_m1 and land in the same comparison table.
 if not defined OUTTAG set "OUTTAG="
 
+REM  FROMDATE / TODATE run an arbitrary window instead of whole calendar years
+REM  - a six-month test cannot be expressed as a year. Both are yyyy.mm.dd. When
+REM  set, the year arguments become PERIOD LABELS only: one pass per set, and
+REM  PERIODTAG (or the first label) names the results folder. Without them
+REM  nothing changes and each year still runs 01.01 to 12.31.
+set "DATERANGE=0"
+if defined FROMDATE if defined TODATE set "DATERANGE=1"
+if "!DATERANGE!"=="1" if not defined PERIODTAG set "PERIODTAG=custom"
+
 set SETS=%~1
 set EXPERT=%~2
 set TF=%~3
@@ -178,6 +187,7 @@ if defined ONESET (
   set "GLOB=!ONESET!"
 )
 for %%S in ("!GLOB!") do set /a TOTAL+=1
+if "!DATERANGE!"=="1" set "YEARS=!PERIODTAG!"
 set /a RUNS=0
 for %%Y in (!YEARS!) do for %%S in ("!GLOB!") do set /a RUNS+=1
 
@@ -190,7 +200,11 @@ if defined ONESET (
 )
 echo   expert    : %EXPERT%
 echo   timeframe : %TF%
-echo   years     :!YEARS!
+if "!DATERANGE!"=="1" (
+  echo   window    : %FROMDATE% to %TODATE%   ^(label !PERIODTAG!^)
+) else (
+  echo   years     :!YEARS!
+)
 echo   runs      : !RUNS!
 echo   terminal  : %TERM%
 if "%MODEL%"=="4" (
@@ -233,8 +247,13 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo Symbol=XAUUSD
       >> "!INI!" echo Period=%TF%
       >> "!INI!" echo Model=%MODEL%
-      >> "!INI!" echo FromDate=%%Y.01.01
-      >> "!INI!" echo ToDate=%%Y.12.31
+      if "!DATERANGE!"=="1" (
+        >> "!INI!" echo FromDate=%FROMDATE%
+        >> "!INI!" echo ToDate=%TODATE%
+      ) else (
+        >> "!INI!" echo FromDate=%%Y.01.01
+        >> "!INI!" echo ToDate=%%Y.12.31
+      )
       >> "!INI!" echo Deposit=25000
       >> "!INI!" echo Currency=USD
       >> "!INI!" echo Leverage=100

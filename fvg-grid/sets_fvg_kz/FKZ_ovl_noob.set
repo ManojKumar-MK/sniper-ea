@@ -1,0 +1,42 @@
+; FvgGold - FKZ_ovl_noob
+; enums are INTEGERS: FVGTimeframe M15=15, HTF_Period H1=16385
+; DailyLossLimit is in DOLLARS, not percent
+; FVGTimeframe=PERIOD_M15
+FVGTimeframe=15
+MinGapSize=25
+MaxAgeBars=20
+MinAgeBars=2
+FVGBuffer=3.0
+MinScoreFVG=50.0
+ScoreGapWeight=30.0
+ScoreDispWeight=30.0
+ScoreHTFWeight=20.0
+ScoreFreshWeight=10.0
+ScorePDWeight=10.0
+UseOBFilter=false
+OB_ImpulseATR=1.5
+OB_LookbackBars=50
+OB_MinSize=10.0
+OB_ConfluenceBonus=20.0
+OB_MaxDistance=200.0
+; HTF_Period=PERIOD_H1
+HTF_Period=16385
+EMA_Fast=50
+EMA_Slow=200
+FixedLot=0.0
+RiskPercent=0.35
+MaxTrades=1
+DailyLossLimit=300.0
+ATR_TP_Mult=2.0
+RiskRewardRatio=1.5
+UseFixedRR=true
+UseKillzone=true
+KZ_LondonStart=7
+KZ_LondonEnd=10
+KZ_OverlapStart=12
+KZ_OverlapEnd=16
+KZ_NYEnd=21
+KZ_PreferOverlap=true
+CloseAtEOD=false
+MagicNumber=7777
+SlippagePoints=20
