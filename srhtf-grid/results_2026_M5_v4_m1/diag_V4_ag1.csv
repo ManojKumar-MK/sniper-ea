@@ -1,0 +1,28 @@
+resolved,value,raw
+InpTF1,PERIOD_H1,16385
+InpTF2,PERIOD_H4,16388
+InpTF3,PERIOD_D1,16408
+InpRangeTF,PERIOD_H4,16388
+InpEntryTF,PERIOD_M5,5
+InpDirection,SRHTF_BOTH,0
+InpMinAgree,1,
+InpMaxOppose,0,
+InpMinRR,2.00,
+InpTPRMult,0.00,
+,,
+reason,count,pct
+no HTF bias,4250,36.48
+already exposed,418,3.59
+max trades today,0,0.00
+max losses today,54,0.46
+spread too wide,0,0.00
+no dealing range,0,0.00
+wrong side of equilibrium,5981,51.34
+no sweep setup,752,6.46
+entry inside stops level,0,0.00
+sweep already used,105,0.90
+SL size out of range,42,0.36
+below InpMinRR gate,0,0.00
+ATR below floor,0,0.00
+blocked by InpDirection,0,0.00
+ORDER PLACED,47,0.40
