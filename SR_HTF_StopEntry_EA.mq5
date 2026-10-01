@@ -22,12 +22,30 @@
 //|                     5 trades in 9 months vs 30 without it         |
 //|   InpAsia*          a third killzone                              |
 //|   InpDailyTargetUSD bank the day once it is made                  |
+//|                                                                  |
+//|  v1.20 - quality, and the diagnostic that should have come first: |
+//|   InpDiagCSV       tally WHY setups are rejected and dump it, so  |
+//|                    a grid can tell "input did nothing" from       |
+//|                    "input never got reached"                      |
+//|   InpTPRMult       target R, separated from the InpMinRR GATE.    |
+//|                    One input was doing both jobs, so a 2R target  |
+//|                    could not be demanded of a 3R-clear setup      |
+//|   InpDirection     longs only / shorts only. Shorts beat longs on |
+//|                    every set measured so far - testable, not      |
+//|                    assumed                                        |
+//|   InpMinATRPts     volatility floor: skip dead tape               |
+//|   InpPartialPct    bank part of the position at BE_R, trail the   |
+//|   InpTrailATRMult  rest. Turning BE off collapsed the win rate    |
+//|                    63%% -> 23%%, so the BE move is where the edge  |
+//|                    actually lives - this is built on top of it    |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.10"
+#property version   "1.20"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
+
+enum ENUM_SRHTF_DIR { SRHTF_BOTH = 0, SRHTF_LONG_ONLY = 1, SRHTF_SHORT_ONLY = 2 };
 
 //=================== INPUTS ===================
 input group "=== HTF Bias ==="
@@ -49,12 +67,15 @@ input int             InpSweepWindow  = 12;     // Sweep must be within last N b
 input double          InpEntryBufPts  = 20;     // Points beyond structure for the stop order
 input double          InpSLBufPts     = 30;     // Points beyond sweep extreme for SL
 input double          InpTPBufPts     = 20;     // Points in front of HTF liquidity for TP
-input double          InpMinRR        = 3.0;    // Minimum reward:risk
+input double          InpMinRR        = 3.0;    // GATE: setup rejected below this R
+input double          InpTPRMult      = 0;      // TARGET in R. 0 = use InpMinRR (v1.10 behaviour)
 input bool            InpTargetLiquidity = true;// TP at HTF liquidity (else fixed MinRR)
 input bool            InpTPFallback   = false;  // Liquidity too close? take fixed MinRR instead of skipping
 input int             InpOrderExpiryBars = 6;   // Pending order life (entry-TF bars)
 input double          InpMinSLPts     = 100;    // Skip if stop tighter than this
 input double          InpMaxSLPts     = 1500;   // Skip if stop wider than this
+input double          InpMinATRPts    = 0;      // Skip if entry-TF ATR below this. 0 = off
+input ENUM_SRHTF_DIR  InpDirection    = SRHTF_BOTH;
 
 input group "=== Sessions (UTC) & News ==="
 input int             InpServerGMTOffset = 2;   // Broker server GMT offset (hours)
@@ -80,6 +101,9 @@ input double          InpMaxSpreadPts = 250;
 input bool            InpBreakEven    = true;
 input double          InpBE_R         = 1.0;    // Move SL to BE at this R
 input double          InpBEOffsetPts  = 20;     // Covers commission
+input double          InpPartialPct   = 0;      // % of position closed at BE_R. 0 = off
+input double          InpTrailATRMult = 0;      // Trail at N x ATR once past BE. NEEDS InpBreakEven=true. 0 = off
+input int             InpATRPeriod    = 14;
 input bool            InpFridayClose  = true;
 input int             InpFridayHourUTC= 19;
 
@@ -95,6 +119,7 @@ input bool            InpResetState     = false;// true once to clear saved halt
 input group "=== Misc ==="
 input long            InpMagic        = 52741;
 input string          InpComment      = "SR_HTF";
+input bool            InpDiagCSV      = false;  // Dump the rejection tally at OnDeinit
 
 //=================== GLOBALS ===================
 datetime g_lastBar      = 0;
@@ -109,6 +134,42 @@ double   g_profitToday  = 0;      // realised only - floating would flap the tar
 bool     g_dayBanked    = false;
 datetime g_lastSweepTime= 0;
 string   g_status       = "Starting";
+int      g_atrHandle    = INVALID_HANDLE;
+
+// Why setups do not become orders. Without this a grid cannot tell an input
+// that changed nothing from an input whose branch was never reached - which
+// is exactly the ambiguity 11 identical sets left in the v2 results.
+#define SRHTF_NREJ 15
+enum ENUM_SRHTF_REJ
+{
+   REJ_NO_BIAS = 0, REJ_EXPOSURE, REJ_MAX_TRADES, REJ_MAX_LOSSES, REJ_SPREAD,
+   REJ_NO_RANGE, REJ_PD_LOCATION, REJ_NO_SWEEP, REJ_STOPS_LEVEL, REJ_SWEEP_REUSED,
+   REJ_SL_SIZE, REJ_RR_GATE, REJ_ATR_FLOOR, REJ_DIRECTION, REJ_PLACED
+};
+int      g_rej[SRHTF_NREJ];
+string RejName(int i)
+{
+   switch(i)
+   {
+      case REJ_NO_BIAS:      return "no HTF bias";
+      case REJ_EXPOSURE:     return "already exposed";
+      case REJ_MAX_TRADES:   return "max trades today";
+      case REJ_MAX_LOSSES:   return "max losses today";
+      case REJ_SPREAD:       return "spread too wide";
+      case REJ_NO_RANGE:     return "no dealing range";
+      case REJ_PD_LOCATION:  return "wrong side of equilibrium";
+      case REJ_NO_SWEEP:     return "no sweep setup";
+      case REJ_STOPS_LEVEL:  return "entry inside stops level";
+      case REJ_SWEEP_REUSED: return "sweep already used";
+      case REJ_SL_SIZE:      return "SL size out of range";
+      case REJ_RR_GATE:      return "below InpMinRR gate";
+      case REJ_ATR_FLOOR:    return "ATR below floor";
+      case REJ_DIRECTION:    return "blocked by InpDirection";
+      case REJ_PLACED:       return "ORDER PLACED";
+   }
+   return "?";
+}
+void Rej(ENUM_SRHTF_REJ r) { g_rej[r]++; }
 
 //=================== HELPERS ===================
 string GVName(string s) { return "SRHTF_" + IntegerToString(InpMagic) + "_" + s; }
@@ -479,17 +540,30 @@ double CalcLots(ENUM_ORDER_TYPE type, double entry, double sl)
 
 void TryPlaceSetup()
 {
-   if(g_bias == 0) { g_status = "No HTF agreement - standing aside"; return; }
-   if(HasExposure()) return;
-   if(g_tradesToday >= InpMaxTradesDay) { g_status = "Max trades today"; return; }
-   if(g_lossesToday >= InpMaxLossesDay) { g_status = "Max losses today"; return; }
+   if(g_bias == 0) { g_status = "No HTF agreement - standing aside"; Rej(REJ_NO_BIAS); return; }
+   if(HasExposure()) { Rej(REJ_EXPOSURE); return; }
+   if(g_tradesToday >= InpMaxTradesDay) { g_status = "Max trades today"; Rej(REJ_MAX_TRADES); return; }
+   if(g_lossesToday >= InpMaxLossesDay) { g_status = "Max losses today"; Rej(REJ_MAX_LOSSES); return; }
+
+   if((g_bias == 1  && InpDirection == SRHTF_SHORT_ONLY) ||
+      (g_bias == -1 && InpDirection == SRHTF_LONG_ONLY))
+   { g_status = "Direction blocked by InpDirection"; Rej(REJ_DIRECTION); return; }
+
+   if(InpMinATRPts > 0)
+   {
+      double atr[1];
+      if(g_atrHandle != INVALID_HANDLE && CopyBuffer(g_atrHandle, 0, 1, 1, atr) == 1)
+         if(atr[0] / _Point < InpMinATRPts)
+         { g_status = StringFormat("ATR %.0f pts below floor %.0f", atr[0]/_Point, InpMinATRPts);
+           Rej(REJ_ATR_FLOOR); return; }
+   }
 
    double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
    double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-   if((ask - bid) / _Point > InpMaxSpreadPts) { g_status = "Spread too wide"; return; }
+   if((ask - bid) / _Point > InpMaxSpreadPts) { g_status = "Spread too wide"; Rej(REJ_SPREAD); return; }
 
    double rHi, rLo;
-   if(!GetRange(rHi, rLo)) return;
+   if(!GetRange(rHi, rLo)) { Rej(REJ_NO_RANGE); return; }
    double eqm = (rHi + rLo) / 2.0;
    double stopsLvl = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
 
@@ -499,27 +573,33 @@ void TryPlaceSetup()
 
    if(g_bias == 1)
    {
-      if(InpUsePDFilter && bid >= eqm) { g_status = "Bull bias, price in premium - waiting"; return; }
-      if(!FindBullSetup(entry, sl, sweepT)) { g_status = "Bull bias - waiting for sweep"; return; }
+      if(InpUsePDFilter && bid >= eqm) { g_status = "Bull bias, price in premium - waiting"; Rej(REJ_PD_LOCATION); return; }
+      if(!FindBullSetup(entry, sl, sweepT)) { g_status = "Bull bias - waiting for sweep"; Rej(REJ_NO_SWEEP); return; }
       type = ORDER_TYPE_BUY_STOP;
-      if(entry - ask <= stopsLvl) return;
+      if(entry - ask <= stopsLvl) { Rej(REJ_STOPS_LEVEL); return; }
    }
    else
    {
-      if(InpUsePDFilter && ask <= eqm) { g_status = "Bear bias, price in discount - waiting"; return; }
-      if(!FindBearSetup(entry, sl, sweepT)) { g_status = "Bear bias - waiting for sweep"; return; }
+      if(InpUsePDFilter && ask <= eqm) { g_status = "Bear bias, price in discount - waiting"; Rej(REJ_PD_LOCATION); return; }
+      if(!FindBearSetup(entry, sl, sweepT)) { g_status = "Bear bias - waiting for sweep"; Rej(REJ_NO_SWEEP); return; }
       type = ORDER_TYPE_SELL_STOP;
-      if(bid - entry <= stopsLvl) return;
+      if(bid - entry <= stopsLvl) { Rej(REJ_STOPS_LEVEL); return; }
    }
 
-   if(sweepT == g_lastSweepTime) return;          // same setup already used
+   if(sweepT == g_lastSweepTime) { Rej(REJ_SWEEP_REUSED); return; }   // same setup already used
 
    double risk = MathAbs(entry - sl);
    if(risk < InpMinSLPts * _Point || risk > InpMaxSLPts * _Point)
-   { g_status = "Setup stop size out of range - skipped"; g_lastSweepTime = sweepT; return; }
+   { g_status = "Setup stop size out of range - skipped"; Rej(REJ_SL_SIZE); g_lastSweepTime = sweepT; return; }
 
-   double fixedTP = (type == ORDER_TYPE_BUY_STOP) ? entry + InpMinRR * risk
-                                                  : entry - InpMinRR * risk;
+   // InpMinRR is the GATE (is this setup clear enough to take?) and InpTPRMult
+   // is the TARGET (how far do we actually aim?). v1.10 used one input for
+   // both, so "only take 3R-clear setups but exit at 2R" was inexpressible -
+   // and 2.0 beat 3.0 on identical trades, which is what made it worth
+   // separating. 0 keeps the old behaviour.
+   double tpR = (InpTPRMult > 0) ? InpTPRMult : InpMinRR;
+   double fixedTP = (type == ORDER_TYPE_BUY_STOP) ? entry + tpR * risk
+                                                  : entry - tpR * risk;
    if(InpTargetLiquidity)
    {
       tp = (type == ORDER_TYPE_BUY_STOP) ? rHi - InpTPBufPts * _Point
@@ -535,11 +615,12 @@ void TryPlaceSetup()
          if(!InpTPFallback)
          {
             g_status = StringFormat("Setup RR %.2f < %.1f - skipped", rr, InpMinRR);
+            Rej(REJ_RR_GATE);
             g_lastSweepTime = sweepT;
             return;
          }
          tp = fixedTP;
-         g_status = StringFormat("Liquidity RR %.2f < %.1f - fixed %.1fR target", rr, InpMinRR, InpMinRR);
+         g_status = StringFormat("Liquidity RR %.2f < %.1f - fixed %.1fR target", rr, InpMinRR, tpR);
       }
    }
    else
@@ -556,6 +637,7 @@ void TryPlaceSetup()
    if(ok)
    {
       g_lastSweepTime = sweepT;
+      Rej(REJ_PLACED);
       g_status = StringFormat("%s placed @ %.2f SL %.2f TP %.2f lots %.2f",
                   type == ORDER_TYPE_BUY_STOP ? "BUY STOP" : "SELL STOP", entry, sl, tp, lots);
       Print(g_status);
@@ -589,9 +671,32 @@ void ManagePendings(bool allowed)
    }
 }
 
+// Scales out at BE_R and trails the remainder. The partial and the BE move
+// happen in the SAME branch (sl still beyond open), so each fires exactly once
+// per position without needing per-ticket state: moving the SL to BE is itself
+// what closes the branch.
+void PartialOut(ulong ticket, double volume)
+{
+   if(InpPartialPct <= 0) return;
+   double step = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+   double vmin = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double want = volume * InpPartialPct / 100.0;
+   want = MathFloor(want / step) * step;
+   // Both halves must survive as tradeable volume: a partial that leaves less
+   // than the minimum behind would be rejected, and one below the minimum
+   // itself cannot be sent at all.
+   if(want < vmin || volume - want < vmin) return;
+   if(trade.PositionClosePartial(ticket, want))
+      Print(StringFormat("Partial out %.2f of %.2f at BE_R", want, volume));
+}
+
 void ManageBreakEven()
 {
    double stopsLvl = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+   double atr[1];
+   bool haveATR = (InpTrailATRMult > 0 && g_atrHandle != INVALID_HANDLE &&
+                   CopyBuffer(g_atrHandle, 0, 1, 1, atr) == 1 && atr[0] > 0);
+
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
       ulong t = PositionGetTicket(i);
@@ -601,24 +706,43 @@ void ManageBreakEven()
       double open = PositionGetDouble(POSITION_PRICE_OPEN);
       double sl   = PositionGetDouble(POSITION_SL);
       double tp   = PositionGetDouble(POSITION_TP);
+      double vol  = PositionGetDouble(POSITION_VOLUME);
       if(sl == 0) continue;
 
-      if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY && sl < open)
+      if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
       {
          double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
-         if(bid - open >= InpBE_R * (open - sl))
+         if(sl < open)
          {
-            double nsl = NormPrice(open + InpBEOffsetPts * _Point);
-            if(nsl < bid - stopsLvl) trade.PositionModify(t, nsl, tp);
+            if(bid - open >= InpBE_R * (open - sl))
+            {
+               double nsl = NormPrice(open + InpBEOffsetPts * _Point);
+               if(nsl < bid - stopsLvl && trade.PositionModify(t, nsl, tp))
+                  PartialOut(t, vol);
+            }
+         }
+         else if(haveATR)                       // past BE - trail the remainder
+         {
+            double nsl = NormPrice(bid - InpTrailATRMult * atr[0]);
+            if(nsl > sl && nsl < bid - stopsLvl) trade.PositionModify(t, nsl, tp);
          }
       }
-      else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL && sl > open)
+      else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
       {
          double ask = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-         if(open - ask >= InpBE_R * (sl - open))
+         if(sl > open)
          {
-            double nsl = NormPrice(open - InpBEOffsetPts * _Point);
-            if(nsl > ask + stopsLvl) trade.PositionModify(t, nsl, tp);
+            if(open - ask >= InpBE_R * (sl - open))
+            {
+               double nsl = NormPrice(open - InpBEOffsetPts * _Point);
+               if(nsl > ask + stopsLvl && trade.PositionModify(t, nsl, tp))
+                  PartialOut(t, vol);
+            }
+         }
+         else if(haveATR)
+         {
+            double nsl = NormPrice(ask + InpTrailATRMult * atr[0]);
+            if(nsl < sl && nsl > ask + stopsLvl) trade.PositionModify(t, nsl, tp);
          }
       }
    }
@@ -658,13 +782,52 @@ int OnInit()
    if(InpResetState) GlobalVariablesDeleteAll(GVName(""));
    g_accHalted = GlobalVariableCheck(GVName("acc_halt"));
 
+   ArrayInitialize(g_rej, 0);
+   if(InpMinATRPts > 0 || InpTrailATRMult > 0)
+   {
+      g_atrHandle = iATR(_Symbol, InpEntryTF, InpATRPeriod);
+      if(g_atrHandle == INVALID_HANDLE)
+      {
+         Print("iATR failed - InpMinATRPts and InpTrailATRMult need it, refusing to run half-configured");
+         return INIT_FAILED;
+      }
+   }
+
    CheckNewDay();
    g_bias = ComputeBias();
    g_news = NewsBlocked();
    return INIT_SUCCEEDED;
 }
 
-void OnDeinit(const int reason) { Comment(""); }
+void DumpDiag()
+{
+   int considered = 0;
+   for(int i = 0; i < SRHTF_NREJ; i++) considered += g_rej[i];
+   if(considered == 0) { Print("DIAG: TryPlaceSetup was never reached - check killzone, guards, news"); return; }
+
+   Print("=== SR_HTF setup diagnostic: ", considered, " evaluations ===");
+   for(int i = 0; i < SRHTF_NREJ; i++)
+      if(g_rej[i] > 0)
+         Print(StringFormat("  %-28s %6d  %5.1f%%", RejName(i), g_rej[i],
+                            100.0 * g_rej[i] / considered));
+
+   // Fixed filename: the EA cannot know which .set it was given, so the runner
+   // renames this per pass. Overwritten each run on purpose.
+   int h = FileOpen("SRHTF_diag.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(h == INVALID_HANDLE) { Print("DIAG: could not write SRHTF_diag.csv, error ", GetLastError()); return; }
+   FileWrite(h, "reason", "count", "pct");
+   for(int i = 0; i < SRHTF_NREJ; i++)
+      FileWrite(h, RejName(i), IntegerToString(g_rej[i]),
+                DoubleToString(100.0 * g_rej[i] / considered, 2));
+   FileClose(h);
+}
+
+void OnDeinit(const int reason)
+{
+   Comment("");
+   if(g_atrHandle != INVALID_HANDLE) IndicatorRelease(g_atrHandle);
+   if(InpDiagCSV) DumpDiag();
+}
 
 void OnTick()
 {

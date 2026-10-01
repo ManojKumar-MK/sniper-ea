@@ -345,3 +345,53 @@ grid risks measuring the same thing 44 more times.
 `InpResetState=false` for live use. **Not validated:** one year, and on `Model=1`, which
 fills stop orders anywhere inside the bar while every entry here is a stop order. Real
 ticks and 2023-2025 first.
+
+---
+
+## v1.20 and the v3 grid - quality, and the diagnostic that should have come first
+
+```
+.\RUN_SRHTF_V3.bat        35 sets, fast model, ~60 min
+```
+
+Baseline is `V2_freq2_t100`, the best-balanced set of the v2 grid.
+
+### `InpDiagCSV` - read these before any of the numbers
+
+Every v3 set writes `diag_<set>.csv` alongside its report: a count of **why** setups
+were rejected, by reason, with percentages. It exists because v2 left a question it
+could not answer - `V2_opp1_ag1` and `V2_entry_m1` returned byte-identical trades with
+their inputs verifiably applied, and a looser bias gate and a different entry timeframe
+cannot both be no-ops.
+
+`V3_q_ag1` and `V3_q_m1` repeat those two with the tally on. The reasons are counted at
+all 14 rejection points in `TryPlaceSetup`, plus the orders actually placed, so:
+
+- if `no HTF bias` dominates and does not move between `V3_base` and `V3_q_ag1`, the
+  bias computation is not responding to its inputs - a code fault
+- if the counts *do* move but the trade list does not, the gate is downstream, and the
+  tally names it
+
+**If those two sets say an input is a no-op, the rest of this grid is built on sand.**
+The EA writes to a fixed `MQL5\Files\SRHTF_diag.csv` because it cannot know which
+`.set` it was handed; `RUNSETS.bat` renames it per pass.
+
+### Three quality changes, each from a measurement
+
+| input | default | why |
+|---|---|---|
+| `InpTPRMult` | `0` (= `InpMinRR`) | `InpMinRR` was both the **gate** and the **target**. 2R beat 3R on an identical trade list, so "only take 3R-clear setups, exit at 2R" is worth being able to express - and was not. |
+| `InpPartialPct`, `InpTrailATRMult` | `0` | `V2_nobe` dropped the win rate from 63.3% to 23.3%. The break-even move is where this strategy's edge actually is, so scale out at `BE_R` and trail the rest rather than working around it. Trailing needs `InpBreakEven=true` - with BE off the stop never passes entry and the trail branch is unreachable. |
+| `InpDirection` | `BOTH` | Shorts have beaten longs on every set measured (73.7% vs 45.5%, then 69.6% vs 50.0%). Possibly a trending-year artifact. Now testable instead of assumed. |
+| `InpMinATRPts` | `0` | Skip dead tape. Cheap to test, and the per-trade cost measured earlier (~$2.13) is paid regardless of whether the market moves. |
+
+The partial and the BE move fire in the same branch - the SL still being beyond entry is
+the branch condition, and moving it to BE is what closes the branch - so each happens
+exactly once per position with no per-ticket bookkeeping. `PartialOut` refuses a split
+that would leave either side below the broker's minimum volume.
+
+### Expect the direction sets to disappoint
+
+`V3_short` will probably top the table. It is also the set most likely to be fitting one
+year of a gold uptrend, and it halves the sample while doing it. Judge it on 2023-2025 or
+not at all.

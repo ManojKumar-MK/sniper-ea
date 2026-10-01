@@ -257,6 +257,7 @@ for %%Y in (!YEARS!) do (
       REM  A leftover from a previous pass would be mistaken for this one's.
       if exist "%MT5DIR%\!NAME!.htm"  del /q "%MT5DIR%\!NAME!.htm"
       if exist "%MT5DIR%\!NAME!.html" del /q "%MT5DIR%\!NAME!.html"
+      if exist "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" del /q "%MT5DIR%\MQL5\Files\SRHTF_diag.csv"
 
       echo   [!DONE!/!RUNS!] %%Y !NAME! ...
       start /wait "" "%TERM%" /config:"!INI!" /portable
@@ -266,6 +267,13 @@ for %%Y in (!YEARS!) do (
       if exist "%MT5DIR%\!NAME!.htm"  move /y "%MT5DIR%\!NAME!.htm"  "!REPORT!.htm" >nul
       if exist "%MT5DIR%\!NAME!.html" move /y "%MT5DIR%\!NAME!.html" "!REPORT!.htm" >nul
       if exist "%MT5DIR%\!NAME!.htm.html" move /y "%MT5DIR%\!NAME!.htm.html" "!REPORT!.htm" >nul
+      REM  InpDiagCSV writes MQL5\Files\SRHTF_diag.csv under a FIXED name,
+      REM  because the EA has no way to know which .set it was handed. Rename
+      REM  it per pass here, or every set would overwrite the last one's.
+      if exist "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" (
+        move /y "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" "!OUTDIR!\diag_!NAME!.csv" >nul
+      )
+
       REM  Charts/orders the report links to sit in a sibling folder.
       if exist "%MT5DIR%\!NAME!" (
         if exist "!OUTDIR!\report_!NAME!" rd /s /q "!OUTDIR!\report_!NAME!"
