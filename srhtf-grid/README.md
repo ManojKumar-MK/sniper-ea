@@ -286,11 +286,16 @@ setups at a better rate than a 3R target does.
 | `V2_freq2_r2` | 2.0 | 15 | 2054.8 | 228 | **6.43 - breach** |
 
 **Net plateaus at about $2,100 no matter how much size is added, and trade count falls
-as risk rises** - 38, 24, 18, 15. That is not noise. Bigger positions trip
-`InpDailyGuardPct` sooner, the guard halts the day, and the halted days remove the
-trades that would have paid. Under a 2.5% daily / 6% maximum rule the drawdown guard is
-a hard ceiling on monthly profit, and **more risk buys fewer trading days, not more
-money.**
+as risk rises** - 38, 24, 18, 15.
+
+> **CORRECTION (v4).** I attributed this plateau to `InpDailyGuardPct` halting days. That
+> was wrong. $2,100 is `InpTargetLock` firing: `InpTargetPct=8.0` on a $25,000 balance is
+> $2,000, and at that point the EA closes everything and stops **for the rest of the
+> run**. The v4 reports make it visible - `V4_s1`'s deals stop in July, `V4_ag2_opp1`'s in
+> August, while `V4_s1_part50` (net $1,737, never reaching the lock) trades all nine
+> months. The sets were not being throttled; they had finished the challenge and halted
+> by design. Read the ceiling below as "these sets pass a +8% target", not as a limit on
+> what the strategy can earn.
 
 So the daily figure this model supports is about **$240/month, or ~$11 a trading day** -
 roughly a ninth of $100/day. $100/day would need 8.3x this, and the table above shows
@@ -529,3 +534,72 @@ to relax there). Most of the grid aims at the two gates that matter:
 **Judge trade count before anything else.** `V4_base` is 6 trades; a set under ~30 has
 said nothing whatever its net. And `V3_q_m1` is the warning for this grid: the one
 profitable probe set also breached the 6% rule, so a high net here is not a pass.
+
+---
+
+## v4 results - one set passes, and the ceiling was never the drawdown guard
+
+41 ran, all with correct timeframes (`diag_*.csv` confirms `InpTF1 = PERIOD_H1 / 16385`
+in every set that used it). 13 of 41 profitable. Applying all three bars at once -
+**30+ trades, profitable, equity drawdown inside 6%** - leaves exactly one:
+
+| | `V4_s1_part50` | `V4_s1` (same, no scale-out) |
+|---|---|---|
+| trades | **70** | 39 |
+| net | +1737.25 | +2126.10 |
+| equity DD | **2.47%** | **9.15% breach** |
+| balance DD | 1.76% | 6.08% |
+| win rate | **80.0%** | 61.5% |
+| profit factor | 1.96 | 2.19 |
+| Sharpe | **37.70** | 5.46 |
+| LR correlation | **0.93** | -0.56 |
+| months traded | all 9 | stops in July |
+
+Both are `InpMinAgree=2` with an M1 entry. The only difference is
+`InpPartialPct=50` + `InpTrailATRMult=1.5`, and it **cut equity drawdown from 9.15% to
+2.47%** - a 3.7x reduction - while nearly doubling the trade count. Net fell 18%. On a
+6%-limit account that is not a trade-off, it is the difference between usable and dead.
+
+The mechanism is visible in the averages: scaling out drops the average win from $162.76
+to $63.33, so the payoff ratio falls to 0.50 and breakeven needs a 66.5% win rate. It
+scored **80.0%** over 70 trades. The standard error there is 4.8 points, so the edge sits
+**2.8 standard errors** above breakeven - the first candidate in this project that is
+not inside one.
+
+### The $2,100 cluster was `InpTargetLock`, not the daily guard
+
+Four sets land within $30 of $2,100 (`V4_s1` 2126, `V4_s1_r025` 2121, `V4_ag2_opp1` 2100,
+`V4_s1_r1` 2032). `InpTargetPct=8.0` of $25,000 is $2,000: the EA hits the challenge
+target, closes everything and stops for the remainder of the run. Their deal lists end in
+July and August to prove it. I had told the record this was the drawdown guard capping
+monthly profit - see the correction above. It is not a cap, it is completion.
+
+`V4_s1_r1` is the clearest case: **2 trades, net +2031.80, PF 9.00.** Two trades at 1%
+risk reached +8% and the EA locked. That is not a result, it is a lucky fortnight.
+
+### What the diagnostic bought
+
+`V4_nopd` turns the premium/discount filter off and `wrong side of equilibrium` drops to
+0.0% as it must - the tally is wired correctly. The trade is bad though: 52 trades,
+-148.6, and **7.40% drawdown**. `V4_ag1_opp2`, the loosest bias setting in the grid, cuts
+`no HTF bias` from 79.5% to 3.1% and loses $1,502 at 8.85% drawdown. **Opening the gates
+produces trades, not edge** - the same monotonic result every grid in this repo has
+given.
+
+`V4_look50`, `V4_look300`, `V4_nofb`, `V4_rr3`, `V4_tpr15` and `V4_tpr30` all returned
+`V4_base` exactly (6 trades, -235.8). With only 13 orders placed, none of those branches
+is reached enough to matter - and now the tally says so rather than leaving it a mystery.
+
+## Next: real ticks, four years
+
+```
+.\RUN_SRHTF_FINAL.bat     4 sets x 2023-2026 on real ticks. ~5 hours.
+```
+
+`Model=1` cannot settle `V4_s1_part50`, because scaling out and trailing is precisely the
+behaviour that benefits most from fills granted anywhere inside a bar. `V4_s1` is in the
+shortlist as its control: if the scale-out is real, it should still be the one with the
+lower drawdown on real ticks.
+
+**Rank on the worst of the four years, not the average.** Positive in three years and
+-8% in the fourth is not tradeable on a 6% account.
