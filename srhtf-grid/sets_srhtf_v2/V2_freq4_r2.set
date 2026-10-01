@@ -1,15 +1,20 @@
 ; SR_HTF_StopEntry_EA v1.10 - V2_freq4_r2
-InpTF1=PERIOD_H1
-InpTF2=PERIOD_H4
-InpTF3=PERIOD_D1
+; InpTF1=PERIOD_H1
+InpTF1=16385
+; InpTF2=PERIOD_H4
+InpTF2=16388
+; InpTF3=PERIOD_D1
+InpTF3=16408
 InpMinAgree=3
 InpMaxOppose=1
 InpSwingStrength=1
 InpSwingLookback=150
 InpUsePDFilter=false
-InpRangeTF=PERIOD_H4
+; InpRangeTF=PERIOD_H4
+InpRangeTF=16388
 InpRangeBars=30
-InpEntryTF=PERIOD_M1
+; InpEntryTF=PERIOD_M1
+InpEntryTF=1
 InpSweepLookback=20
 InpSweepWindow=20
 InpEntryBufPts=20

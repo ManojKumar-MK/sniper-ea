@@ -395,3 +395,63 @@ that would leave either side below the broker's minimum volume.
 `V3_short` will probably top the table. It is also the set most likely to be fitting one
 year of a gold uptrend, and it halves the sample while doing it. Judge it on 2023-2025 or
 not at all.
+
+---
+
+## STOP - the first three grids measured the wrong strategy
+
+```
+.\PROBE_SRHTF.bat        3 passes, ~6 min. Run this before any more grids.
+```
+
+**An MT5 `.set` file stores an enum input as an INTEGER.** Every `.set` in this repo
+wrote them by name:
+
+```
+InpTF1=PERIOD_H1        <- does not parse. Input becomes 0 = PERIOD_CURRENT.
+```
+
+So `InpTF1`, `InpTF2`, `InpTF3`, `InpRangeTF` and `InpEntryTF` were **all** resolving to
+the chart timeframe. The EA has never run the H1/H4/D1 model it was tested as, and the
+tester report cannot show this because its Inputs section echoes the `.set` as written,
+not as resolved - which is why "the inputs applied correctly" was checked twice and came
+back clean twice.
+
+### It explains every anomaly, including the ones I had called unexplained
+
+| observation | cause |
+|---|---|
+| `InpMinAgree` 1 / 2 / 3 identical | all three TFs were the same timeframe, so `TFBias` returned the same value three times. `up` could only ever be 0 or 3 - `InpMinAgree` had nothing to choose between, and `InpMaxOppose` nothing to relax. |
+| `InpEntryTF` M1 vs M5 vs M15 identical | all resolved to the chart TF. |
+| **5 trades in nine months** | `InpRangeTF` H4 became M5, so the "HTF dealing range" was 30 M5 bars - about two hours. The liquidity target sat minutes away, `rr` was almost always below `InpMinRR`, and the gate discarded nearly every sweep. The frequency problem the whole v2 grid was built to solve was a side effect of this. |
+| `InpDirection` long-only == short-only == both | `SRHTF_SHORT_ONLY` did not parse either; the input became 0 = `SRHTF_BOTH`. |
+| `InpMinATRPts` 100 / 200 / 300 identical | not explained by this, and still open. The probe's diagnostic will say. |
+
+### What changed
+
+- **All 136 affected `.set` files rewritten with integer enums**, across every grid - the
+  other EAs' sets had the same defect. The name is kept on a preceding `;` comment line,
+  since MT5 does not accept a trailing comment on a value line.
+- **v1.30 refuses to start** if any timeframe input resolves to `PERIOD_CURRENT`, and
+  prints the resolved values at `OnInit`. A silent wrong-timeframe run cannot happen
+  again - the test fails instead.
+- **The diagnostic CSV now carries the resolved inputs** above the rejection tally, so
+  one file settles what the binary actually used, independently of the report.
+- **`RUNSETS.bat` finds the diagnostic by search**, not by path. The tester sandboxes
+  file writes per agent, so the EA's CSV lands in
+  `Tester\Agent-<addr>-<port>\MQL5\Files`, not `MQL5\Files` - which is why the v3 run
+  produced 35 reports and zero CSVs.
+
+### What the earlier results are now worth
+
+| | status |
+|---|---|
+| v1 grid (36 sets) | void - wrong timeframes |
+| v2 grid (44 sets) | void - wrong timeframes |
+| v3 grid (35 sets) | void - wrong timeframes |
+| "drawdown guard caps the month near $2,100" | **unaffected** - that is about `InpDailyGuardPct` and position sizing, neither of them enum inputs, and it held across four risk levels |
+| "break-even is carrying the strategy" (63% -> 23%) | probably holds, worth re-confirming |
+| `SRHTF_v110_CANDIDATE_t100.set` | **do not trade it** - it was fitted to a model that was not running |
+
+The sizing ceiling is the one finding that survives, and it is the one that answers the
+$100/day question, so the conclusion there does not change.

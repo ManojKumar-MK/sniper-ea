@@ -257,7 +257,10 @@ for %%Y in (!YEARS!) do (
       REM  A leftover from a previous pass would be mistaken for this one's.
       if exist "%MT5DIR%\!NAME!.htm"  del /q "%MT5DIR%\!NAME!.htm"
       if exist "%MT5DIR%\!NAME!.html" del /q "%MT5DIR%\!NAME!.html"
-      if exist "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" del /q "%MT5DIR%\MQL5\Files\SRHTF_diag.csv"
+      REM  The TESTER sandboxes file writes per agent, so a diagnostic written
+      REM  by the EA lands in Tester\Agent-<addr>-<port>\MQL5\Files, not in
+      REM  MQL5\Files. Clear every copy, then search for it after the pass.
+      for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SRHTF_diag.csv" 2^>nul') do del /q "%%D"
 
       echo   [!DONE!/!RUNS!] %%Y !NAME! ...
       start /wait "" "%TERM%" /config:"!INI!" /portable
@@ -267,11 +270,11 @@ for %%Y in (!YEARS!) do (
       if exist "%MT5DIR%\!NAME!.htm"  move /y "%MT5DIR%\!NAME!.htm"  "!REPORT!.htm" >nul
       if exist "%MT5DIR%\!NAME!.html" move /y "%MT5DIR%\!NAME!.html" "!REPORT!.htm" >nul
       if exist "%MT5DIR%\!NAME!.htm.html" move /y "%MT5DIR%\!NAME!.htm.html" "!REPORT!.htm" >nul
-      REM  InpDiagCSV writes MQL5\Files\SRHTF_diag.csv under a FIXED name,
-      REM  because the EA has no way to know which .set it was handed. Rename
-      REM  it per pass here, or every set would overwrite the last one's.
-      if exist "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" (
-        move /y "%MT5DIR%\MQL5\Files\SRHTF_diag.csv" "!OUTDIR!\diag_!NAME!.csv" >nul
+      REM  InpDiagCSV writes SRHTF_diag.csv under a FIXED name, because the EA
+      REM  has no way to know which .set it was handed - renamed per pass here.
+      REM  Found by search, not by path: the tester agent has its own sandbox.
+      for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SRHTF_diag.csv" 2^>nul') do (
+        move /y "%%D" "!OUTDIR!\diag_!NAME!.csv" >nul
       )
 
       REM  Charts/orders the report links to sit in a sibling folder.

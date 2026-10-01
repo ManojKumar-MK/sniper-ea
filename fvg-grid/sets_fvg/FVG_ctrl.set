@@ -1,5 +1,6 @@
 ; FvgGold - FVG_ctrl
-FVGTimeframe=PERIOD_M15
+; FVGTimeframe=PERIOD_M15
+FVGTimeframe=15
 MinGapSize=25
 MaxAgeBars=20
 MinAgeBars=2
@@ -16,7 +17,8 @@ OB_LookbackBars=50
 OB_MinSize=10.0
 OB_ConfluenceBonus=20.0
 OB_MaxDistance=200.0
-HTF_Period=PERIOD_H1
+; HTF_Period=PERIOD_H1
+HTF_Period=16385
 EMA_Fast=50
 EMA_Slow=200
 FixedLot=0.0

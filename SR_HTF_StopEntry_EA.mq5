@@ -38,9 +38,21 @@
 //|   InpTrailATRMult  rest. Turning BE off collapsed the win rate    |
 //|                    63%% -> 23%%, so the BE move is where the edge  |
 //|                    actually lives - this is built on top of it    |
+//|                                                                  |
+//|  v1.30 - REFUSES TO RUN on an unparsed timeframe input.           |
+//|  An MT5 .set file stores an enum as an INTEGER. A line reading    |
+//|  "InpTF1=PERIOD_H1" does not parse: the input silently becomes 0, |
+//|  PERIOD_CURRENT, the chart timeframe. Every .set in this repo was |
+//|  written that way, so InpTF1/2/3, InpRangeTF and InpEntryTF were  |
+//|  collapsing to the chart TF and the EA never ran the H1/H4/D1     |
+//|  model it was tested as. Silent, and it invalidated three grids.  |
+//|  OnInit now stops instead, and prints the resolved values so the  |
+//|  log always proves what actually ran.                            |
+//|  Correct .set values: M1=1 M5=5 M15=15 M30=30 H1=16385 H4=16388   |
+//|  D1=16408 W1=32769 MN1=49153                                     |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.20"
+#property version   "1.30"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -783,6 +795,25 @@ int OnInit()
    g_accHalted = GlobalVariableCheck(GVName("acc_halt"));
 
    ArrayInitialize(g_rej, 0);
+
+   // A .set line of "InpTF1=PERIOD_H1" does not parse - MT5 stores enums as
+   // integers, the value lands as 0 = PERIOD_CURRENT, and the EA quietly runs
+   // its three "higher" timeframes on the chart timeframe instead. That is
+   // indistinguishable from a working run in the report, so refuse it here.
+   if(InpTF1 == PERIOD_CURRENT || InpTF2 == PERIOD_CURRENT || InpTF3 == PERIOD_CURRENT ||
+      InpRangeTF == PERIOD_CURRENT || InpEntryTF == PERIOD_CURRENT)
+   {
+      Print("REFUSING TO RUN: a timeframe input resolved to PERIOD_CURRENT (0).");
+      Print("  A .set file must give enums as INTEGERS, not names:");
+      Print("  M1=1  M5=5  M15=15  M30=30  H1=16385  H4=16388  D1=16408");
+      Print(StringFormat("  got TF1=%d TF2=%d TF3=%d RangeTF=%d EntryTF=%d",
+            InpTF1, InpTF2, InpTF3, InpRangeTF, InpEntryTF));
+      return INIT_FAILED;
+   }
+   Print(StringFormat("SR_HTF v1.30 resolved: bias %s/%s/%s  range %s  entry %s  dir %s  minAgree %d maxOpp %d",
+         EnumToString(InpTF1), EnumToString(InpTF2), EnumToString(InpTF3),
+         EnumToString(InpRangeTF), EnumToString(InpEntryTF),
+         EnumToString(InpDirection), InpMinAgree, InpMaxOppose));
    if(InpMinATRPts > 0 || InpTrailATRMult > 0)
    {
       g_atrHandle = iATR(_Symbol, InpEntryTF, InpATRPeriod);
@@ -815,6 +846,21 @@ void DumpDiag()
    // renames this per pass. Overwritten each run on purpose.
    int h = FileOpen("SRHTF_diag.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
    if(h == INVALID_HANDLE) { Print("DIAG: could not write SRHTF_diag.csv, error ", GetLastError()); return; }
+   // The resolved inputs go in the file as well. The tester report echoes the
+   // .set as given, so it cannot show a value that failed to parse - the two
+   // disagreeing is exactly the bug this grid went looking for.
+   FileWrite(h, "resolved", "value", "raw");
+   FileWrite(h, "InpTF1", EnumToString(InpTF1), IntegerToString(InpTF1));
+   FileWrite(h, "InpTF2", EnumToString(InpTF2), IntegerToString(InpTF2));
+   FileWrite(h, "InpTF3", EnumToString(InpTF3), IntegerToString(InpTF3));
+   FileWrite(h, "InpRangeTF", EnumToString(InpRangeTF), IntegerToString(InpRangeTF));
+   FileWrite(h, "InpEntryTF", EnumToString(InpEntryTF), IntegerToString(InpEntryTF));
+   FileWrite(h, "InpDirection", EnumToString(InpDirection), IntegerToString(InpDirection));
+   FileWrite(h, "InpMinAgree", IntegerToString(InpMinAgree), "");
+   FileWrite(h, "InpMaxOppose", IntegerToString(InpMaxOppose), "");
+   FileWrite(h, "InpMinRR", DoubleToString(InpMinRR, 2), "");
+   FileWrite(h, "InpTPRMult", DoubleToString(InpTPRMult, 2), "");
+   FileWrite(h, "", "", "");
    FileWrite(h, "reason", "count", "pct");
    for(int i = 0; i < SRHTF_NREJ; i++)
       FileWrite(h, RejName(i), IntegerToString(g_rej[i]),

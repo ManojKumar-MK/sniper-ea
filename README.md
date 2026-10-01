@@ -77,6 +77,24 @@ It skips runs whose report already exists, so it is resumable. It also stops to 
 a `terminal64.exe` is running, since a second launch of the tester terminal hands the
 `/config:` to the open instance and every pass finishes in seconds with no report.
 
+### `.set` files must give enums as integers
+
+MT5 stores an enum input as a number. A line reading `InpTF1=PERIOD_H1` **does not
+parse** - the input silently becomes `0`, and for `ENUM_TIMEFRAMES` that is
+`PERIOD_CURRENT`, the chart timeframe. Nothing warns you, and the tester report's
+Inputs section echoes the `.set` as written, so it looks correct there.
+
+```
+InpTF1=16385            correct
+; InpTF1=PERIOD_H1      keep the name on its own comment line
+```
+
+`M1=1  M5=5  M15=15  M30=30  H1=16385  H4=16388  D1=16408  W1=32769  MN1=49153`
+
+This silently invalidated three SR_HTF grids - see
+[srhtf-grid/README.md](srhtf-grid/README.md). Any EA here that takes a timeframe input
+is affected, so all 136 affected `.set` files were rewritten.
+
 Two sets folders under one grid folder would collide, because the results directory is
 named from the grid. `OUTTAG` separates them:
 
