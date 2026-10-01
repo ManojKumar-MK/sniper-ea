@@ -455,3 +455,77 @@ back clean twice.
 
 The sizing ceiling is the one finding that survives, and it is the one that answers the
 $100/day question, so the conclusion there does not change.
+
+---
+
+## Probe: the enum fix is confirmed, and the real strategy is worse
+
+`results_2026_M5_probe_m1/`. The diagnostic CSVs settle it - the resolved inputs are now
+what the sets ask for:
+
+```
+InpTF1,PERIOD_H1,16385      InpRangeTF,PERIOD_H4,16388
+InpTF3,PERIOD_D1,16408      InpDirection,SRHTF_SHORT_ONLY,2
+```
+
+and `V3_short` shows **0 long trades** with `blocked by InpDirection` counted 2,280
+times. Every input now does what it says.
+
+### The strategy, measured for the first time
+
+| set | trades | net | $/trade | eqDD% | PF | long / short |
+|---|---|---|---|---|---|---|
+| `V3_base` | **6** | **-235.8** | -39.29 | 3.98 | 0.36 | 2 / 4 |
+| `V3_q_m1` (M1 entry) | 23 | +398.6 | +17.33 | **6.35 breach** | 1.39 | 6 / 17 |
+| `V3_short` | 4 | -235.8 | -58.96 | 1.87 | 0.02 | 0 / 4 |
+| *old `V3_base`, wrong TFs* | *37* | *+1769.1* | *+47.81* | *2.11* | *1.99* | *14 / 23* |
+
+**The +1769 was the bug, not the strategy.** Run as written - H1/H4/D1 bias, H4 dealing
+range - it takes 6 trades in nine months and loses money. Every positive number in the
+v1, v2 and v3 tables came from a configuration where all five timeframe inputs had
+collapsed onto M5.
+
+### Where the trades go, from `diag_V3_base.csv`
+
+| reason | count | % |
+|---|---|---|
+| **no HTF bias** | 16,561 | **79.54** |
+| **wrong side of equilibrium** | 3,871 | **18.59** |
+| no sweep setup | 185 | 0.89 |
+| already exposed | 151 | 0.73 |
+| sweep already used | 23 | 0.11 |
+| SL size out of range | 17 | 0.08 |
+| ORDER PLACED | 13 | 0.06 |
+| below `InpMinRR` gate | 0 | 0.00 |
+
+Two gates are 98% of everything. Requiring H1, H4 **and** D1 to agree stands the EA
+aside four evaluations in five; of what survives, the premium/discount filter removes
+most of the rest. The `InpMinRR` gate - the thing the whole v2 grid was built around -
+now rejects **nothing**, because `InpTPFallback` takes every setup it would have
+discarded.
+
+So the question is no longer "which knob pays". It is whether a three-timeframe
+unanimous-agreement model fires often enough to trade at all.
+
+## v4 grid - the first one that tests the real thing
+
+```
+.\RUN_SRHTF_V4.bat        41 sets, ~70 min
+```
+
+Built on the corrected `V3_base`, with `InpMaxOppose=0` so the baseline is honest
+(`InpMinAgree=3` means `up>=3`, which already implies `dn==0`, so `MaxOppose` has nothing
+to relax there). Most of the grid aims at the two gates that matter:
+
+| block | sets | attacks |
+|---|---|---|
+| bias | `V4_ag1/ag2`, `_opp1/_opp2`, `V4_tf_fast/faster/mid`, `V4_swing*`, `V4_look*` | the 79.5% |
+| location | `V4_nopd`, `V4_range15/60/100`, `V4_rangetf_h1/d1` | the 18.6% |
+| entry TF | `V4_entry_m1/m15`, `V4_m1_pool40/60`, `V4_m1_sweep30`, `V4_m1_expiry20` | M1 was the only probe set that made money |
+| targets | `V4_nofb`, `V4_tpr15/30`, `V4_rr3` | now that the gate is visible |
+| direction | `V4_short`, `V4_long` | works for the first time |
+| stacks + guards | `V4_s1`…`V4_s4`, `_tight`, `_r025`, `_r1`, `_notgt`, `_part50` | `V3_q_m1` breached 6%, so the tighter guard is tested |
+
+**Judge trade count before anything else.** `V4_base` is 6 trades; a set under ~30 has
+said nothing whatever its net. And `V3_q_m1` is the warning for this grid: the one
+profitable probe set also breached the 6% rule, so a high net here is not a pass.
