@@ -47,6 +47,15 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## Can an AI model judge the setups?
+
+[JEV_XAUUSD.md](JEV_XAUUSD.md) - what of [jarrodwatts/jev-trader](https://github.com/jarrodwatts/jev-trader)
+ports to XAUUSD and what does not. Short version: its market-making mechanism does not
+port at all (there is no book to rest in), but its typed-decision architecture does.
+`WebRequest()` is dead in the Strategy Tester, so a cloud model cannot be backtested
+inside MT5 - validation has to be an offline replay over `SRHTF_setups.csv`, which
+`InpSetupCSV=true` now produces.
+
 ## No Python? Use MetaTrader directly
 
 ```

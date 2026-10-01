@@ -52,7 +52,7 @@
 //|  D1=16408 W1=32769 MN1=49153                                     |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.30"
+#property version   "1.40"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -132,6 +132,7 @@ input group "=== Misc ==="
 input long            InpMagic        = 52741;
 input string          InpComment      = "SR_HTF";
 input bool            InpDiagCSV      = false;  // Dump the rejection tally at OnDeinit
+input bool            InpSetupCSV     = false;  // Log every setup's features + realised R
 
 //=================== GLOBALS ===================
 datetime g_lastBar      = 0;
@@ -159,6 +160,42 @@ enum ENUM_SRHTF_REJ
    REJ_SL_SIZE, REJ_RR_GATE, REJ_ATR_FLOOR, REJ_DIRECTION, REJ_PLACED
 };
 int      g_rej[SRHTF_NREJ];
+
+// One row per setup actually placed: the features that were true when the
+// decision was made, and what it went on to earn. This is the training and
+// evaluation set for any filter - a model, a rule, anything - and nothing can
+// be judged without it. Features are chosen to be what a retail CFD feed can
+// actually supply: no order book, no depth, no taker flow.
+struct SetupRec
+{
+   ulong    order;        // pending order ticket, to match against history
+   datetime t;
+   int      hour, dow;
+   int      bias, b1, b2, b3;
+   double   riskPts, atrPts, spreadPts;
+   double   liqRR;        // RR to the HTF liquidity target, BEFORE any fallback
+   double   rangePos;     // 0 = at range low, 1 = at range high
+   double   ret5, ret20, ret100;   // entry-TF returns in points
+   double   lots;
+   double   riskUsd;
+};
+#define SRHTF_MAXSETUP 4000
+SetupRec g_setup[SRHTF_MAXSETUP];
+int      g_nSetup = 0;
+
+// Defined further down, beside the dumper it feeds; declared here because
+// TryPlaceSetup calls it and MQL5 needs the declaration first.
+void RecordSetup(ulong order, ENUM_ORDER_TYPE type, double entry, double sl,
+                 double risk, double lots, double liqRR,
+                 double rHi, double rLo, double bid, double ask);
+
+double RetPts(int bars)
+{
+   double now = iClose(_Symbol, InpEntryTF, 1);
+   double then = iClose(_Symbol, InpEntryTF, 1 + bars);
+   if(now <= 0 || then <= 0) return 0;
+   return (now - then) / _Point;
+}
 string RejName(int i)
 {
    switch(i)
@@ -612,11 +649,13 @@ void TryPlaceSetup()
    double tpR = (InpTPRMult > 0) ? InpTPRMult : InpMinRR;
    double fixedTP = (type == ORDER_TYPE_BUY_STOP) ? entry + tpR * risk
                                                   : entry - tpR * risk;
+   double liqRR = 0;   // RR to HTF liquidity as it was BEFORE any fallback
    if(InpTargetLiquidity)
    {
       tp = (type == ORDER_TYPE_BUY_STOP) ? rHi - InpTPBufPts * _Point
                                          : rLo + InpTPBufPts * _Point;
       double rr = MathAbs(tp - entry) / risk;
+      liqRR = rr;
       bool wrongSide = (type == ORDER_TYPE_BUY_STOP) ? (tp <= entry) : (tp >= entry);
       if(wrongSide || rr < InpMinRR)
       {
@@ -650,6 +689,9 @@ void TryPlaceSetup()
    {
       g_lastSweepTime = sweepT;
       Rej(REJ_PLACED);
+      if(InpSetupCSV)
+         RecordSetup(trade.ResultOrder(), type, entry, sl, risk, lots,
+                     liqRR, rHi, rLo, bid, ask);
       g_status = StringFormat("%s placed @ %.2f SL %.2f TP %.2f lots %.2f",
                   type == ORDER_TYPE_BUY_STOP ? "BUY STOP" : "SELL STOP", entry, sl, tp, lots);
       Print(g_status);
@@ -830,6 +872,105 @@ int OnInit()
    return INIT_SUCCEEDED;
 }
 
+void RecordSetup(ulong order, ENUM_ORDER_TYPE type, double entry, double sl,
+                 double risk, double lots, double liqRR,
+                 double rHi, double rLo, double bid, double ask)
+{
+   if(g_nSetup >= SRHTF_MAXSETUP) return;
+   MqlDateTime t; TimeToStruct(TimeCurrent() - InpServerGMTOffset * 3600, t);
+
+   double atrPts = 0;
+   if(g_atrHandle != INVALID_HANDLE)
+   {
+      double a[1];
+      if(CopyBuffer(g_atrHandle, 0, 1, 1, a) == 1) atrPts = a[0] / _Point;
+   }
+
+   SetupRec r;
+   r.order     = order;
+   r.t         = TimeCurrent();
+   r.hour      = t.hour;
+   r.dow       = t.day_of_week;
+   r.bias      = g_bias;
+   r.b1        = g_b1;
+   r.b2        = g_b2;
+   r.b3        = g_b3;
+   r.riskPts   = risk / _Point;
+   r.atrPts    = atrPts;
+   r.spreadPts = (ask - bid) / _Point;
+   r.liqRR     = liqRR;
+   r.rangePos  = (rHi > rLo) ? (bid - rLo) / (rHi - rLo) : 0;
+   r.ret5      = RetPts(5);
+   r.ret20     = RetPts(20);
+   r.ret100    = RetPts(100);
+   r.lots      = lots;
+   r.riskUsd   = AccountInfoDouble(ACCOUNT_BALANCE) * InpRiskPct / 100.0;
+   g_setup[g_nSetup++] = r;
+}
+
+// Resolve each setup to what it actually earned, and write one row. Matching is
+// by DEAL_ORDER on the entry deal: that is our pending order's ticket. From
+// there DEAL_POSITION_ID collects every deal of that position, so a scaled-out
+// trade is summed rather than counted as its first exit only.
+void DumpSetups()
+{
+   if(g_nSetup == 0) { Print("SETUPS: none recorded"); return; }
+   if(!HistorySelect(0, TimeCurrent() + 86400)) { Print("SETUPS: HistorySelect failed"); return; }
+   int nd = HistoryDealsTotal();
+
+   int h = FileOpen("SRHTF_setups.csv", FILE_WRITE | FILE_CSV | FILE_ANSI, ',');
+   if(h == INVALID_HANDLE) { Print("SETUPS: cannot write, error ", GetLastError()); return; }
+   FileWrite(h, "time", "hour", "dow", "bias", "b1", "b2", "b3", "riskPts", "atrPts",
+             "spreadPts", "liqRR", "rangePos", "ret5", "ret20", "ret100",
+             "lots", "riskUsd", "filled", "profitUsd", "R");
+
+   int filled = 0;
+   for(int i = 0; i < g_nSetup; i++)
+   {
+      long posId = -1;
+      for(int d = 0; d < nd; d++)
+      {
+         ulong tk = HistoryDealGetTicket(d);
+         if(tk == 0) continue;
+         if(HistoryDealGetInteger(tk, DEAL_ENTRY) != DEAL_ENTRY_IN) continue;
+         if((ulong)HistoryDealGetInteger(tk, DEAL_ORDER) != g_setup[i].order) continue;
+         posId = HistoryDealGetInteger(tk, DEAL_POSITION_ID);
+         break;
+      }
+
+      double profit = 0;
+      if(posId >= 0)
+      {
+         filled++;
+         for(int d = 0; d < nd; d++)
+         {
+            ulong tk = HistoryDealGetTicket(d);
+            if(tk == 0) continue;
+            if(HistoryDealGetInteger(tk, DEAL_POSITION_ID) != posId) continue;
+            profit += HistoryDealGetDouble(tk, DEAL_PROFIT)
+                    + HistoryDealGetDouble(tk, DEAL_SWAP)
+                    + HistoryDealGetDouble(tk, DEAL_COMMISSION);
+         }
+      }
+
+      // An unfilled pending is a real outcome, not a missing row: the stop was
+      // never taken out. R is 0 for those and `filled` says which is which.
+      double R = (g_setup[i].riskUsd > 0) ? profit / g_setup[i].riskUsd : 0;
+      FileWrite(h, TimeToString(g_setup[i].t, TIME_DATE | TIME_MINUTES),
+                IntegerToString(g_setup[i].hour), IntegerToString(g_setup[i].dow),
+                IntegerToString(g_setup[i].bias), IntegerToString(g_setup[i].b1),
+                IntegerToString(g_setup[i].b2), IntegerToString(g_setup[i].b3),
+                DoubleToString(g_setup[i].riskPts, 1), DoubleToString(g_setup[i].atrPts, 1),
+                DoubleToString(g_setup[i].spreadPts, 1), DoubleToString(g_setup[i].liqRR, 3),
+                DoubleToString(g_setup[i].rangePos, 4), DoubleToString(g_setup[i].ret5, 1),
+                DoubleToString(g_setup[i].ret20, 1), DoubleToString(g_setup[i].ret100, 1),
+                DoubleToString(g_setup[i].lots, 2), DoubleToString(g_setup[i].riskUsd, 2),
+                posId >= 0 ? "1" : "0", DoubleToString(profit, 2), DoubleToString(R, 3));
+   }
+   FileClose(h);
+   Print(StringFormat("SETUPS: %d recorded, %d filled -> SRHTF_setups.csv", g_nSetup, filled));
+}
+
 void DumpDiag()
 {
    int considered = 0;
@@ -873,6 +1014,7 @@ void OnDeinit(const int reason)
    Comment("");
    if(g_atrHandle != INVALID_HANDLE) IndicatorRelease(g_atrHandle);
    if(InpDiagCSV) DumpDiag();
+   if(InpSetupCSV) DumpSetups();
 }
 
 void OnTick()
