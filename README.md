@@ -47,6 +47,13 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## Third-party repos assessed
+
+| repo | verdict |
+|---|---|
+| [TRADE_SPLIT_MANAGER.md](TRADE_SPLIT_MANAGER.md) | execution manager with a 5-level TP ladder. No signals. Cannot be backtested (`Socket*` is dead in the tester), but its volume-flooring and "filled then closed" logic are worth copying into SR_HTF. |
+| [JEV_XAUUSD.md](JEV_XAUUSD.md) | market maker on an on-chain book. Mechanism does not port; typed-decision architecture does. |
+
 ## Can an AI model judge the setups?
 
 [JEV_XAUUSD.md](JEV_XAUUSD.md) - what of [jarrodwatts/jev-trader](https://github.com/jarrodwatts/jev-trader)
