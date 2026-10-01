@@ -603,3 +603,81 @@ lower drawdown on real ticks.
 
 **Rank on the worst of the four years, not the average.** Positive in three years and
 -8% in the fourth is not tradeable on a 6% account.
+
+---
+
+## REAL TICKS, 4 years - and my pass/fail criterion was wrong
+
+16 passes, `results_<year>_M5_final/`. The result inverts the v4 ranking, because of a
+mistake in how I was judging every grid before this one.
+
+### The correction first
+
+**I ranked every set on MT5's "Equity Drawdown Maximal %" and called anything over 6% a
+breach. That is the wrong test for this account.** FundedNext's 25k 2-Step maximum is
+**static**: $1,500 below the *initial* balance, i.e. equity must never reach 23,500.
+MT5's figure is **peak-to-trough** - it counts a fall from a high-water mark, which on a
+static rule costs nothing.
+
+`V4_s1` in 2024 makes it concrete: 8.60% equity drawdown, and it **passed**, ending
++$2,000.16 with deals stopping in March. Equity fell 8.6% from a peak above 25,000 and
+never approached the floor. Under my old criterion I marked it a breach and ranked it
+below the set that actually blew the account.
+
+The guards make the real test readable straight off the net, because the EA closes
+everything at both ends:
+
+```
+InpTargetPct   8.0  -> locks at equity 27,000  ->  net ~ +2,000  = target reached
+InpMaxGuardPct 6.0  -> halts at equity 23,500  ->  net ~ -1,500  = floor hit, account dead
+```
+
+### The table, read correctly
+
+| set | 2023 | 2024 | 2025 | 2026 | verdict |
+|---|---|---|---|---|---|
+| `V4_s1` | **+1998** | **+2000** | **+1998** | **+2002** | target in **all four years** |
+| `V4_s1_r025` | **+1999** | **+1999** | **+2000** | **+2001** | target in **all four years** |
+| `V4_ag2_opp1` | +1999 | **-1502** | **-1501** | +2011 | floor hit **twice** |
+| `V4_s1_part50` | +623 | **-1504** | **-1502** | +1440 | floor hit **twice** |
+
+`V4_s1_part50` - the set I championed - is the worst of the four. Its deals run to May
+2024 and July 2025 and then stop, which is the max-loss guard firing. Two blown accounts
+in four years.
+
+### What the scale-out actually did
+
+`V4_s1_part50` on 2026 real ticks: 77 trades, +1440, 3.05% - close to its Model=1 numbers
+(70 trades, +1737, 2.47%), so the fill model was *not* flattering it much. The scale-out
+held up fine in-sample and simply has no edge in 2024 or 2025. Trading more (91, 40, 52,
+77 trades a year against `V4_s1`'s 12, 16, 14, 40) converted a thin edge into enough
+exposure to reach the floor.
+
+`V4_s1` wins by trading **less**: it reaches +8% in a dozen trades and then stops for the
+year by design. Its 2024 run was over in March.
+
+### Still not a pass, and this is the real gap
+
+`InpTargetPct=8.0` is **$2,000. FundedNext's 2-Step target is $2,500 (10%).** Both
+surviving sets stop $500 short of actually completing the challenge. So the honest
+statement is: *they reached +8% in four consecutive years without touching the static
+floor*, which is not the same as passing.
+
+```
+.\RUN_SRHTF_PASS.bat     4 sets x 2023-2026, real ticks, ~5 hours
+```
+
+`sets_srhtf_pass` raises `InpTargetPct` to 10.0 on both survivors and asks the only
+question left - can the last 2% be reached before equity hits 23,500? The `_dg2` pair
+also tightens the daily guard to 2.0%, because more time trading is more chances to trip
+the $750 daily rule.
+
+**A set passes only if net is ~+2500 in all four years.** One year at ~-1500 is a blown
+challenge, and in reality there is no retry without paying for it again.
+
+### Why the daily limit is probably safe, with a caveat
+
+`InpDailyGuardPct=2.5` of day-start equity is at most ~$675 at 27,000 equity, inside the
+$750 rule, and the guard closes positions when it trips. That holds **by construction**
+rather than by measurement - a gap through the level, or a weekend open, could still
+overshoot it, and nothing in these reports proves it did not.
