@@ -40,7 +40,7 @@
 #property copyright "Copyright 2026, Manojkumar K - mailtomktech@gmail.com"
 #property link      "mailto:mailtomktech@gmail.com"
 #property description "EMA Based Strategy module - free to use as of now."
-#property version   "1.30"
+#property version   "1.40"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -396,6 +396,63 @@ input bool     InpQfVolume       = false;
 input bool     InpQfCooldown     = true;
 input int      InpCooldownBars   = 5;
 
+//====================================================================
+//  v1.40 - HTF GATE + ICT CONFLUENCE + CHOP FILTER
+//
+//  The EMA9/21 cross on its own has no edge here: ~1,500 backtests put
+//  the median profit factor at 0.990, and every added indicator filter
+//  made it monotonically worse (none +581 -> all five +200). So these
+//  are NOT more of the same. Two things are different:
+//
+//   * The HTF gate asks about STRUCTURE (swing highs and lows on H1),
+//     not about another moving average. It is the same TFBias used by
+//     SR_HTF_StopEntry_EA, which reached its target in 6 of 8 real-tick
+//     years - the one component in this repo with an out-of-sample
+//     record.
+//   * The confluence test asks for a REASON the level matters - a
+//     liquidity sweep, an unfilled FVG, or an OTE retracement - rather
+//     than for yet another confirmation of the same trend.
+//
+//  The chop filter is aimed at the actual complaint. "Choppy" has a
+//  measurable definition here: an EMA pair that crosses repeatedly in a
+//  short window. InpChopMaxCrosses counts them and refuses the signal,
+//  which no indicator threshold in the old quality filter does.
+//
+//  EVERYTHING DEFAULTS OFF. An existing .set reproduces its old result
+//  exactly. Enums in a .set MUST be integers: M1=1 M3=3 M5=5 M15=15
+//  M30=30 H1=16385 H4=16388 D1=16408, and 0 means "slot unused".
+//====================================================================
+input group "-- HTF structure gate (v1.40) --"
+input bool     InpUseHtfGate     = false;  // require HTF swing structure to agree with the cross
+input ENUM_TIMEFRAMES InpHtfTF1  = PERIOD_H1;
+input ENUM_TIMEFRAMES InpHtfTF2  = PERIOD_CURRENT;  // 0 = slot unused
+input ENUM_TIMEFRAMES InpHtfTF3  = PERIOD_CURRENT;  // 0 = slot unused
+input int      InpHtfMinAgree    = 1;      // how many USED slots must agree
+input bool     InpHtfNoOppose    = false;  // also require that none disagrees (kept separate on purpose)
+input int      InpHtfSwingStr    = 2;      // fractal bars each side
+input int      InpHtfSwingLook   = 150;    // bars searched for swings
+
+input group "-- ICT confluence: sweep / FVG / OTE (v1.40) --"
+input bool     InpUseConfluence  = false;
+input int      InpConfMinCount   = 1;      // how many of the three enabled tests must pass
+input bool     InpConfSweep      = true;   // a prior low/high was taken out and reclaimed
+input bool     InpConfFVG        = true;   // an unfilled 3-bar imbalance in the trade direction
+input bool     InpConfOTE        = true;   // price is in the 62-79% retracement of the last leg
+input int      InpConfLookback   = 12;     // entry-TF bars searched for sweep / FVG
+input int      InpSweepPoolBars  = 20;     // bars forming the liquidity pool
+input double   InpFvgMinPts      = 20;     // smallest FVG worth counting, in points
+input double   InpOteLo          = 0.62;
+input double   InpOteHi          = 0.79;
+input int      InpOteLegBars     = 20;     // window used to find the impulse leg
+
+input group "-- Chop filter (v1.40) --"
+input bool     InpUseChopFilter  = false;
+input int      InpChopLookback   = 30;     // bars examined
+input int      InpChopMaxCrosses = 3;      // more EMA crosses than this in that window = chop, skip
+input double   InpMinBodyAtr     = 0.0;    // signal bar body >= this x ATR (0 = off)
+input double   InpMinRangeAtr    = 0.0;    // InpRangeBars range >= this x ATR (0 = off)
+input int      InpRangeBars      = 10;
+
 input group "-- Bias score inputs --"
 input int      InpRsiPeriod      = 14;
 input int      InpMacdFast       = 12;
@@ -409,6 +466,14 @@ input int      InpVolAvgPeriod   = 20;
 //====================================================================
 CTrade   trade;
 int      hEma9, hEma21, hEma50, hAtr, hAdx, hRsi, hRsiM5, hMacd;
+
+// Why signals were refused, counted for the whole run and printed at
+// OnDeinit. The CSV SKIP rows already carry a reason each, but a run that
+// takes no trades at all needs the TOTALS to say which gate did it -
+// otherwise "the filter changed nothing" and "the filter was never
+// reached" look identical, which is what wasted three SR_HTF grids.
+long     g_cnCross = 0, g_cnHtf = 0, g_cnConf = 0, g_cnChop = 0,
+         g_cnQual  = 0, g_cnSameWay = 0, g_cnSpread = 0, g_cnTaken = 0;
 
 datetime g_lastBarTime = 0;
 int      g_lastSignal  = 0;      // 1 long, -1 short, 0 flat
@@ -801,6 +866,15 @@ void OnDeinit(const int reason)
    EventKillTimer();
    PanelDestroy();
 
+   // Totals for the whole run. A backtest that took no trades needs this:
+   // without it, "the gate rejected everything" and "the gate was never
+   // reached" produce the same empty report.
+   if(g_cnCross>0)
+      PrintFormat("SIGNAL TALLY  crosses=%I64d  taken=%I64d  |  htf=%I64d conf=%I64d chop=%I64d quality=%I64d sameway=%I64d spread=%I64d",
+                  g_cnCross,g_cnTaken,g_cnHtf,g_cnConf,g_cnChop,g_cnQual,g_cnSameWay,g_cnSpread);
+   else
+      Print("SIGNAL TALLY  no EMA cross was ever evaluated - check the session, killzone and evening windows");
+
    // Wrap the day up only when the EA is actually going away - the terminal
    // closing, the EA removed, the chart closed.
    //
@@ -907,6 +981,197 @@ void OnTick()
 }
 
 //====================================================================
+//  v1.40 MODEL - HTF structure, ICT confluence, chop
+//====================================================================
+
+// Lifted unchanged from SR_HTF_StopEntry_EA, where it has a real
+// out-of-sample record. A swing high is a bar whose high beats
+// InpHtfSwingStr bars on BOTH sides.
+bool SwHigh(ENUM_TIMEFRAMES tf,int i,int st)
+{
+   double h=iHigh(_Symbol,tf,i);
+   for(int k=1;k<=st;k++)
+   {
+      if(iHigh(_Symbol,tf,i-k)>=h) return false;
+      if(iHigh(_Symbol,tf,i+k)> h) return false;
+   }
+   return true;
+}
+bool SwLow(ENUM_TIMEFRAMES tf,int i,int st)
+{
+   double l=iLow(_Symbol,tf,i);
+   for(int k=1;k<=st;k++)
+   {
+      if(iLow(_Symbol,tf,i-k)<=l) return false;
+      if(iLow(_Symbol,tf,i+k)< l) return false;
+   }
+   return true;
+}
+
+// +1 bullish structure, -1 bearish, 0 unclear.
+int TfStructBias(ENUM_TIMEFRAMES tf)
+{
+   if(tf==PERIOD_CURRENT) return 0;              // slot unused
+   int bars=iBars(_Symbol,tf);
+   if(bars < InpHtfSwingStr*2+10) return 0;
+   int lim=(int)MathMin(InpHtfSwingLook, bars-InpHtfSwingStr-2);
+
+   double sh[2],sl[2]; int nh=0,nl=0;
+   for(int i=InpHtfSwingStr+1;i<lim && (nh<2||nl<2);i++)
+   {
+      if(nh<2 && SwHigh(tf,i,InpHtfSwingStr)) sh[nh++]=iHigh(_Symbol,tf,i);
+      if(nl<2 && SwLow (tf,i,InpHtfSwingStr)) sl[nl++]=iLow (_Symbol,tf,i);
+   }
+   if(nh<2||nl<2) return 0;
+
+   double c=iClose(_Symbol,tf,1);
+   if(c>sh[0]) return  1;                        // broke the last swing high
+   if(c<sl[0]) return -1;
+   if(sh[0]>sh[1] && sl[0]>sl[1]) return  1;     // higher high + higher low
+   if(sh[0]<sh[1] && sl[0]<sl[1]) return -1;
+   return 0;
+}
+
+// "How many agree" and "none may disagree" are deliberately two inputs.
+// Conflating them is exactly what made InpMinAgree unmeasurable in
+// SR_HTF: with agreement hard-wired to unanimity, 1, 2 and 3 selected
+// the same bars and the grid could not see it.
+bool HtfGateOk(int dir,string &flags)
+{
+   int b1=TfStructBias(InpHtfTF1), b2=TfStructBias(InpHtfTF2), b3=TfStructBias(InpHtfTF3);
+   int used=0, agree=0, oppose=0;
+   int bs[3]; bs[0]=b1; bs[1]=b2; bs[2]=b3;
+   ENUM_TIMEFRAMES tfs[3]; tfs[0]=InpHtfTF1; tfs[1]=InpHtfTF2; tfs[2]=InpHtfTF3;
+   for(int i=0;i<3;i++)
+   {
+      if(tfs[i]==PERIOD_CURRENT) continue;
+      used++;
+      if(bs[i]== dir) agree++;
+      if(bs[i]==-dir) oppose++;
+   }
+   flags=StringFormat("HTF=%d/%d/%d",b1,b2,b3);
+   if(used==0) return true;                       // nothing configured, nothing to say
+   if(agree < MathMin(InpHtfMinAgree,used)) return false;
+   if(InpHtfNoOppose && oppose>0) return false;
+   return true;
+}
+
+// A sweep: within the lookback a bar pushed through the prior pool
+// extreme and CLOSED back inside it. Taking out the low and reclaiming
+// it is the bullish case.
+bool HasSweep(int dir)
+{
+   for(int k=1;k<=InpConfLookback;k++)
+   {
+      if(dir==1)
+      {
+         int idx=iLowest(_Symbol,_Period,MODE_LOW,InpSweepPoolBars,k+1);
+         if(idx<0) return false;
+         double pool=iLow(_Symbol,_Period,idx);
+         if(iLow(_Symbol,_Period,k)<pool && iClose(_Symbol,_Period,k)>pool) return true;
+      }
+      else
+      {
+         int idx=iHighest(_Symbol,_Period,MODE_HIGH,InpSweepPoolBars,k+1);
+         if(idx<0) return false;
+         double pool=iHigh(_Symbol,_Period,idx);
+         if(iHigh(_Symbol,_Period,k)>pool && iClose(_Symbol,_Period,k)<pool) return true;
+      }
+   }
+   return false;
+}
+
+// A 3-bar imbalance that price has not yet filled. Bullish: bar k's low
+// sits above bar k+2's high, and the current close has not dropped back
+// through the bottom of that gap.
+bool HasFVG(int dir)
+{
+   double minSz=InpFvgMinPts*_Point;
+   double cNow =iClose(_Symbol,_Period,1);
+   for(int k=1;k<=InpConfLookback;k++)
+   {
+      if(dir==1)
+      {
+         double lo=iLow(_Symbol,_Period,k), hi=iHigh(_Symbol,_Period,k+2);
+         if(lo-hi>=minSz && cNow>=hi) return true;
+      }
+      else
+      {
+         double hi=iHigh(_Symbol,_Period,k), lo=iLow(_Symbol,_Period,k+2);
+         if(lo-hi>=minSz && cNow<=lo) return true;
+      }
+   }
+   return false;
+}
+
+// OTE: price sitting in the 62-79% retracement of the most recent leg.
+// The leg has to point the right way - for a long, the high must be more
+// recent than the low - or this would call a dead-cat bounce an entry.
+bool HasOTE(int dir)
+{
+   int ih=iHighest(_Symbol,_Period,MODE_HIGH,InpOteLegBars,1);
+   int il=iLowest (_Symbol,_Period,MODE_LOW ,InpOteLegBars,1);
+   if(ih<0||il<0) return false;
+   double hi=iHigh(_Symbol,_Period,ih), lo=iLow(_Symbol,_Period,il);
+   double rng=hi-lo;
+   if(rng<=0) return false;
+   double c=iClose(_Symbol,_Period,1);
+   double f1=MathMin(InpOteLo,InpOteHi), f2=MathMax(InpOteLo,InpOteHi);
+
+   if(dir==1)
+   {
+      if(ih>=il) return false;                    // leg must be UP: high more recent
+      return (c<=hi-f1*rng && c>=hi-f2*rng);
+   }
+   if(il>=ih) return false;                       // leg must be DOWN
+   return (c>=lo+f1*rng && c<=lo+f2*rng);
+}
+
+bool ConfluenceOk(int dir,string &flags)
+{
+   bool sw=(InpConfSweep && HasSweep(dir));
+   bool fv=(InpConfFVG   && HasFVG(dir));
+   bool ot=(InpConfOTE   && HasOTE(dir));
+   int have=(sw?1:0)+(fv?1:0)+(ot?1:0);
+   int enabled=(InpConfSweep?1:0)+(InpConfFVG?1:0)+(InpConfOTE?1:0);
+   flags=StringFormat("SWEEP=%d;FVG=%d;OTE=%d",(int)sw,(int)fv,(int)ot);
+   if(enabled==0) return true;
+   return have >= MathMin(InpConfMinCount,enabled);
+}
+
+// Chop, defined so it can be counted rather than felt: an EMA pair that
+// keeps crossing. Also optional floors on the signal bar's body and on
+// the recent range, both of which collapse in a flat market.
+bool ChopOk(double atr,string &flags)
+{
+   int crosses=0;
+   int need=InpChopLookback+2;
+   double e9[],e21[];
+   if(CopyBuffer(hEma9,0,1,need,e9)==need && CopyBuffer(hEma21,0,1,need,e21)==need)
+      for(int i=0;i<need-1;i++)
+      {
+         bool a=(e9[i]  > e21[i]);
+         bool b=(e9[i+1]> e21[i+1]);
+         if(a!=b) crosses++;
+      }
+
+   double body=MathAbs(iClose(_Symbol,_Period,1)-iOpen(_Symbol,_Period,1));
+   double rng=0;
+   if(InpMinRangeAtr>0 && InpRangeBars>0)
+   {
+      int ih=iHighest(_Symbol,_Period,MODE_HIGH,InpRangeBars,1);
+      int il=iLowest (_Symbol,_Period,MODE_LOW ,InpRangeBars,1);
+      if(ih>=0&&il>=0) rng=iHigh(_Symbol,_Period,ih)-iLow(_Symbol,_Period,il);
+   }
+
+   bool okCross=(InpChopMaxCrosses<=0) || (crosses<=InpChopMaxCrosses);
+   bool okBody =(InpMinBodyAtr <=0)    || (body>=InpMinBodyAtr*atr);
+   bool okRange=(InpMinRangeAtr<=0)    || (rng >=InpMinRangeAtr*atr);
+   flags=StringFormat("XN=%d;BODY=%d;RNG=%d",crosses,(int)okBody,(int)okRange);
+   return okCross && okBody && okRange;
+}
+
+//====================================================================
 //  SIGNAL EVALUATION - EMA9 / EMA21 cross
 //====================================================================
 void EvaluateSignal()
@@ -924,6 +1189,20 @@ void EvaluateSignal()
    bool buyCond  = (e9_2 <= e21_2) && (e9_1 > e21_1);
    bool sellCond = (e9_2 >= e21_2) && (e9_1 < e21_1);
    if(!buyCond && !sellCond) return;
+   g_cnCross++;
+
+   // The direction is known as soon as the cross is, so the v1.40 gates
+   // run here - before the indicator quality filter - and each records a
+   // reason whether it passes or fails. A gate that silently never fires
+   // is the failure mode this ordering is meant to make visible.
+   int xdir = buyCond ? 1 : -1;
+   string htfFlags="", confFlags="", chopFlags="";
+   bool okHtf  = (!InpUseHtfGate)    || HtfGateOk(xdir, htfFlags);
+   if(InpUseHtfGate && !okHtf)       g_cnHtf++;
+   bool okConf = (!InpUseConfluence) || ConfluenceOk(xdir, confFlags);
+   if(InpUseConfluence && !okConf)   g_cnConf++;
+   bool okChop = (!InpUseChopFilter) || ChopOk(atr_1, chopFlags);
+   if(InpUseChopFilter && !okChop)   g_cnChop++;
 
    double adx=0; Val(hAdx,1,adx);
    double volNow = (double)iVolume(_Symbol,_Period,1);
@@ -961,12 +1240,25 @@ void EvaluateSignal()
                             (int)(dir==1?qEma50L:qEma50S),
                             (int)(dir==1?qVwapL :qVwapS ),
                             (int)(dir==1?qBiasL :qBiasS ));
+   // Appended, not substituted: the CSV reader and the Telegram formatter
+   // both split this on ';' and '=', so extra pairs are read fine while
+   // renaming an existing one would break the existing reports.
+   if(htfFlags !="") g_qfFlags += ";" + htfFlags  + ";HTFOK="  + IntegerToString((int)okHtf);
+   if(confFlags!="") g_qfFlags += ";" + confFlags + ";CONFOK=" + IntegerToString((int)okConf);
+   if(chopFlags!="") g_qfFlags += ";" + chopFlags + ";CHOPOK=" + IntegerToString((int)okChop);
+
+   // The v1.40 gates are reported BEFORE the old quality filter, because
+   // whichever refuses first is the one worth knowing about.
+   if(!okHtf)  { LogSkip("HTF structure disagrees ("+htfFlags+")");   return; }
+   if(!okConf) { LogSkip("no sweep / FVG / OTE ("+confFlags+")");     return; }
+   if(!okChop) { LogSkip("choppy ("+chopFlags+")");                   return; }
 
    bool triggerBuy  = buyCond  && g_lastSignal<=0 && qualityLong;
    bool triggerSell = sellCond && g_lastSignal>=0 && qualityShort;
    if(!triggerBuy && !triggerSell)
    {
       bool sameWay = (buyCond && g_lastSignal>0) || (sellCond && g_lastSignal<0);
+      if(sameWay) g_cnSameWay++; else g_cnQual++;
       LogSkip(sameWay ? "already positioned that way" : "quality filter");
       return;
    }
@@ -975,9 +1267,10 @@ void EvaluateSignal()
    {
       long spr = SymbolInfoInteger(_Symbol,SYMBOL_SPREAD);
       if(spr > InpMaxSpreadPts)
-      { LogSkip(StringFormat("spread %d > max %d",(int)spr,InpMaxSpreadPts)); return; }
+      { g_cnSpread++; LogSkip(StringFormat("spread %d > max %d",(int)spr,InpMaxSpreadPts)); return; }
    }
 
+   g_cnTaken++;
    OpenTrade(dir, atr_1);
 }
 

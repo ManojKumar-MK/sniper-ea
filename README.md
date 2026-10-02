@@ -47,6 +47,13 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## SniperEntry v1.40 - HTF gate, ICT confluence, chop filter
+
+[sq-grid/README.md](sq-grid/README.md) - the EMA cross gated on H1 swing structure, on a
+sweep / FVG / OTE confluence test, and on a chop measure that counts EMA crosses rather
+than reading an indicator threshold. All default off. 23 sets x M3 and M5 via
+`.\RUN_SQ.bat`.
+
 ## Third-party repos assessed
 
 | repo | verdict |
