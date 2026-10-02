@@ -746,3 +746,79 @@ configuration sits on a plateau and is worth a demo account. If only one or two 
 it is a spike and must not be traded whatever the net says - the same plateau test that
 killed `V3_ema_50_100` earlier in this project, which also looked excellent at one point
 and had nothing around it.
+
+> **ANSWERED, and I was wrong to call it a spike.** 5 of 6 neighbours pass 4/4. Daily
+> guard 2.25, 2.75 and 3.0 all pass; risk 0.4 and 0.6 both pass. The `dg2` failure is a
+> cliff *below* 2.25, not general fragility, and the only other failure (`RB_mg50`,
+> max guard 5.0) is mechanical - a tighter floor is simply easier to hit, and it failed
+> by ending 2026 short at -1255 rather than by dying. **Parameter robustness is good.**
+> The problem turned out to be time, not parameters - see below.
+
+---
+
+## Eight years of real ticks: robust to its parameters, not to the calendar
+
+### Step 2 - the plateau test passes
+
+| neighbour | 2023 | 2024 | 2025 | 2026 | 4/4 |
+|---|---|---|---|---|---|
+| baseline (risk 0.5, daily 2.5, max 6.0) | +2498 | +2502 | +2498 | +2511 | **yes** |
+| `RB_dg225` daily 2.25 | +2498 | +2502 | +2497 | +2505 | **yes** |
+| `RB_dg275` daily 2.75 | +2498 | +2502 | +2498 | +2501 | **yes** |
+| `RB_dg30` daily 3.0 | +2498 | +2502 | +2498 | +2510 | **yes** |
+| `RB_r04` risk 0.4 | +2498 | +2498 | +2499 | +2499 | **yes** |
+| `RB_r06` risk 0.6 | +2500 | +2497 | +2497 | +2501 | **yes** |
+| `RB_mg50` max guard 5.0 | +2498 | +2502 | +2500 | **-1255** | no |
+
+**5 of 6.** This is a plateau, and my "knife edge" call was wrong. The `dg2` death sits on
+a cliff below 2.25, and `RB_mg50` fails for a mechanical reason - a floor at 5% instead of
+6% is simply easier to reach, and it ended 2026 short rather than dead.
+
+### Step 1 - and then the calendar
+
+| year | net | trades | outcome |
+|---|---|---|---|
+| 2019 | **-1502.0** | 28 | **account dead** |
+| 2020 | +2498.8 | 48 | passed |
+| 2021 | +2497.3 | 7 | passed |
+| 2022 | **-1502.9** | 25 | **account dead** |
+| 2023 | +2497.9 | 12 | passed |
+| 2024 | +2501.8 | 16 | passed |
+| 2025 | +2498.4 | 14 | passed |
+| 2026 | +2510.9 | 40 | passed |
+
+**6 of 8 passed, 2 of 8 blew the account.** Bar counts are ~70,500 a year throughout, so
+2019-2022 is real data and the failures are real.
+
+**25% of years end in a blown challenge.** That is the number this project has been trying
+to find, and no amount of parameter tuning moved it - the plateau above says the
+parameters are not the problem.
+
+### The two deaths have one fingerprint, and it is not luck
+
+| | win% | avg win | avg loss | outcome |
+|---|---|---|---|---|
+| 2019 | 50.0 | **$17.30** | -$118.03 | dead |
+| 2022 | 48.0 | **$13.02** | -$121.68 | dead |
+| 2020 | 43.8 | $288.67 | -$127.60 | passed |
+| 2021 | 57.1 | $723.40 | -$126.41 | passed |
+
+**The win rate barely moves. What collapses is the size of the wins** - $17 and $13
+against $120 losses. 2021 passed on 7 trades at an average win of $723; 2019 died over 28
+trades whose wins averaged $17.
+
+That is the break-even move firing at 1R and then stopping the trade out at entry plus
+offset, booking a "win" worth nothing while the losses stay full size. In the six years
+that passed, the winners ran.
+
+```
+.\RUN_SRHTF_BE.bat     5 sets x 2019 and 2022 only. 10 passes, ~3 hours.
+```
+
+`BE_base` (control), `BE_off`, `BE_r15`, `BE_r20`, `BE_r15_tr` (BE at 1.5R then trail at
+2x ATR). **Run on the failures first, deliberately.** Only a variant that turns *both*
+dead years into passes earns the two hours it then costs to re-check the six years that
+already worked - a change that rescues 2019 and breaks 2024 is not progress.
+
+`BE_base` must come back near -1500 in both years. If it does not, something changed in
+the harness and nothing else in the table is comparable.
