@@ -99,3 +99,95 @@ Sources: ICT sequence and killzone conventions cross-checked against
 and a representative automated ICT implementation's input set on
 [MQL5 Market](https://www.mql5.com/en/market/product/185364). Everything in the measured
 columns is from this repo's own reports.
+
+---
+
+# From the book: *Practical ICT Strategies, 7th Edition*
+
+283 pages, in the repo root. Text extracted with `pypdf`; chapter and page numbers below
+are the book's own. This section records only what **changes a decision** - where our code
+matches the source, and where it does not.
+
+## The killzone tables confirm our hours (Appendix C, p282)
+
+| killzone | NY (EST) | **GMT** | our `PASS_s1_tgt10` |
+|---|---|---|---|
+| Asian | 7:00 PM – 10:00 PM | **00:00 – 03:00** | `InpAsiaStart=0 InpAsiaEnd=3` ✓ |
+| London Open | 2:00 AM – 5:00 AM | **07:00 – 10:00** | `InpLonStart=7 InpLonEnd=10` ✓ |
+| New York Open | 7:00 AM – 10:00 AM | **12:00 – 15:00** | `InpNYStart=12 InpNYEnd=15` ✓ |
+| London Close | 10:00 AM – 12:00 PM | 15:00 – 17:00 | **not implemented** |
+
+All three of our windows are the canonical ones. That was worth confirming, because the
+hours were inherited rather than sourced and `TimeGMT()` in the tester follows the host
+clock. **London Close (15:00–17:00 GMT) has never been tested** - it is a one-line set.
+
+The book's own caveat matters for us: the GMT column shifts by an hour for a few weeks
+each spring and autumn because the US and UK change DST on different dates. The EST
+column is the anchor. A fixed `InpServerGMTOffset` is therefore wrong for part of every
+year.
+
+## Silver Bullet - three one-hour windows we have never tested (ch 15, p148)
+
+| window | NY (EST) | **GMT** |
+|---|---|---|
+| London | 3:00 – 4:00 AM | **08:00 – 09:00** |
+| New York AM | 10:00 – 11:00 AM | **15:00 – 16:00** |
+| New York PM | 2:00 – 3:00 PM | **19:00 – 20:00** |
+
+The model: mark M15 buy-side and sell-side liquidity *before* the window; when it opens
+drop to **1–3 minute** and wait for a liquidity take followed by an MSS/CISD toward that
+draw; enter on the retrace into the **FVG** left by the displacement (its consequent
+encroachment - the FVG midpoint - is the exact line); stop beyond the FVG or the swing
+that formed it; target the opposite liquidity, ~20–30 pips.
+
+**This is the best-fit next model in the book for what we have.** It needs no moving
+average, it runs on M1–M3, and every component already exists in `SniperEntry v1.40`
+(`HasSweep`, `HasFVG`) or `SR_HTF` (structure). The one missing piece is consequent
+encroachment as the entry line rather than the FVG edge.
+
+## ICT macros (p283) - 20-30 minute windows
+
+Flagship is the **NY AM macro, 13:50–14:10 GMT** (9:50–10:10 EST), marked ★ as the most
+reliable. Others: 06:33–07:00, 08:03–08:30, 12:50–13:10, 14:50–15:10, 15:50–16:10,
+17:10–17:40, 19:15–19:45 GMT. Nothing in this repo has ever tested a window this narrow.
+
+## Where our code diverges from the book
+
+**1. `SR_HTF` is Turtle Soup with a trend filter bolted on - and the book says Turtle Soup
+is a RANGE model.** Chapter 14 (p142): *"Turtle Soup is best in ranging conditions."* The
+flow is sweep a range extreme without a clean body close beyond it, MSS back into the
+range, enter the retest, stop beyond the sweep wick, target the **opposite side of the
+range**. That is `FindBullSetup` + `InpTargetLiquidity` almost exactly.
+
+But we gate it on `InpMinAgree=3` - unanimous H1/H4/D1 trend agreement - and in the v4
+diagnostic **79.5% of all evaluations are rejected for "no HTF bias"**. We are demanding
+trending conditions for a model the source says works best in ranges. That is a plausible
+explanation for 12–40 trades a year, and `InpMinAgree=2` (which is what `V4_s1` and every
+passing set uses) may be working *because* it relaxes exactly this.
+
+**2. Our `HasOTE` is missing two things.** The book (ch 12, p131) puts the band at
+0.62–0.79 with **0.705 as the sweet spot at its centre** - we have the band but no
+preference for the middle. More importantly, step 4 requires *"a lower-timeframe MSS or
+CISD up to confirm"* **inside** the band. Our `HasOTE` returns true on price merely being
+in the zone, with no confirmation. That is a materially looser test than the book's.
+
+The book also specifies targets as the **negative extensions −0.27, −0.62, −1** of the
+leg, which is a different target model from both our fixed-R and HTF-liquidity options.
+
+**3. Sweep definition matches.** The book wants the poke beyond the level *"without a
+clean body close beyond it"*; our `HasSweep` requires `low < pool && close > pool`. Same
+test.
+
+## What this changes, in order
+
+1. **`InpMinAgree=2` over 3 is now theory-backed, not just empirical.** Every set that
+   passed 6 of 8 years uses 2. The book explains why 3 is too strict for a sweep-reversal
+   model.
+2. **Add London Close (15:00–17:00 GMT)** as a killzone set. One line, never tested.
+3. **Fix `HasOTE`** to require a structure shift inside the band, and add 0.705 weighting.
+   As written it will pass far too often, which would make `SQ_conf_ote` look like noise
+   for the wrong reason.
+4. **Silver Bullet as its own model** - the one new strategy here worth building, and it
+   lands exactly on the M3/M5 timeframes in question.
+5. **`InpServerGMTOffset` is wrong for part of every year.** The book's DST warning says
+   so explicitly. Worth a measurement before it is worth a fix.
