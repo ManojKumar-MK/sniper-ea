@@ -52,7 +52,7 @@ Requires Python 3.8+. Nothing to install.
 [sq-grid/README.md](sq-grid/README.md) - the EMA cross gated on H1 swing structure, on a
 sweep / FVG / OTE confluence test, and on a chop measure that counts EMA crosses rather
 than reading an indicator threshold. All default off. 23 sets x M3 and M5 via
-`.\RUN_SQ.bat`.
+`.\RUN_SQ_1Y.bat` (a full twelve months, 2025.10-2026.09).
 
 ## Third-party repos assessed
 

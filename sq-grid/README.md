@@ -1,8 +1,17 @@
 # sq-grid - SniperEntry v1.40: HTF gate, ICT confluence, chop filter
 
 ```
-.\RUN_SQ.bat        23 sets x M3 and M5, 2026, fast model. 46 passes, ~70 min.
+.\RUN_SQ_1Y.bat     23 sets x M3 and M5, a FULL YEAR. 46 passes, ~90 min.   <-- use this
+.\RUN_SQ.bat        the same sets over calendar 2026, which is ~9 months of data
 ```
+
+`RUN_SQ_1Y.bat` runs **2025.10.01 to 2026.09.30** - a genuine twelve months ending at the
+last data the broker has. Calendar 2026 is only about nine months today, which would
+under-report every trade count by a quarter. The last complete calendar year is 2025, and
+the command for it is in the runner's header.
+
+Both are resumable: a pass whose report already exists is skipped, so an interruption
+costs nothing.
 
 ## Why this is not just more filters
 
