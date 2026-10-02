@@ -165,15 +165,22 @@ can be parsed for the table.
 ## Everything outstanding, one click
 
 ```
-.\RUN_NEXT.bat        ~2 hours, resumable
+.\RUN_NEXT.bat        ~5 hours, resumable
 ```
 
-Runs the cheap study first and the decisive one second:
+Three EAs, ordered by what the answer is worth:
 
-| step | what | time |
-|---|---|---|
-| 1 | FvgGold killzones, 28 sets, 6 months, fast model | ~35 min |
-| 2 | SR_HTF shortlist, 4 sets x **2026**, **real ticks** | ~1.3 h |
+| step | EA | what | time |
+|---|---|---|---|
+| 1 | SR_HTF | 5 break-even variants x 2019 + 2022, **real ticks** | ~3 h |
+| 2 | SniperEntry v1.40 | 23 sets x M3+M5, 12 months | ~90 min |
+| 3 | FvgGold | 28 killzone sets, 6 months | ~35 min |
+
+Step 1 is the only decisive one: SR_HTF passed 6 of 8 real-tick years and blew 2, and
+those two deaths share one fingerprint - the win rate held near 50% while the average win
+collapsed to $17 against $120 losses, which is break-even at 1R stopping trades out for
+nothing. It runs on the two dead years only, because a variant that does not rescue both
+is not worth re-checking the six that worked.
 
 Both steps skip any pass whose report already exists, so an interruption - reboot, closed
 window, anything - costs nothing: run it again and it continues. `CHAINED=1` suppresses
