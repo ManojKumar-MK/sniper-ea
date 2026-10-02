@@ -681,3 +681,68 @@ challenge, and in reality there is no retry without paying for it again.
 $750 rule, and the guard closes positions when it trips. That holds **by construction**
 rather than by measurement - a gap through the level, or a weekend open, could still
 overshoot it, and nothing in these reports proves it did not.
+
+---
+
+## 10% target, real ticks, four years - one set passes, and one parameter kills it
+
+`results_<year>_M5_pass/`, 16 real-tick passes.
+
+### PASS_s1_tgt10 reached the full FundedNext target in all four years
+
+| year | net | trades | win% | PF | target reached |
+|---|---|---|---|---|---|
+| 2023 | **+2497.9** | 12 | 75.0 | 6.93 | April |
+| 2024 | **+2501.8** | 16 | 43.8 | 3.12 | March |
+| 2025 | **+2498.4** | 14 | 50.0 | 3.69 | March |
+| 2026 | **+2510.9** | 40 | 57.5 | 2.28 | July |
+
++$2,500 on a 25k account, four years running, never touching the static floor at 23,500.
+**2023-2025 are genuinely out of sample** - the set came out of a grid run on 2026 only.
+It needs 12 to 40 trades and three to seven months.
+
+That is the first thing in this project that has survived an honest out-of-sample test.
+
+### And the set next to it blew two of the same four years
+
+`PASS_s1_tgt10_dg2` is identical except `InpDailyGuardPct` 2.5 -> **2.0**:
+
+| year | `PASS_s1_tgt10` | `PASS_s1_tgt10_dg2` |
+|---|---|---|
+| 2023 | +2497.9 (12 trades) | +2497.9 (12 trades) |
+| 2024 | **+2501.8** (16) | **-1503.9** (36) - dead |
+| 2025 | **+2498.4** (14) | **-1503.0** (41) - dead |
+| 2026 | +2510.9 (40) | +2498.9 (40) |
+
+**A tighter daily guard produced more than twice the trades and two blown accounts.** The
+mechanism is structural: reaching the target **ends the year**, because `InpTargetLock`
+closes everything and halts. Anything that delays the target - including a guard that
+halts a day early - keeps the EA trading, and the extra exposure finds the floor. 16
+trades became 36; 14 became 41.
+
+So the behaviour is *win fast and stop, or keep trading and die*. A result that depends
+on finishing early is not robust, and one surviving point beside a fatal neighbour is a
+spike, not an edge.
+
+### The 0.25% risk pair is safe and useless
+
+`PASS_s1_r025_tgt10` never blew an account - and only reached target in 2026. 2023 ended
++$312 after 68 trades, 2025 +$50 after 82. It trades all year and gets nowhere: too small
+to reach +10%, which on a challenge with no time limit is survivable but pointless.
+
+### Next, and this is the decision point
+
+```
+.\RUN_SRHTF_ROBUST.bat     ~5 hours, real ticks
+```
+
+| step | what | asks |
+|---|---|---|
+| 1 | `OOS_s1_tgt10` over **2019-2022** (4 passes) | four *more* independent years. Eight in a row would mean the 4/4 was not luck. |
+| 2 | six neighbours over 2023-2026 (24 passes) | daily guard 2.25 / 2.75 / 3.0, risk 0.4 / 0.6, max guard 5.0 |
+
+**Step 2 is the one that decides it.** If 5 or 6 of the six neighbours also pass 4/4, the
+configuration sits on a plateau and is worth a demo account. If only one or two survive,
+it is a spike and must not be traded whatever the net says - the same plateau test that
+killed `V3_ema_50_100` earlier in this project, which also looked excellent at one point
+and had nothing around it.
