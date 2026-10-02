@@ -47,6 +47,12 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## ICT reference
+
+[ICT_REFERENCE.md](ICT_REFERENCE.md) - each ICT concept, the code that implements it, and
+what this repo measured about it, including which ones have **never been tested**. Plus
+the six rules and the seven implementation bugs this project learned the hard way.
+
 ## SniperEntry v1.40 - HTF gate, ICT confluence, chop filter
 
 [sq-grid/README.md](sq-grid/README.md) - the EMA cross gated on H1 swing structure, on a
