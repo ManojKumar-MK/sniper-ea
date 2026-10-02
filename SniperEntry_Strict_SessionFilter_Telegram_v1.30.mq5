@@ -40,7 +40,7 @@
 #property copyright "Copyright 2026, Manojkumar K - mailtomktech@gmail.com"
 #property link      "mailto:mailtomktech@gmail.com"
 #property description "EMA Based Strategy module - free to use as of now."
-#property version   "1.40"
+#property version   "1.41"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -445,6 +445,31 @@ input double   InpOteLo          = 0.62;
 input double   InpOteHi          = 0.79;
 input int      InpOteLegBars     = 20;     // window used to find the impulse leg
 
+// --- v1.41, straight out of Practical ICT Strategies 7th Ed ---------
+// Each of these makes a test STRICTER, and the book says why:
+//  * CE  (ch5 p58): consequent encroachment is the 50% midpoint of an
+//    FVG, "the single most reactive point inside a gap", and "price
+//    often turns from the CE rather than needing to fill the whole
+//    gap". Our HasFVG only asked that the gap existed and had not been
+//    retraced through - the book puts the ENTRY at the midpoint.
+//  * 0.705 (ch12 p131): the OTE band is 0.62-0.79 "with 0.705 as the
+//    sweet spot at its centre".
+//  * MSS inside the band (ch12 p132 step 4): "look for a lower-
+//    timeframe MSS or CISD up to confirm". Our HasOTE returned true on
+//    price merely being in the zone, which is materially looser.
+//  * Asian range (ch9 p105): "its high and low become tomorrow's
+//    liquidity ... in London or New York, price often sweeps one side
+//    of that range to grab the resting liquidity, then reverses". That
+//    names the level. An N-bar extreme is a guess at it.
+input bool     InpFvgUseCE       = false;  // FVG entry must be at the 50% midpoint (consequent encroachment)
+input double   InpFvgCETolPts    = 30;     // how close to the CE counts, in points
+input bool     InpOteUseSweet    = false;  // narrow the OTE band toward 0.705
+input double   InpOteSweetTol    = 0.04;   // half-width around 0.705 when the above is on
+input bool     InpOteNeedShift   = false;  // require a structure shift inside the band
+input bool     InpSweepAsianRange= false;  // the sweep must take the PRIOR ASIAN RANGE extreme
+input int      InpAsiaRangeStart = 0;      // Asian range start, GMT hour (book: 7 PM NY = 00 GMT)
+input int      InpAsiaRangeEnd   = 5;      // ...and end (book: 12 AM NY = 05 GMT)
+
 input group "-- Chop filter (v1.40) --"
 input bool     InpUseChopFilter  = false;
 input int      InpChopLookback   = 30;     // bars examined
@@ -474,6 +499,14 @@ int      hEma9, hEma21, hEma50, hAtr, hAdx, hRsi, hRsiM5, hMacd;
 // reached" look identical, which is what wasted three SR_HTF grids.
 long     g_cnCross = 0, g_cnHtf = 0, g_cnConf = 0, g_cnChop = 0,
          g_cnQual  = 0, g_cnSameWay = 0, g_cnSpread = 0, g_cnTaken = 0;
+
+// Prior Asian range, cached per day - recomputing it every tick would
+// walk thousands of bars for an answer that changes once a session.
+datetime g_asiaDay  = 0;
+double   g_asiaHi   = 0, g_asiaLo = 0;
+bool     g_asiaOk   = false;
+
+double ServerGmtOffsetHours();        // defined far below; needed here
 
 datetime g_lastBarTime = 0;
 int      g_lastSignal  = 0;      // 1 long, -1 short, 0 flat
@@ -987,6 +1020,46 @@ void OnTick()
 // Lifted unchanged from SR_HTF_StopEntry_EA, where it has a real
 // out-of-sample record. A swing high is a bar whose high beats
 // InpHtfSwingStr bars on BOTH sides.
+// The most recently COMPLETED Asian range, in GMT hours. Returns false
+// until one exists, so an EA started mid-session does not invent a level.
+bool AsianRange(double &hi,double &lo)
+{
+   long off=(long)MathRound(ServerGmtOffsetHours()*3600.0);
+   datetime nowG=(datetime)((long)TimeCurrent()-off);
+   MqlDateTime n; TimeToStruct(nowG,n);
+
+   // If today's window has not finished yet, yesterday's is the live one.
+   datetime dayG=(datetime)(((long)nowG/86400)*86400);
+   if(n.hour < InpAsiaRangeEnd) dayG-=86400;
+
+   if(dayG==g_asiaDay) { hi=g_asiaHi; lo=g_asiaLo; return g_asiaOk; }
+
+   double h=-DBL_MAX,l=DBL_MAX; int seen=0;
+   int bars=(int)MathMin(5000,iBars(_Symbol,_Period));
+   for(int i=1;i<bars;i++)
+   {
+      datetime bt=iTime(_Symbol,_Period,i);
+      if(bt==0) break;
+      datetime bg=(datetime)((long)bt-off);
+      datetime bday=(datetime)(((long)bg/86400)*86400);
+      if(bday>dayG) continue;                     // not back far enough yet
+      if(bday<dayG) break;                        // walked past the day
+      MqlDateTime b; TimeToStruct(bg,b);
+      bool inWin = (InpAsiaRangeStart<=InpAsiaRangeEnd)
+                   ? (b.hour>=InpAsiaRangeStart && b.hour<InpAsiaRangeEnd)
+                   : (b.hour>=InpAsiaRangeStart || b.hour<InpAsiaRangeEnd);
+      if(!inWin) continue;
+      h=MathMax(h,iHigh(_Symbol,_Period,i));
+      l=MathMin(l,iLow (_Symbol,_Period,i));
+      seen++;
+   }
+   g_asiaDay=dayG;
+   g_asiaOk=(seen>0 && h>l);
+   g_asiaHi=h; g_asiaLo=l;
+   hi=h; lo=l;
+   return g_asiaOk;
+}
+
 bool SwHigh(ENUM_TIMEFRAMES tf,int i,int st)
 {
    double h=iHigh(_Symbol,tf,i);
@@ -1061,20 +1134,40 @@ bool HtfGateOk(int dir,string &flags)
 // it is the bullish case.
 bool HasSweep(int dir)
 {
+   // With InpSweepAsianRange the pool is the PRIOR ASIAN RANGE extreme -
+   // a level the book says holds resting liquidity - instead of an
+   // N-bar extreme, which is only a guess at where that liquidity is.
+   double aHi=0,aLo=0;
+   bool useAsia=false;
+   if(InpSweepAsianRange)
+   {
+      if(!AsianRange(aHi,aLo)) return false;      // no completed range yet
+      useAsia=true;
+   }
+
    for(int k=1;k<=InpConfLookback;k++)
    {
+      double pool;
       if(dir==1)
       {
-         int idx=iLowest(_Symbol,_Period,MODE_LOW,InpSweepPoolBars,k+1);
-         if(idx<0) return false;
-         double pool=iLow(_Symbol,_Period,idx);
+         if(useAsia) pool=aLo;
+         else
+         {
+            int idx=iLowest(_Symbol,_Period,MODE_LOW,InpSweepPoolBars,k+1);
+            if(idx<0) return false;
+            pool=iLow(_Symbol,_Period,idx);
+         }
          if(iLow(_Symbol,_Period,k)<pool && iClose(_Symbol,_Period,k)>pool) return true;
       }
       else
       {
-         int idx=iHighest(_Symbol,_Period,MODE_HIGH,InpSweepPoolBars,k+1);
-         if(idx<0) return false;
-         double pool=iHigh(_Symbol,_Period,idx);
+         if(useAsia) pool=aHi;
+         else
+         {
+            int idx=iHighest(_Symbol,_Period,MODE_HIGH,InpSweepPoolBars,k+1);
+            if(idx<0) return false;
+            pool=iHigh(_Symbol,_Period,idx);
+         }
          if(iHigh(_Symbol,_Period,k)>pool && iClose(_Symbol,_Period,k)<pool) return true;
       }
    }
@@ -1088,18 +1181,26 @@ bool HasFVG(int dir)
 {
    double minSz=InpFvgMinPts*_Point;
    double cNow =iClose(_Symbol,_Period,1);
+   double tol  =InpFvgCETolPts*_Point;
    for(int k=1;k<=InpConfLookback;k++)
    {
-      if(dir==1)
+      double gLo,gHi;
+      if(dir==1) { gHi=iLow (_Symbol,_Period,k); gLo=iHigh(_Symbol,_Period,k+2); }
+      else       { gLo=iHigh(_Symbol,_Period,k); gHi=iLow (_Symbol,_Period,k+2); }
+      if(gHi-gLo < minSz) continue;
+
+      if(InpFvgUseCE)
       {
-         double lo=iLow(_Symbol,_Period,k), hi=iHigh(_Symbol,_Period,k+2);
-         if(lo-hi>=minSz && cNow>=hi) return true;
+         // Consequent encroachment: the 50% mid-line of the gap. The book
+         // calls it the most reactive point inside an FVG and notes price
+         // often turns there without filling the gap, so "near the CE" is
+         // a far stricter - and far more faithful - test than "the gap
+         // exists and has not been retraced through".
+         double ce=(gLo+gHi)/2.0;
+         if(MathAbs(cNow-ce)<=tol) return true;
+         continue;
       }
-      else
-      {
-         double hi=iHigh(_Symbol,_Period,k), lo=iLow(_Symbol,_Period,k+2);
-         if(lo-hi>=minSz && cNow<=lo) return true;
-      }
+      if(dir==1 ? (cNow>=gLo) : (cNow<=gHi)) return true;
    }
    return false;
 }
@@ -1117,6 +1218,25 @@ bool HasOTE(int dir)
    if(rng<=0) return false;
    double c=iClose(_Symbol,_Period,1);
    double f1=MathMin(InpOteLo,InpOteHi), f2=MathMax(InpOteLo,InpOteHi);
+   if(InpOteUseSweet)
+   {
+      // 0.705 is the centre of the 0.62-0.79 band and the book's stated
+      // sweet spot, so this narrows to it rather than accepting the
+      // whole pocket.
+      f1=0.705-InpOteSweetTol;
+      f2=0.705+InpOteSweetTol;
+   }
+
+   // Step 4 of the book's OTE flow is a lower-timeframe MSS or CISD inside
+   // the band. A full MSS needs its own swing tracking, so this is the
+   // honest minimum: the last closed bar took out the prior bar's extreme
+   // in the trade direction. It is a PROXY and is labelled as one - the
+   // point is that "price is in the zone" alone is not the book's rule.
+   if(InpOteNeedShift)
+   {
+      if(dir==1 && !(c>iHigh(_Symbol,_Period,2))) return false;
+      if(dir==-1&& !(c<iLow (_Symbol,_Period,2))) return false;
+   }
 
    if(dir==1)
    {

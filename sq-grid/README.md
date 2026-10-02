@@ -89,3 +89,53 @@ Then: **expectancy per trade, not net.** Every gate can only remove trades, so n
 as trades fall even when the edge improves. And compare **M3 against M5** for the same
 set - per-trade cost here is ~$2.13, which M3 pays far more often, so a gate that works
 only on M5 is probably buying back spread rather than finding edge.
+
+---
+
+## Book sets - `sets_sq_book`, 17 sets from *Practical ICT Strategies 7th Ed*
+
+```
+.\RUN_SQ_BOOK.bat     17 sets x M3 and M5, a full year. 34 passes, ~70 min.
+```
+
+v1.41 adds six inputs, all default off, each making an existing test **stricter in the way
+the book specifies**. The point is not more filters - it is that our versions were looser
+than the source.
+
+| input | book | what ours did instead |
+|---|---|---|
+| `InpFvgUseCE` | ch5 p58: consequent encroachment is the FVG's **50% midpoint**, "the single most reactive point inside a gap"; price "often turns from the CE rather than needing to fill the whole gap" | accepted any price that had not retraced through the gap |
+| `InpOteUseSweet` | ch12 p131: band 0.62-0.79 "with **0.705** as the sweet spot at its centre" | accepted the whole band equally |
+| `InpOteNeedShift` | ch12 p132 step 4: "look for a lower-timeframe **MSS or CISD** up to confirm" | returned true on price merely being in the zone |
+| `InpSweepAsianRange` | ch9 p105: the Asian range high/low "become tomorrow's liquidity... price often sweeps one side of that range... then reverses" | used an N-bar extreme, which only guesses where liquidity sits |
+
+`InpOteNeedShift` is a **proxy** and is commented as one: a full MSS needs its own swing
+tracking, so it requires the last closed bar to take out the prior bar's extreme in the
+trade direction. The point is that "in the zone" alone is not the book's rule.
+
+### Session windows the book gives us for free
+
+The killzone strings are **New York time** - `KzNameNow()` converts with `ServerToNY()` -
+so Appendix C's EST tables drop in with no offset arithmetic. That was read out of the
+code, not assumed.
+
+| set | window (NY) | source |
+|---|---|---|
+| `BK_sb_london` | 03:00-04:00 | Silver Bullet, ch15 |
+| `BK_sb_nyam` | 10:00-11:00 | Silver Bullet |
+| `BK_sb_nypm` | 14:00-15:00 | Silver Bullet |
+| `BK_lonclose` | 10:00-12:00 | London Close killzone, App. C - **never implemented here** |
+| `BK_asia_book` | 19:00-22:00 | the book's Asian **killzone** is 7-10 PM; our old sets used 1900-2400, which is the Asian **range** |
+
+Silver Bullet sets run `InpKzLeadMin=0` deliberately: the book's rule is "no window, no
+trade", so a lead would defeat the model.
+
+### Reading it
+
+`BK_base` is `SQ_model_a` and every book set differs from it by **one idea**, so anything
+that does not beat it *per trade* is a book rule that does not survive contact with gold.
+
+Watch trade count on the Silver Bullet sets - one hour a day is tiny, and under ~30 trades
+in a year says nothing whatever the net. And `BK_ce` matters beyond itself: if the CE
+version helps, our FVG test was simply too loose and **every earlier FVG number is
+suspect**.
