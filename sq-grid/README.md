@@ -225,6 +225,16 @@ liquidity - is worth about +14% per trade on M3 and +41% on M5.
 `BK_asiasweep_only` (Asian sweep as the *sole* confluence test) is negative on both, so
 the Asian range is a better **pool definition**, not a standalone entry trigger.
 
+
+> **FOLLOW-UP: it does not transfer.** Ported to `SR_HTF` and run over 8 real-tick years,
+> the Asian-range sweep took the baseline from **6/8 target hits to 0/8**, with 2026
+> collapsing from 40 trades to 1. SniperEntry's EMA trigger has no location filter, so
+> naming the pool adds information; SR_HTF already gates on HTF structure *and*
+> premium/discount, so the Asian extremes are one constraint too many and the
+> intersection is nearly empty. **A component's value is model-specific** - the book's
+> reasoning did not predict the direction, only the test did.
+> See [../srhtf-grid/README.md](../srhtf-grid/README.md).
+
 ### Silver Bullet: one striking result, far too few trades
 
 `BK_sb_london` on M5: **+662.5 over 17 trades, $38.97 each, PF 3.10, 1.19% drawdown** - the

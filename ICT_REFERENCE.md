@@ -178,6 +178,21 @@ leg, which is a different target model from both our fixed-R and HTF-liquidity o
 clean body close beyond it"*; our `HasSweep` requires `low < pool && close > pool`. Same
 test.
 
+## Tested since: the Asian range does not transfer
+
+The Asian-range sweep (ch9 p105) was the best book-derived change in the SniperEntry
+grid - best net *and* best per-trade on both M3 and M5. Ported to `SR_HTF` and run over
+8 real-tick years it took that EA from **6/8 target hits to 0/8**.
+
+Same idea, same instrument, opposite result. SniperEntry's trigger is an EMA cross with
+no location filter, so a named liquidity pool adds information. SR_HTF already gates on
+HTF structure and premium/discount, so the Asian extremes are one more constraint on an
+already rare setup.
+
+**Nothing in the book predicts which way that goes**, and neither did the reasoning that
+made it worth trying. Treat every row in the tables above as a hypothesis attached to a
+*specific* model, not as a property of the concept.
+
 ## What this changes, in order
 
 1. **`InpMinAgree=2` over 3 is now theory-backed, not just empirical.** Every set that
