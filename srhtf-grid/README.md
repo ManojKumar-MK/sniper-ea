@@ -958,3 +958,52 @@ three are required:
 A combination that survives all three is worth a demo account. One that only tops the
 in-sample table is worth nothing, and we have the receipts for that from earlier in this
 project.
+
+---
+
+## The Asian-range sweep does NOT transfer to SR_HTF
+
+32 real-tick passes, `results_<year>_M5_asia/`. The idea that won the SniperEntry book
+grid loses here, and not marginally.
+
+| set | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 | passes |
+|---|---|---|---|---|---|---|---|---|---|
+| `ASIA_off` (control) | -1502 | **+2498** | **+2497** | -1503 | **+2498** | **+2501** | **+2497** | **+2511** | **6/8** |
+| `ASIA_on` | +266 | -1502 | +312 | -201 | -930 | -371 | -847 | -123 | **0/8** |
+| `ASIA_on_0_3` | +404 | -1504 | -76 | -882 | -1504 | -459 | -829 | **+2500** | 1/8 |
+| `ASIA_on_ag1` | -580 | -1505 | -818 | +917 | -1502 | -1503 | -1502 | -1021 | **0/8**, 4 dead |
+
+**The control reproduces exactly** - `ASIA_off` returns +2498 / +2501 / +2497 / +2511 on
+2023-2026, matching `PASS_s1_tgt10` to the rupee. So the harness is sound and the
+comparison is valid.
+
+With the Asian range as the pool, **the EA stops reaching target at all.** Not blowing up
+mostly - just grinding out small losses and never arriving. Trade counts collapse in the
+years that used to work: 2026 goes from 40 trades to **1**.
+
+### Why it helped one EA and ruined the other
+
+SniperEntry's trigger is an EMA cross with no location filter at all, so naming the
+liquidity pool adds information it did not have. SR_HTF already gates on HTF structure
+*and* premium/discount *and* requires the sweep to be reclaimed - the Asian high and low
+are then one more constraint on a setup that was already rare, and the intersection is
+nearly empty.
+
+**A component's value is model-specific.** The Asian range was the best thing in the
+SniperEntry grid and is the worst thing tried on SR_HTF. Nothing about "it is a real ICT
+level" carried across, and nothing about the book's reasoning predicted which way it would
+go - only the test did.
+
+`InpSweepAsianRange` stays **false**. The 6/8 `PASS_s1_tgt10` configuration is still the
+best thing in this repo.
+
+### What is still open for gold
+
+| run | asks | cost |
+|---|---|---|
+| `.\RUN_SRHTF_BE.bat` | does loosening break-even rescue 2019 and 2022? The two dead years share a fingerprint: ~50% win rate with average wins of $17 and $13 against $120 losses | ~3 h |
+| `.\RUN_SRHTF_RATE.bat` | what does a FULL year earn? Every +2500 is the target lock halting in March - we have never measured an unconstrained year | ~5 h |
+| `.\RUN_SRHTF_OPT.bat` | 1.24M combinations, genetic, forward third held out | 1-4 h |
+
+`RUN_SRHTF_BE` is still the highest-value of the three: it targets a specific, identified
+failure rather than searching.
