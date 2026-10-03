@@ -47,6 +47,21 @@ Requires Python 3.8+. Nothing to install.
 | [EA_TURTLE_KZ_GUIDE.md](EA_TURTLE_KZ_GUIDE.md) | the killzone-range EA |
 | [backtest-results/](backtest-results/) | what was tested, and when |
 
+## ict_options.py - Indian stock options (Angel One)
+
+A separate system from the gold EAs: ICT confluence on the **underlying** 5-minute chart,
+options as the execution vehicle. NSE equities for the signal, NFO `OPTSTK` contracts for
+execution.
+
+```
+.\RUN_ICT.bat        one click: python check -> deps -> demo -> backtest -> grid
+```
+
+| doc | what |
+|---|---|
+| [ICT_OPTIONS_BACKTEST.md](ICT_OPTIONS_BACKTEST.md) | per-setup entry/SL/target/R, the portfolio layer that applies the live risk caps, money after costs, worst-period ranking, and a parameter grid with a held-out tail |
+| [ICT_OPTIONS_DEPLOY.md](ICT_OPTIONS_DEPLOY.md) | running it unattended on a VPS with Telegram |
+
 ## ICT reference
 
 [ICT_REFERENCE.md](ICT_REFERENCE.md) - each ICT concept, the code that implements it, and

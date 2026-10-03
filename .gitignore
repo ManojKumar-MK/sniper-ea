@@ -54,3 +54,16 @@ SniperEA_Log_*.jsonl
 !kz-grid/*.set
 !ote-grid/*.set
 !turtle-grid/*.set
+
+# ict_options.py runtime output: logs, pid file, daily scrip master, signal/trade CSVs
+ict_data/
+*.pid
+
+# credentials - never commit
+.env
+
+# local venv for ict_options.py
+.venv_ict/
+
+# fetched candle cache
+ict_data/cache/
