@@ -908,6 +908,34 @@ void OnDeinit(const int reason)
    else
       Print("SIGNAL TALLY  no EMA cross was ever evaluated - check the session, killzone and evening windows");
 
+   // Also to a FILE, because the journal is not collected per pass and a
+   // grid needs the tally next to the report. Fixed name - the EA cannot
+   // know which .set it was given - and RUNSETS renames it per pass.
+   {
+      int th=FileOpen("SniperEA_tally.csv",FILE_WRITE|FILE_CSV|FILE_ANSI,',');
+      if(th!=INVALID_HANDLE)
+      {
+         FileWrite(th,"metric","count");
+         FileWrite(th,"crosses",   IntegerToString(g_cnCross));
+         FileWrite(th,"taken",     IntegerToString(g_cnTaken));
+         FileWrite(th,"rej_htf",   IntegerToString(g_cnHtf));
+         FileWrite(th,"rej_conf",  IntegerToString(g_cnConf));
+         FileWrite(th,"rej_chop",  IntegerToString(g_cnChop));
+         FileWrite(th,"rej_quality",IntegerToString(g_cnQual));
+         FileWrite(th,"rej_sameway",IntegerToString(g_cnSameWay));
+         FileWrite(th,"rej_spread",IntegerToString(g_cnSpread));
+         FileWrite(th,"","");
+         FileWrite(th,"gate_htf_on", InpUseHtfGate?"1":"0");
+         FileWrite(th,"gate_conf_on",InpUseConfluence?"1":"0");
+         FileWrite(th,"gate_chop_on",InpUseChopFilter?"1":"0");
+         FileWrite(th,"fvg_use_ce",  InpFvgUseCE?"1":"0");
+         FileWrite(th,"ote_sweet",   InpOteUseSweet?"1":"0");
+         FileWrite(th,"ote_shift",   InpOteNeedShift?"1":"0");
+         FileWrite(th,"sweep_asia",  InpSweepAsianRange?"1":"0");
+         FileClose(th);
+      }
+   }
+
    // Wrap the day up only when the EA is actually going away - the terminal
    // closing, the EA removed, the chart closed.
    //

@@ -139,3 +139,40 @@ Watch trade count on the Silver Bullet sets - one hour a day is tiny, and under 
 in a year says nothing whatever the net. And `BK_ce` matters beyond itself: if the CE
 version helps, our FVG test was simply too loose and **every earlier FVG number is
 suspect**.
+
+---
+
+## If a pass is taking minutes instead of seconds
+
+Every logging switch in the inherited base set was **on**, and all of them are per-event
+I/O:
+
+| input | cost in a grid |
+|---|---|
+| `InpEchoLogToTerminal` | prints a JSON object to the Experts tab **per event** - by far the worst in the tester |
+| `InpLogSkips` | writes a line for **every EMA cross that was not taken** - on M3 with no filters that is thousands |
+| `InpUseCsvLog` / `InpUseJsonLog` | appends to a `.csv` **and** a `.jsonl` per event |
+| `InpShowPanel` | `Comment()` redraw on every tick |
+| `InpPersistState` / `InpHeartbeatMin` | state file rewrites |
+
+All 40 sets in `sets_sq` and `sets_sq_book` now have these **off**. None of it was being
+read: the analysis parses the `.htm` reports and the tally file.
+
+**Stopping a run is safe.** Any pass whose report already exists is skipped, so only the
+pass that was in flight is redone. Nothing is corrupted and nothing is repeated.
+
+## `tally_<set>.csv`
+
+With terminal echo off, the `SIGNAL TALLY` line still prints to the journal - but the
+journal is not collected per pass, so the EA also writes `SniperEA_tally.csv` and
+`RUNSETS.bat` renames it to `tally_<set>.csv` beside the report. It carries the counts and
+**which gates were actually on**:
+
+```
+crosses, taken, rej_htf, rej_conf, rej_chop, rej_quality, rej_sameway, rej_spread
+gate_htf_on, gate_conf_on, gate_chop_on, fvg_use_ce, ote_sweet, ote_shift, sweep_asia
+```
+
+The second block exists so a set can never again be *assumed* to have had a gate enabled -
+the file states it. That is the same lesson as the SR_HTF enum bug: the report echoes the
+`.set` as written, so only the EA can say what it actually used.

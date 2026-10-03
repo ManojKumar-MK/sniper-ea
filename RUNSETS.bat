@@ -280,6 +280,7 @@ for %%Y in (!YEARS!) do (
       REM  by the EA lands in Tester\Agent-<addr>-<port>\MQL5\Files, not in
       REM  MQL5\Files. Clear every copy, then search for it after the pass.
       for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SRHTF_diag.csv" 2^>nul') do del /q "%%D"
+      for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SniperEA_tally.csv" 2^>nul') do del /q "%%D"
 
       echo   [!DONE!/!RUNS!] %%Y !NAME! ...
       start /wait "" "%TERM%" /config:"!INI!" /portable
@@ -294,6 +295,9 @@ for %%Y in (!YEARS!) do (
       REM  Found by search, not by path: the tester agent has its own sandbox.
       for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SRHTF_diag.csv" 2^>nul') do (
         move /y "%%D" "!OUTDIR!\diag_!NAME!.csv" >nul
+      )
+      for /f "delims=" %%D in ('dir /b /s "%MT5DIR%\SniperEA_tally.csv" 2^>nul') do (
+        move /y "%%D" "!OUTDIR!\tally_!NAME!.csv" >nul
       )
 
       REM  Charts/orders the report links to sit in a sibling folder.
