@@ -997,6 +997,31 @@ go - only the test did.
 `InpSweepAsianRange` stays **false**. The 6/8 `PASS_s1_tgt10` configuration is still the
 best thing in this repo.
 
+### Next: the combination search, two years
+
+```
+.\RUN_COMBO.bat        960 combinations, genetic, 2025.01-2026.09, forward third held out
+```
+
+Six parameters, not the full ten. The 1.24M space needs days on two years of M5; these six
+are what eight years of real-tick evidence points at, and everything else stays pinned at
+`PASS_s1_tgt10`:
+
+| parameter | range | why it is in |
+|---|---|---|
+| `InpBE_R` | 0.5 – 2.5 | **the prime suspect.** 2019 and 2022 both died with a ~50% win rate and average *wins* of $17 and $13 against $120 losses |
+| `InpMinAgree` | 1 – 3 | every set that passed 6/8 uses 2 |
+| `InpTPRMult` | 0 – 3 | target R, separate from the gate |
+| `InpMinRR` | 1.5 – 3.0 | the gate itself |
+| `InpPartialPct` | 0 / 50 | scale out or not |
+| `InpTrailATRMult` | 0 / 1.5 | trail the remainder or not |
+
+960 combinations. Genetic stops when it stops improving; complete enumeration would be
+~54 core-hours. Expect 2-6 hours.
+
+Read the **Forward** tab, take a **cluster** rather than a spike, then re-run the top few
+on real ticks year by year. **The bar is 6 of 8.**
+
 ### What is still open for gold
 
 | run | asks | cost |
