@@ -822,3 +822,75 @@ already worked - a change that rescues 2019 and breaks 2024 is not progress.
 
 `BE_base` must come back near -1500 in both years. If it does not, something changed in
 the harness and nothing else in the table is comparable.
+
+---
+
+## "$100/day is only 400 pips at 0.05 lots" - checking that
+
+It is not, and the gap is large enough to change the plan.
+
+XAUUSD: 1 lot = 100 oz, so **1 point (0.01) = $1.00 per lot**.
+
+| lots | $ per point | points needed for $100 | gold move needed, **net, every day** |
+|---|---|---|---|
+| 0.05 | $0.05 | 2,000 | **$20.00** |
+| 0.10 | $0.10 | 1,000 | $10.00 |
+| 0.20 | $0.20 | 500 | $5.00 |
+| 0.50 | $0.50 | 200 | $2.00 |
+
+Gold is ~$4,150 with a typical daily range of $40-60. At 0.05 lots, $100/day means
+capturing **$20 of net favourable movement daily - roughly 40% of the entire day's range,
+after losing days**. Not 400 pips in any convention: 400 points is $4.00 of move, which at
+0.05 lots is $20, and 400 "pips" at the $0.10 convention is $200 of move.
+
+Also worth knowing: the passing sets never traded 0.05 lots. At 0.5% risk on 25k they
+sized **0.18-0.21**.
+
+### What the measured config actually earns
+
+`PASS_s1_tgt10`, real ticks, 8 years:
+
+```
+2019 -1502  2020 +2499  2021 +2497  2022 -1503
+2023 +2498  2024 +2502  2025 +2498  2026 +2511     total +12,000
+```
+
+**+$1,500 a year, or $5.95 a trading day.** $100/day is **16.8x** that.
+
+### But that number is wrong, and in our favour
+
+**Every +2500 above is `InpTargetLock` halting the EA at +10% - not the year ending.**
+2024 was over in March. 2025 in March. 2023 in April. So $1,500/year is not this
+strategy's rate; it is the rate of a strategy that quits in the spring.
+
+**We have never measured the full-year return.** That is the single biggest gap between
+where we are and the question being asked.
+
+```
+.\RUN_SRHTF_RATE.bat     2 sets x 2019-2026, real ticks, InpTargetLock=false. ~5 h.
+```
+
+The static floor at 23,500 still applies - the max-loss guard is untouched, only the
+profit halt is off - so a year can still end at -1500.
+
+### What to do with the answer
+
+Take the 8-year average annual return **R** as a percentage of 25,000. Then:
+
+```
+capital needed for $100/day  =  $25,200 / R
+```
+
+| if R turns out to be | capital needed |
+|---|---|
+| 10% | $252,000 |
+| 20% | $126,000 |
+| 30% | $84,000 |
+
+**That is a capital number, not a strategy number**, and it is the honest shape of the
+answer. Two things can still move it: removing the target lock (measured by this run), and
+fixing the two blown years (`RUN_SRHTF_BE.bat` - if break-even at 1R is what killed 2019
+and 2022, the average rises by roughly a third on its own).
+
+What will *not* move it is more risk per trade. That was tested across four risk levels:
+net plateaued and trade count fell, because bigger positions trip the guards sooner.
