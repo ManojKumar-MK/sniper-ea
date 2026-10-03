@@ -1,0 +1,17 @@
+metric,count
+crosses,2075
+taken,21
+rej_htf,1492
+rej_conf,1756
+rej_chop,393
+rej_quality,0
+rej_sameway,20
+rej_spread,0
+,
+gate_htf_on,1
+gate_conf_on,1
+gate_chop_on,1
+fvg_use_ce,0
+ote_sweet,0
+ote_shift,0
+sweep_asia,1
