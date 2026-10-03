@@ -61,6 +61,22 @@ REM  this sets_srhtf and sets_srhtf_v2 would both write into
 REM  srhtf-grid\results_2026_M5_m1 and land in the same comparison table.
 if not defined OUTTAG set "OUTTAG="
 
+REM  OPTIMIZE turns a pass into a parameter SEARCH instead of a single run.
+REM    1 = complete enumeration (every combination)
+REM    2 = genetic (what you want above a few thousand combinations)
+REM  The .set then carries RANGES, in MT5's own format:
+REM      Name=value||start||step||stop||Y
+REM  FORWARD splits the window for you: 1 = last half is out-of-sample,
+REM  2 = last third, 3 = last quarter. 0 = no split, which for a search of
+REM  this size is close to useless - the in-sample winner of a big grid is
+REM  usually the luckiest combination, not the best one.
+REM  CRITERION 6 = custom, i.e. the EA's own OnTester(). SR_HTF returns a
+REM  prop-aware score there; the built-in criteria all rank on profit or
+REM  drawdown and none of them know what a blown challenge is.
+if not defined OPTIMIZE  set "OPTIMIZE=0"
+if not defined FORWARD   set "FORWARD=0"
+if not defined CRITERION set "CRITERION=6"
+
 REM  FROMDATE / TODATE run an arbitrary window instead of whole calendar years
 REM  - a six-month test cannot be expressed as a year. Both are yyyy.mm.dd. When
 REM  set, the year arguments become PERIOD LABELS only: one pass per set, and
@@ -257,8 +273,9 @@ for %%Y in (!YEARS!) do (
       >> "!INI!" echo Deposit=25000
       >> "!INI!" echo Currency=USD
       >> "!INI!" echo Leverage=100
-      >> "!INI!" echo Optimization=0
-      >> "!INI!" echo ForwardMode=0
+      >> "!INI!" echo Optimization=%OPTIMIZE%
+      >> "!INI!" echo OptimizationCriterion=%CRITERION%
+      >> "!INI!" echo ForwardMode=%FORWARD%
       >> "!INI!" echo ExecutionMode=0
       >> "!INI!" echo Visual=0
       REM  ShutdownTerminal stays 1 even for a single run: without it the
@@ -306,7 +323,14 @@ for %%Y in (!YEARS!) do (
         move /y "%MT5DIR%\!NAME!" "!OUTDIR!\report_!NAME!" >nul
       )
 
-      if exist "!REPORT!.htm" (
+      if not "%OPTIMIZE%"=="0" (
+        REM  An optimisation writes its results into the terminal's own
+        REM  cache/XML, not a single-pass .htm, so the report check below
+        REM  would always say NO REPORT. Open the Strategy Tester's
+        REM  Optimization Results tab to read it.
+        echo         optimisation pass finished - read it in the tester's
+        echo         Optimization Results tab, and sort by the Custom column
+      ) else if exist "!REPORT!.htm" (
         echo         OK
       ) else (
         echo         NO REPORT

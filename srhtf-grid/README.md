@@ -894,3 +894,67 @@ and 2022, the average rises by roughly a third on its own).
 
 What will *not* move it is more risk per trade. That was tested across four risk levels:
 net plateaued and trade count fell, because bigger positions trip the guards sooner.
+
+---
+
+## The combination search - 1.24M of them, properly
+
+```
+.\RUN_SRHTF_OPT.bat     genetic, 2019-2026, forward 1/3 held out. 1-4 hours.
+```
+
+We have been testing 20-40 combinations at a time by hand. **The tester has had an
+optimiser the whole time.** Ten parameters at sensible ranges is **1,244,160**
+combinations; complete enumeration would take ~31,000 hours, so this runs genetic.
+
+| parameter | range |
+|---|---|
+| `InpMinAgree` | 1 – 3 |
+| `InpMaxOppose` | 0 – 1 |
+| `InpSwingStrength` | 1 – 3 |
+| `InpMinRR` | 1.5 – 4.0 step 0.5 |
+| `InpTPRMult` | 0 – 4.0 step 0.5 |
+| `InpBE_R` | 0.5 – 2.5 step 0.5 |
+| `InpPartialPct` | 0 – 75 step 25 |
+| `InpTrailATRMult` | 0 – 3 step 1 |
+| `InpOrderExpiryBars` | 3 – 12 step 3 |
+| `InpSweepWindow` | 6 – 24 step 6 |
+
+Everything else is pinned at the `PASS_s1_tgt10` value.
+
+### `OnTester()` - why the search can now be pointed at the right thing
+
+New in v1.50. MT5's built-in optimisation criteria rank on profit, Sharpe or drawdown,
+and **none of them know what a blown challenge is** - "max balance" would happily return a
+set that dies in one year and recovers in another. The custom score is what the account
+actually experiences:
+
+```
+floor hit        -1000      nothing recovers from this
+no trades        -2000      worse than losing - it was never tested
+target reached   +1000 and up, higher the sooner it arrives
+neither          the return in %
+```
+
+Both the max-loss guard and the target lock set `g_accHalted`, so v1.50 records
+`g_haltReason` separately - otherwise a passed challenge and a dead account are
+indistinguishable at `OnTester`, which is the one thing this score exists to tell apart.
+
+### The part that matters more than the run
+
+**Searching 1.24M combinations will produce spectacular in-sample numbers from pure
+chance.** That is arithmetic, not pessimism. Three things make the search honest, and all
+three are required:
+
+1. **`FORWARD=2`** - the last third is held out and never optimised on. Read the
+   **Forward** column; the Back column is the fitted one.
+2. **Take clusters, not spikes.** Neighbouring parameter values with similar scores mean a
+   plateau. A single isolated winner is exactly what `V3_ema_50_100` looked like, and it
+   scored 0 of 23 positive out of sample.
+3. **Real ticks afterwards.** `MODEL=1` is the only way to afford the search, and it fills
+   stop orders anywhere inside the bar. The top 4-6 get re-run on `MODEL=4`, year by year,
+   and are judged on the **worst** year.
+
+A combination that survives all three is worth a demo account. One that only tops the
+in-sample table is worth nothing, and we have the receipts for that from earlier in this
+project.

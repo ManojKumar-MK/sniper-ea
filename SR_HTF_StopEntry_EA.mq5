@@ -52,7 +52,7 @@
 //|  D1=16408 W1=32769 MN1=49153                                     |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.40"
+#property version   "1.50"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -144,6 +144,11 @@ int      g_bias         = 0, g_b1 = 0, g_b2 = 0, g_b3 = 0;
 bool     g_news         = false;
 int      g_tradesToday  = 0, g_lossesToday = 0;
 double   g_profitToday  = 0;      // realised only - floating would flap the target check
+// Both the max-loss guard and the target lock set g_accHalted, so the reason
+// has to be recorded separately or OnTester cannot tell a passed challenge
+// from a blown account - they are the two outcomes it exists to distinguish.
+int      g_haltReason   = 0;      // 0 none, 1 max-loss floor, 2 target reached
+datetime g_haltTime     = 0;
 bool     g_dayBanked    = false;
 datetime g_lastSweepTime= 0;
 string   g_status       = "Starting";
@@ -424,6 +429,7 @@ bool RunGuards()
    {
       CloseAll(); DeletePendings();
       g_accHalted = true;
+      g_haltReason = 1; g_haltTime = TimeCurrent();
       GlobalVariableSet(GVName("acc_halt"), 1);
       g_status = "MAX LOSS GUARD hit - EA stopped";
       Print(g_status);
@@ -433,6 +439,7 @@ bool RunGuards()
    {
       CloseAll(); DeletePendings();
       g_accHalted = true;
+      g_haltReason = 2; g_haltTime = TimeCurrent();
       GlobalVariableSet(GVName("acc_halt"), 1);
       g_status = "TARGET reached - EA locked";
       Print(g_status);
@@ -1015,6 +1022,50 @@ void OnDeinit(const int reason)
    if(g_atrHandle != INVALID_HANDLE) IndicatorRelease(g_atrHandle);
    if(InpDiagCSV) DumpDiag();
    if(InpSetupCSV) DumpSetups();
+}
+
+// Optimisation criterion. MT5's built-in choices all rank on profit, Sharpe or
+// drawdown, and none of them describe a prop challenge, where the outcome is
+// binary and asymmetric: reaching the target is a pass, touching the static
+// floor is a dead account that no amount of profit elsewhere makes up for.
+// Ranking a search on "max balance" would hand back the sets that blow up
+// spectacularly in one year and recover in another.
+//
+//   floor hit        -1000      nothing recovers from this
+//   no trades        -2000      worse than losing: it has not been tested
+//   target reached   +1000 and faster is better
+//   neither          the year's return in %, which is 0..10 by construction
+double OnTester()
+{
+   if(HistorySelect(0, TimeCurrent() + 86400))
+   {
+      int deals = 0;
+      int n = HistoryDealsTotal();
+      for(int i = 0; i < n; i++)
+      {
+         ulong t = HistoryDealGetTicket(i);
+         if(t == 0) continue;
+         if(HistoryDealGetInteger(t, DEAL_ENTRY) == DEAL_ENTRY_IN) deals++;
+      }
+      if(deals == 0) return -2000.0;
+   }
+
+   if(g_haltReason == 1) return -1000.0;
+
+   double eq = AccountInfoDouble(ACCOUNT_EQUITY);
+   double pct = (InpInitialBalance > 0) ? (eq - InpInitialBalance) / InpInitialBalance * 100.0 : 0;
+
+   if(g_haltReason == 2)
+   {
+      // Reward reaching it EARLY: a target made in March leaves the rest of
+      // the year free, and in a challenge it is time that costs money.
+      double days = (g_haltTime > 0) ? (double)(g_haltTime - g_dayStart) / 86400.0 : 0;
+      double doy  = 0;
+      MqlDateTime h; TimeToStruct(g_haltTime, h);
+      doy = h.day_of_year;
+      return 1000.0 + (366.0 - doy);
+   }
+   return pct;
 }
 
 void OnTick()
