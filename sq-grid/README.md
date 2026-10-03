@@ -176,3 +176,76 @@ gate_htf_on, gate_conf_on, gate_chop_on, fvg_use_ce, ote_sweet, ote_shift, sweep
 The second block exists so a set can never again be *assumed* to have had a gate enabled -
 the file states it. That is the same lesson as the SR_HTF enum bug: the report echoes the
 `.set` as written, so only the EA can say what it actually used.
+
+---
+
+## Book-grid results, 12 months, M3 and M5
+
+34 passes. 9 of 17 profitable on M3, 8 of 17 on M5.
+
+### The tally caught a dead input in its first run
+
+`BK_ote_sweet`, `BK_ote_shift` and `BK_ote_both` returned **numerically identical** results
+to `BK_base` on M3 (+1794.2, 177 trades), and the tally shows why: `rej_conf` moved from
+421 to 422-423. Three sets, one rejection of difference.
+
+The cause is logic, not the book. `InpConfMinCount=1` means **any one** of sweep / FVG /
+OTE satisfies the gate, so tightening OTE changes nothing unless OTE was the only leg
+passing - which it almost never is. **The OTE rules cannot be tested at `minCount=1`.**
+Testing them needs `InpConfOTE` alone with the other two off, or `minCount=3`.
+
+This is exactly the ambiguity the tally was built for. Without it these three sets would
+have read as "the book's OTE rules make no difference", which is a completely different
+and wrong conclusion.
+
+### Consequent encroachment makes it worse - and that answers the open question
+
+| | M3 net | M3 $/trade | M5 net |
+|---|---|---|---|
+| `BK_base` | +1794.2 | 10.14 | +973.1 |
+| `BK_ce` | +451.1 | 3.44 | **-134.2** |
+| `BK_ce_tight` | +508.4 | 3.94 | **-134.2** |
+
+`rej_conf` rises from 421 to ~1,730, so CE is binding hard - and the trades it keeps are
+worse. **It does not beat the loose test.** I had flagged that if CE won, every earlier
+FVG number in the project would be suspect. It loses, so they stand.
+
+### The Asian range is the one book idea that works
+
+| | M3 net | M3 $/trade | M5 net | M5 $/trade |
+|---|---|---|---|---|
+| `BK_base` | +1794.2 | 10.14 | +973.1 | 7.21 |
+| **`BK_asiasweep`** | **+1999.1** | **11.56** | **+1250.9** | **10.17** |
+
+Best net and best per-trade on **both** timeframes, and `rej_conf` rises 421 -> 605, so it
+is genuinely binding rather than passing everything. Replacing "the lowest low of the last
+20 bars" with **the prior Asian session's low** - a level the book says holds resting
+liquidity - is worth about +14% per trade on M3 and +41% on M5.
+
+`BK_asiasweep_only` (Asian sweep as the *sole* confluence test) is negative on both, so
+the Asian range is a better **pool definition**, not a standalone entry trigger.
+
+### Silver Bullet: one striking result, far too few trades
+
+`BK_sb_london` on M5: **+662.5 over 17 trades, $38.97 each, PF 3.10, 1.19% drawdown** - the
+highest per-trade figure in the grid. On M3 the same set is **-159.7**.
+
+17 trades is not a sample, and a result that flips sign between M3 and M5 is a warning,
+not a finding. The other Silver Bullet windows are negative almost everywhere
+(`BK_sb_nypm` -637 on M3, -355 on M5).
+
+### The dominant filter is still the HTF gate
+
+`rej_htf` is 2,296 of 3,310 crosses on M3 - **69%** - exactly as in SR_HTF, where it was
+79.5%. Whatever else changes, the H1 structure gate is doing most of the selecting.
+
+### What this is worth
+
+`BK_asiasweep` on M3 is +1999 on 25k over twelve months: **~8% a year, 3.44% drawdown, 173
+trades, $7.93 a trading day.** The same order as SR_HTF, from a completely different
+trigger - which is mildly encouraging for the two being combined, and no use at all on its
+own for a $100/day target.
+
+Caveats that matter: one year, `Model=1`, and a 23.7% win rate carried by a 5-level ladder
+running to TP5. The EMA cross has failed out of sample before; this needs 2019-2025 before
+it means anything.

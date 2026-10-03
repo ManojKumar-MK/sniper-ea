@@ -52,7 +52,7 @@
 //|  D1=16408 W1=32769 MN1=49153                                     |
 //+------------------------------------------------------------------+
 #property copyright "Shriram"
-#property version   "1.50"
+#property version   "1.60"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -75,6 +75,15 @@ input int             InpRangeBars    = 30;     // Dealing range length (bars)
 input group "=== LTF Entry (Stop orders) ==="
 input ENUM_TIMEFRAMES InpEntryTF      = PERIOD_M5;
 input int             InpSweepLookback= 20;     // Bars forming the liquidity pool
+// The pool an N-bar extreme picks is a GUESS at where stops are resting. The
+// Asian session high and low are a named level - "their high and low become
+// tomorrow's liquidity", Practical ICT Strategies ch9 p105 - and swapping one
+// for the other was the single best book-derived change in the SniperEntry
+// book grid: best net AND best per-trade on both M3 and M5, +14% and +41% per
+// trade over the N-bar version. This EA's sweep had the same weakness.
+input bool            InpSweepAsianRange = false; // sweep the PRIOR ASIAN RANGE instead of an N-bar extreme
+input int             InpAsiaRangeStart  = 0;     // Asian range start, GMT hour
+input int             InpAsiaRangeEnd    = 5;     // ...and end
 input int             InpSweepWindow  = 12;     // Sweep must be within last N bars
 input double          InpEntryBufPts  = 20;     // Points beyond structure for the stop order
 input double          InpSLBufPts     = 30;     // Points beyond sweep extreme for SL
@@ -505,14 +514,55 @@ void CountToday()
 }
 
 //=================== SETUP DETECTION ===================
+// Most recently COMPLETED Asian range, cached per day. Returns false until one
+// exists, so an EA started mid-session cannot invent a level.
+datetime g_asiaDay = 0;
+double   g_asiaHi  = 0, g_asiaLo = 0;
+bool     g_asiaOk  = false;
+bool AsianRange(double &hi, double &lo)
+{
+   long off = (long)InpServerGMTOffset * 3600;
+   datetime nowG = (datetime)((long)TimeCurrent() - off);
+   MqlDateTime n; TimeToStruct(nowG, n);
+   datetime dayG = (datetime)(((long)nowG / 86400) * 86400);
+   if(n.hour < InpAsiaRangeEnd) dayG -= 86400;      // today's window not finished
+   if(dayG == g_asiaDay) { hi = g_asiaHi; lo = g_asiaLo; return g_asiaOk; }
+
+   double h = -DBL_MAX, l = DBL_MAX; int seen = 0;
+   int bars = (int)MathMin(5000, iBars(_Symbol, InpEntryTF));
+   for(int i = 1; i < bars; i++)
+   {
+      datetime bt = iTime(_Symbol, InpEntryTF, i);
+      if(bt == 0) break;
+      datetime bg = (datetime)((long)bt - off);
+      datetime bday = (datetime)(((long)bg / 86400) * 86400);
+      if(bday > dayG) continue;
+      if(bday < dayG) break;
+      MqlDateTime b; TimeToStruct(bg, b);
+      bool inWin = (InpAsiaRangeStart <= InpAsiaRangeEnd)
+                   ? (b.hour >= InpAsiaRangeStart && b.hour < InpAsiaRangeEnd)
+                   : (b.hour >= InpAsiaRangeStart || b.hour < InpAsiaRangeEnd);
+      if(!inWin) continue;
+      h = MathMax(h, iHigh(_Symbol, InpEntryTF, i));
+      l = MathMin(l, iLow (_Symbol, InpEntryTF, i));
+      seen++;
+   }
+   g_asiaDay = dayG; g_asiaOk = (seen > 0 && h > l);
+   g_asiaHi = h; g_asiaLo = l;
+   hi = h; lo = l;
+   return g_asiaOk;
+}
+
 // Bullish: sweep of M5 sell-side liquidity, entry above prior structure high
 bool FindBullSetup(double &entry, double &sl, datetime &sweepTime)
 {
+   double aHi = 0, aLo = 0;
+   if(InpSweepAsianRange && !AsianRange(aHi, aLo)) return false;
    for(int k = 1; k <= InpSweepWindow; k++)
    {
       int idx = iLowest(_Symbol, InpEntryTF, MODE_LOW, InpSweepLookback, k + 1);
       if(idx < 0) return false;
-      double pool = iLow(_Symbol, InpEntryTF, idx);
+      double pool = InpSweepAsianRange ? aLo : iLow(_Symbol, InpEntryTF, idx);
       double lk   = iLow(_Symbol, InpEntryTF, k);
       double ck   = iClose(_Symbol, InpEntryTF, k);
       if(!(lk < pool && ck > pool)) continue;
@@ -541,11 +591,13 @@ bool FindBullSetup(double &entry, double &sl, datetime &sweepTime)
 // Bearish: sweep of M5 buy-side liquidity, entry below prior structure low
 bool FindBearSetup(double &entry, double &sl, datetime &sweepTime)
 {
+   double aHi = 0, aLo = 0;
+   if(InpSweepAsianRange && !AsianRange(aHi, aLo)) return false;
    for(int k = 1; k <= InpSweepWindow; k++)
    {
       int idx = iHighest(_Symbol, InpEntryTF, MODE_HIGH, InpSweepLookback, k + 1);
       if(idx < 0) return false;
-      double pool = iHigh(_Symbol, InpEntryTF, idx);
+      double pool = InpSweepAsianRange ? aHi : iHigh(_Symbol, InpEntryTF, idx);
       double hk   = iHigh(_Symbol, InpEntryTF, k);
       double ck   = iClose(_Symbol, InpEntryTF, k);
       if(!(hk > pool && ck < pool)) continue;
