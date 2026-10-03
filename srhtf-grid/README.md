@@ -1032,3 +1032,62 @@ on real ticks year by year. **The bar is 6 of 8.**
 
 `RUN_SRHTF_BE` is still the highest-value of the three: it targets a specific, identified
 failure rather than searching.
+
+---
+
+## Mining the old Sniper/Turtle results for something to try on HTF
+
+`turtle-grid/all_results.csv` holds 1,621 runs from the earlier Sniper/Turtle work. With
+the project's own rule applied - **under 30 trades a set has said nothing** - 1,355 remain,
+across four years and three timeframes.
+
+**Nothing in it was positive in every period.** Of 23 configurations tested over 3+ years
+and 6+ period/timeframe combinations, **0 were positive in all of them.** That reproduces
+the null rather than overturning it.
+
+But the data splits cleanly on one thing:
+
+| | total | positive |
+|---|---|---|
+| killzone sets **without** London | **+47,408** | 24/44 (55%) |
+| killzone sets **with** London | **-17,169** | 9/28 (32%) |
+
+| config | periods | positive | median | total |
+|---|---|---|---|---|
+| `KZFN_asia` | 7 | 4 | +662 | **+17,625** |
+| `KZFN_asia_ny` | 11 | 7 | **+902** | **+16,213** |
+| `KZFN_all` | 10 | 3 | -1,225 | +8,272 |
+| `KZFN_ny` | 7 | 5 | +274 | +2,953 |
+| `KZ_ny` | 9 | 5 | +301 | +2,345 |
+| `KZ_london_ny` | 11 | 5 | -509 | -2,181 |
+| `KZFN_asia_london` | 9 | 2 | -1,203 | -5,800 |
+| `KZ_london` | 8 | 2 | -859 | **-9,188** |
+
+**Every London-containing variant lost money overall.** That matches the oldest robust
+finding in this project - the London killzone was positive in only **one year out of
+four**, on all three timeframes - and it was found independently, by a different EA, on
+different runs.
+
+### And SR_HTF's best set has London ON
+
+```
+InpLondon=true  InpLonStart=7  InpLonEnd=10
+InpNY=true      InpNYStart=12  InpNYEnd=15
+InpAsia=true    InpAsiaStart=0 InpAsiaEnd=3
+```
+
+```
+.\RUN_SRHTF_SESS.bat     4 sets x 2019-2026, real ticks, ~10 hours
+```
+
+| set | sessions |
+|---|---|
+| `SESS_ctrl` | London + NY + Asia - `PASS_s1_tgt10` exactly, must reproduce 6/8 |
+| `SESS_no_london` | **Asia + NY** - the hypothesis |
+| `SESS_ny_only` | NY alone |
+| `SESS_asia_only` | Asia alone - the best single old config |
+
+**This is a hypothesis, not a conclusion.** The evidence comes from a *different EA*, and
+the last idea carried across models - the Asian-range sweep, best in the SniperEntry grid
+- took SR_HTF from 6/8 to **0/8**. A component's value has repeatedly turned out to be
+model-specific here, and the only thing that has ever settled it is the test.
