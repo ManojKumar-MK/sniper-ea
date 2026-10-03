@@ -61,6 +61,16 @@ execution.
 |---|---|
 | [ICT_OPTIONS_BACKTEST.md](ICT_OPTIONS_BACKTEST.md) | per-setup entry/SL/target/R, the portfolio layer that applies the live risk caps, money after costs, worst-period ranking, and a parameter grid with a held-out tail |
 | [ICT_OPTIONS_DEPLOY.md](ICT_OPTIONS_DEPLOY.md) | running it unattended on a VPS with Telegram |
+| [OPTION_STRIKE_PICKER.md](OPTION_STRIKE_PICKER.md) | the strike picker, and the Rs5,000/day arithmetic |
+| [CHAIN_RECORDER.md](CHAIN_RECORDER.md) | why no option-chain repo was worth cloning, and what to record instead |
+
+## Pine log vs the EA
+
+[PINE_VS_EA.md](PINE_VS_EA.md) - why the TradingView log reads ~200 pips a day while the
+same signal in MT5 backtests at a median profit factor of 0.990. Short version: the Pine
+files are `indicator()`, not `strategy()`, so no Strategy Tester ever ran, and flipped
+trades are credited at the best target they *touched* rather than the price they closed
+at. One input flips that off.
 
 ## ICT reference
 

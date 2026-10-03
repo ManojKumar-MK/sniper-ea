@@ -154,6 +154,9 @@ CONFIG = {
     "cost_R": 0.12,             # round-trip cost as a fraction of risk_per_trade. CALIBRATE THIS
                                 # from real contract notes: brokerage + STT + exchange + GST +
                                 # the bid/ask you actually cross. 0.12 of Rs2,000 = Rs240/trade.
+    "bt_check_liquidity": False,  # apply the REAL per-day OI from NSE bhavcopy, the
+                                  # filter live applies and the backtest never could.
+                                  # Needs `python3 bhavcopy.py --days 180` first.
     "bt_apply_caps": True,      # enforce max_open / max_trades_per_day / daily_loss_limit in the
                                 # backtest, as live_loop does. Off = count setups the live system
                                 # would have refused, which flatters the result.
@@ -1116,6 +1119,57 @@ def run_backtest(data5, daily_map=None, days=None, prepped=None):
 
 
 # ====================================================== PORTFOLIO LAYER
+def apply_bhav_liquidity(df, bhav, cfg=None):
+    """Reject setups whose ATM strike had too little OI on the day.
+
+    live drops a symbol at 09:20 when its ATM option fails min_oi_lots. The
+    backtest never could, because it had no historical chain - so it traded
+    strikes that may have had no open interest at all, and was optimistic by
+    exactly that set of trades.
+
+    NSE's F&O bhavcopy closes that: it carries OI and lot size per strike per
+    day, archived for years. Measured over 388,036 real rows, only 33% of
+    strikes clear 50 lots - the median strike holds FOUR - so this is not a
+    rounding correction.
+
+    Still end-of-day: it says the strike was liquid that SESSION, not at 10:35.
+    Intraday spread remains the recorder's job.
+    """
+    cfg = cfg or CONFIG
+    if df.empty or bhav is None or bhav.empty:
+        return df
+    # nearest listed strike per (symbol, day), and its OI in lots
+    strikes, liq = {}, {}
+    for r in bhav.itertuples():
+        day = str(r.TradDt)[:10]
+        strikes.setdefault((r.TckrSymb, day), set()).add(float(r.StrkPric))
+        lot = r.NewBrdLotQty or 0
+        liq[(r.TckrSymb, day, float(r.StrkPric), r.OptnTp)] = (
+            (r.OpnIntrst / lot) if lot else 0.0)
+
+    out = df.copy()
+    need = cfg["min_oi_lots"]
+    dropped = 0
+    for i, row in out.iterrows():
+        if row["status"] not in ("closed", "pending", "filled"):
+            continue
+        key = (row["sym"], str(row["date"])[:10])
+        ks = strikes.get(key)
+        if not ks:
+            continue                      # no chain that day - leave it alone
+        atm = min(ks, key=lambda k: abs(k - row["entry"]))
+        side = "CE" if row["dir"] == "CE" else "PE"
+        lots = liq.get((row["sym"], key[1], atm, side), 0.0)
+        if lots < need:
+            out.at[i, "status"] = "rejected"
+            out.at[i, "reason"] = f"illiquid strike ({lots:.0f} lots < {need})"
+            out.at[i, "R"] = None
+            dropped += 1
+    if dropped:
+        print(f"  bhavcopy liquidity: {dropped} setups rejected for OI < {need} lots")
+    return out
+
+
 def portfolio_sim(df, cfg=None):
     """Turn a pile of per-symbol setups into what ONE account would have done.
 
@@ -2135,6 +2189,20 @@ def run_grid(data5, daily_map, days, oos_frac=0.3, out=None, grid=None):
     nsess = {"is": sum(1 for d in all_days if d < cut),
              "oos": sum(1 for d in all_days if d >= cut)}
 
+    # Bhavcopy once, outside the loop. 4M rows is slow to index and does not
+    # change between combinations.
+    bhav = None
+    if CONFIG["bt_check_liquidity"]:
+        import importlib.util as _il, os as _os
+        _sp = _il.spec_from_file_location("bhavcopy", _os.path.join(
+            _os.path.dirname(_os.path.abspath(__file__)), "bhavcopy.py"))
+        _bh = _il.module_from_spec(_sp); _sp.loader.exec_module(_bh)
+        from datetime import date as _date, timedelta as _td
+        print("loading bhavcopy for the liquidity filter...", flush=True)
+        bhav = _bh.load_range(_date.today() - _td(days=int((days or 120) * 1.6)),
+                              _date.today(), quiet=True)
+        print(f"  {len(bhav):,} option rows", flush=True)
+
     print("preparing data once for all combinations...", flush=True)
     prepped = prepare(data5, daily_map, days)
     nday = sum(len(v) for v in prepped.values())
@@ -2148,6 +2216,10 @@ def run_grid(data5, daily_map, days, oos_frac=0.3, out=None, grid=None):
             for k, v in zip(keys, combo):
                 CONFIG[k] = GRID_PRESETS[k][v] if k in GRID_PRESETS else v
             df = run_backtest(data5, daily_map, days, prepped=prepped)
+            if bhav is not None and len(bhav):
+                import contextlib, io as _io
+                with contextlib.redirect_stdout(_io.StringIO()):   # per-combo line is noise
+                    df = apply_bhav_liquidity(df, bhav)
             rec = dict(zip(keys, combo))
             for tag, sel in (("is", df["date"] < cut), ("oos", df["date"] >= cut)):
                 sub = portfolio_sim(df[sel], CONFIG)
@@ -2200,6 +2272,9 @@ def main():
                     help="'fno' = every stock with listed options (213), discovered from "
                          "the scrip master. The frequency lever: 8.5x the hand-written list.")
     ap.add_argument("--no-cache", action="store_true", help="always re-pull from the API")
+    ap.add_argument("--liquidity", action="store_true",
+                    help="apply the real per-day OI from NSE bhavcopy - the filter live "
+                         "applies and the backtest otherwise cannot")
     ap.add_argument("--csv-dir")
     ap.add_argument("--out", default=None, help="write setups CSV here")
     ap.add_argument("--oos", type=float, default=0.3, help="grid: fraction of sessions held out")
@@ -2213,6 +2288,8 @@ def main():
     a = ap.parse_args()
     if a.symbols:
         CONFIG["universe"] = [x.strip().upper() for x in a.symbols.split(",")]
+    if getattr(a, "liquidity", False):
+        CONFIG["bt_check_liquidity"] = True
 
     if a.mode in ("demo", "backtest", "grid"):
         daily_map = None
@@ -2250,6 +2327,13 @@ def main():
                      oos_frac=a.oos, out=a.out, grid=g)
             return
         res = run_backtest(data, daily_map, a.days if a.mode == "backtest" else None)
+        if CONFIG["bt_check_liquidity"]:
+            import importlib.util as _il
+            _sp = _il.spec_from_file_location("bhavcopy", os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "bhavcopy.py"))
+            _bh = _il.module_from_spec(_sp); _sp.loader.exec_module(_bh)
+            d0 = date.today() - timedelta(days=int((a.days or 120) * 1.6))
+            res = apply_bhav_liquidity(res, _bh.load_range(d0, date.today(), quiet=True))
         report(res)
         report_portfolio(res)
         out = a.out or os.path.join(CONFIG["data_dir"], f"backtest_{a.mode}_{date.today():%Y%m%d}.csv")

@@ -233,3 +233,87 @@ out of 192, that is the null result reproducing, not a discovery.
 The reason to run it anyway is that the question is not identical. There they were gates
 on a zero-edge trigger; here they are ranking components, and the binding constraint is
 frequency rather than selectivity.
+
+---
+
+# The liquidity filter, and the indicator null
+
+## `--liquidity`
+
+```
+python3 bhavcopy.py --days 180                            # once
+python3 ict_options.py backtest --days 120 --liquidity
+python3 ict_options.py grid --days 120 --oos 0.3 --liquidity
+```
+
+Applies the **real per-day open interest** from NSE's F&O bhavcopy - the `min_oi_lots`
+filter live has always applied and the backtest could not. Across 388,036 real rows only
+**33% of strikes clear 50 lots; the median holds four**, so this is not a small
+correction. See [CHAIN_RECORDER.md](CHAIN_RECORDER.md).
+
+Bhavcopy is loaded **once** per grid, outside the combination loop - 4M rows is slow to
+index and does not vary between combinations.
+
+## The indicator grid: the null reproduced
+
+192 combinations of the six score components at three thresholds, **18 positive out of
+sample (9%)** - indistinguishable from the 162-combination tuning grid's 10%, and far
+below the ~50% that pure noise would give.
+
+This was predicted in writing before the run: ~1,500 gold backtests had already found
+added indicator filters monotonically worse. Volume, EMA, EMA stack, RSI, VWAP and ATR
+expansion add nothing here, in any combination, at any threshold.
+
+Worth noting what the top rows look like - in-sample trade counts of 3 to 10. At
+`min_score_frac=0.75` the filter is so strict that a "winning" combination is three
+trades. That is not an edge, it is an empty sample, and it is why the out-of-sample
+column is the only one read.
+
+---
+
+# ICT re-run with the real liquidity filter: the model is not evaluable
+
+The 162-combination grid, re-run with the per-day OI the live system applies.
+
+| | without filter | **with real OI** |
+|---|---|---|
+| positive in sample | 76/162 (47%) | **133/162 (82%)** |
+| positive out of sample | 16/162 (10%) | **9/162 (6%)** |
+| IS->OOS correlation | +0.098 | **+0.069** |
+| 20 best in-sample, positive out | 1/20, mean -Rs6,144 | 1/20, mean **-Rs9,441** |
+
+The filter does what it should: in-sample positives jump from 47% to **82%**, because the
+trades it removes were genuinely losing ones in strikes with no open interest. My earlier
+single-config result - expectancy flipping from -0.072R to +0.036R - holds across the
+grid.
+
+**And out of sample it gets worse, not better.** 6% positive, correlation 0.069, and of
+the twenty best in-sample combinations exactly one is positive out of sample.
+
+## Why the grid can no longer answer the question
+
+| min_score | OOS trades (mean) | OOS positive |
+|---|---|---|
+| 5 | 15.4 | 2/54 |
+| 6 | 8.5 | 7/54 |
+| 7 | **3.7** | **0/54** |
+
+The filter cut ICT to **0.28 trades a day**. Over 120 sessions split 70/30, that leaves
+**four to fifteen out-of-sample trades per combination.** Nothing can be concluded from
+that - not profit, not loss, not noise. The top out-of-sample row is 11 trades at a 36%
+win rate.
+
+So the finding is not "ICT loses". It is that **ICT at this frequency cannot be
+evaluated**, and the earlier "16 of 162" verdict was no better founded than this one.
+Both are small-sample artefacts dressed as results.
+
+## What that leaves
+
+ORB is the only model here with enough trades to measure: **6.62 a day** after the same
+liquidity filter, against ICT's 0.28. That is ~24x the sample for the same 120 sessions,
+and it is the grid currently running.
+
+Frequency was never only about reaching Rs5,000 a day. **It is what makes a backtest
+mean anything at all.** A system taking 0.28 trades a day cannot be validated inside a
+human timeframe, whatever its edge - and that is a reason to reject it independent of
+whether it makes money.

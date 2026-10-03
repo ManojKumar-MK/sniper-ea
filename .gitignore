@@ -67,3 +67,9 @@ ict_data/
 
 # fetched candle cache
 ict_data/cache/
+
+# recorded option chains - data, not code
+ict_data/chains/
+
+# bhavcopy parquet cache
+ict_data/bhav/

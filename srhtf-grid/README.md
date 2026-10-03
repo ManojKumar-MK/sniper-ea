@@ -1091,3 +1091,45 @@ InpAsia=true    InpAsiaStart=0 InpAsiaEnd=3
 the last idea carried across models - the Asian-range sweep, best in the SniperEntry grid
 - took SR_HTF from 6/8 to **0/8**. A component's value has repeatedly turned out to be
 model-specific here, and the only thing that has ever settled it is the test.
+
+---
+
+## Session grid result: dropping London makes SR_HTF worse
+
+32 real-tick passes, `results_<year>_M5_sess/`.
+
+| set | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 | result |
+|---|---|---|---|---|---|---|---|---|---|
+| `SESS_ctrl` (L+NY+Asia) | -1502 | **+2498** | **+2497** | -1503 | **+2498** | **+2501** | **+2497** | **+2511** | **6/8** |
+| `SESS_no_london` | -1503 | **+2498** | **+2497** | -1506 | **+2500** | **+2497** | **-1502** | **+2501** | 5/8, 3 dead |
+| `SESS_ny_only` | -1504 | **+2498** | -1503 | -864 | **+2498** | -1504 | -1502 | **+2512** | 3/8, 4 dead |
+| `SESS_asia_only` | -245 | -1326 | **+2496** | -844 | **+2497** | **+2500** | +336 | -1166 | 3/8 |
+
+The control reproduces `PASS_s1_tgt10` exactly, so the comparison is sound.
+
+**Dropping London costs a year.** `SESS_no_london` loses 2025, which goes from +2497 on 12
+trades to **-1502 on 36**. Asia alone never blows up but almost never arrives. NY alone is
+the worst of the four.
+
+The hypothesis came from 1,355 Sniper/Turtle runs where every London-containing
+configuration lost money overall (-17,169 against +47,408 without). It did not survive
+contact with this EA.
+
+### Three for three: component value does not transfer here
+
+| idea | where it won | on SR_HTF |
+|---|---|---|
+| Asian-range sweep | best in the SniperEntry book grid, both timeframes | **6/8 -> 0/8** |
+| drop London | +47,408 vs -17,169 across 1,355 Sniper/Turtle runs | **6/8 -> 5/8** |
+| 50% scale-out + ATR trail | best set of the 41-set v4 grid | blew **2 of 4** real-tick years |
+
+Each was well-motivated, each was backed by real evidence from a real system, and each
+made this EA worse. That is now a pattern rather than three coincidences: **an edge
+component is a property of the whole model, not of the market**, and the only thing that
+has ever settled a transfer is running it.
+
+Worth stating the cost: those three tests took roughly 70 real-tick passes. The pattern
+is the return on them - it says to stop reasoning about which idea *should* carry across
+and to test cheaply and early instead, which is what the Model=1 screens are for.
+
+`PASS_s1_tgt10` at 6/8 remains unbeaten after four attempts to improve it.
