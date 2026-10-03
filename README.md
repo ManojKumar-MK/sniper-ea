@@ -193,6 +193,24 @@ committed (a `.gitignore` rule — check `git ls-files`), or the path was wrong.
 writes a full `.htm` report per run into `results_<year>_<TF>/` — commit those and they
 can be parsed for the table.
 
+## Everything outstanding on gold, one click
+
+```
+.\RUN_ALL.bat        ~13-17 hours, resumable
+```
+
+| step | what | time |
+|---|---|---|
+| 1 | break-even variants on 2019 + 2022, **real ticks** | ~3 h |
+| 2 | structure screen, 13 sets x 8 years, fast model | ~3 h |
+| 3 | COMBO2 genetic, 92,160 combinations | ~2-6 h |
+| 4 | full-year rate with no target lock, **real ticks** | ~5 h |
+
+Ordered by what the answer is worth. Step 1 is the only hypothesis left that came from
+SR_HTF's own failures rather than another model, and transferred ideas have failed 3 of 3.
+Step 3 writes to the tester's Optimization Results tab, **not to files** - export it by
+hand or the hours leave no record.
+
 ## Everything outstanding, one click
 
 ```
